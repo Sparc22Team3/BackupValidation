@@ -3,6 +3,7 @@ package com.example.myapp;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import software.amazon.awssdk.services.backup.BackupClient;
@@ -14,7 +15,6 @@ import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVa
 import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
-import software.amazon.awssdk.services.ec2.Ec2Client;
 
 /**
  * Class used to initiate restore of most recent EC2
@@ -22,76 +22,86 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 public class SparcRestore {
 
     BackupClient client; 
-    Ec2Client ec2client; 
+    String backupVaultName;
+    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
 
-    public SparcRestore(BackupClient client, Ec2Client e2client){
+    public SparcRestore(BackupClient client, String backupVaultName){
 
         this.client = client; 
-        this.ec2client = e2client; 
+        this.backupVaultName = backupVaultName;
+        this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
     }
     
     /**
-     * Method takes in the vault name and the desired backup number and returns the backup information for restore. 
+     * Method gets a list of backup restore points from backup vault and populates a sorted data structure. 
      * @param backupVaultName
-     * @param targetBackup //0-11 where 0 is the most recent backup.
      * @return
      * 
-     * TO DO: ADD FUNCTIONALITY TO CHOOSE ANY BACKUP
      */
-    public RecoveryPointByBackupVault getMostRecentRecoveryPoint(String backupVaultName, int mostRecentBackup){
+    public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
+        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<Instant, RecoveryPointByBackupVault>();
+        
         //call and response with amazon to get list of vault backups
-        ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().backupVaultName(backupVaultName).build();
+        ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().
+        backupVaultName(backupVaultName).build();
+        
         ListRecoveryPointsByBackupVaultResponse response = client.listRecoveryPointsByBackupVault(request); 
 
-        //convert string to datetime. Set max to initial value and iterate through rest of list
-        Instant mostRecent = null;
-        software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault instance = null; 
-
-        //NEED TO EXTEND TO CHOOSE ANY OF THE 24 backups
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
 
-            if (mostRecent == null){
-
-                mostRecent = r.completionDate(); 
-                instance = r; 
-            }
-
-            else{
-
-                if(mostRecent.compareTo(r.completionDate()) < 0){
-
-                    mostRecent = r.completionDate();
-                    instance = r; 
-                }
-            }
+            output.put(r.completionDate(), r); 
         }
 
-        return instance; 
+        return output; 
+    }
+
+    /**
+     * Return most recent recovery point from vault. 
+     * @return
+     * @throws Exception
+     */
+
+    public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
+
+        if (recoveryNumber > recoveryPoints.size()){
+
+            throw new Exception("Recovery Points Exhausted"); 
+
+        }
+
+        return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]); 
     }
 
     /**
      * Given a recovery point, the function initates the recovery given a recovery point. 
      * @param recoveryPoint
      * @return
+     * @throws Exception
      */
-    public String restoreResource(String backupVaultName, int mostRecentBackup){
-
-        RecoveryPointByBackupVault recoveryPoint = getMostRecentRecoveryPoint(backupVaultName, 0);
-        Map<String, String> raw = getRecoveryMeta(recoveryPoint, backupVaultName);
+    public String restoreResource(int recoveryNumber) throws Exception{
+        
+        RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
+        Map<String, String> raw = getRecoveryMetaData(recoveryPoint);
         Map<String, String> metadata = editRecoveryMeta(raw);
         
         StartRestoreJobRequest request = StartRestoreJobRequest.builder().
-        recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn()).metadata(metadata).build();
+        recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
+        .metadata(metadata).build();
+        
         StartRestoreJobResponse response = client.startRestoreJob(request); 
 
         return response.restoreJobId(); 
 
     }
 
-
-    public  Map<String, String> getRecoveryMeta(RecoveryPointByBackupVault recoveryPoint, String backupVaultName){
+    /**
+     * Gets meta data of recovery point for restore job request. 
+     * @param recoveryPoint
+     * @return
+     */
+    public  Map<String, String> getRecoveryMetaData(RecoveryPointByBackupVault recoveryPoint){
 
         Map<String, String> output;
 
@@ -100,11 +110,21 @@ public class SparcRestore {
         GetRecoveryPointRestoreMetadataResponse response = client.getRecoveryPointRestoreMetadata(request);
 
         //Modify network settings
-        output = response.restoreMetadata();
+        output = response.restoreMetadata(); //this becomes immutable? Remove gets angry.
 
         return output; 
         
     }
+
+    /**
+     * Solves issue with meta data where restore job request does not work with 
+     * NetworkInterfaces if security group and subnet are specified. 
+     * 
+     * Also CpuOptions causes restore job request to fail. 
+     * 
+     * @param metaData
+     * @return
+     */
 
     public Map<String, String> editRecoveryMeta(Map<String, String> metaData){
 
@@ -119,17 +139,8 @@ public class SparcRestore {
                 output.put(entry.getKey(), entry.getValue()); 
             }
 
-            else{
-
-                //output.put("NetworkInterfaces", "[{\"DeleteOnTermination\":true,\"Description\":\"\",\"DeviceIndex\":0,\"Groups\":[\"sg-0604682d854c1826a\"],\"Ipv6AddressCount\":0,\"Ipv6Addresses\":[],\"PrivateIpAddresses\":[{\"Primary\":true,\"PrivateIpAddress\":\"10.0.4.249\"}],\"SecondaryPrivateIpAddressCount\":1,\"SubnetId\":\"subnet-0c36c936e9f92c98c\",\"InterfaceType\":\"interface\"}]");
-                continue;
-
-            }
-            
         }
 
         return output; 
-
     }
-    
 }
