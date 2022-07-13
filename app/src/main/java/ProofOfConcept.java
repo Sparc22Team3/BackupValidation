@@ -31,17 +31,48 @@ public class ProofOfConcept {
             Region region = Region.US_EAST_1;
             BackupClient client =  BackupClient.builder().region(region).build();
 
-            //Build request object
-            ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().backupVaultName("ec2sparcvault").build();
+            //Build request object for EC2 and RDS
+            ListRecoveryPointsByBackupVaultRequest  requestEC2 = ListRecoveryPointsByBackupVaultRequest.builder().backupVaultName("ec2sparcvault").build();
+            ListRecoveryPointsByBackupVaultRequest  requestRDS = ListRecoveryPointsByBackupVaultRequest.builder().backupVaultName("rdssparcvault").build();
+            ListRecoveryPointsByBackupVaultRequest  requestS3 = ListRecoveryPointsByBackupVaultRequest.builder().backupVaultName("s3sparcvault").build();
 
-            //build response object
-            ListRecoveryPointsByBackupVaultResponse response = client.listRecoveryPointsByBackupVault(request);
+            //build response object for EC2 and RDS
+            ListRecoveryPointsByBackupVaultResponse responseEC2 = client.listRecoveryPointsByBackupVault(requestEC2);
+            ListRecoveryPointsByBackupVaultResponse responseRDS = client.listRecoveryPointsByBackupVault(requestRDS);
+            ListRecoveryPointsByBackupVaultResponse responseS3 = client.listRecoveryPointsByBackupVault(requestS3);
 
-            System.out.println("Printing list of size:" + response.recoveryPoints().size());
+            System.out.printf("%n");
+            System.out.println("-------- EC2 Backups --------");
+            System.out.println("Printing EC2 list of size:" + responseEC2.recoveryPoints().size());
             System.out.printf("%n");
 
             //Iterate through the response backup selections list, print
-            for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
+            for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: responseEC2.recoveryPoints()){
+
+                System.out.println(r.toString());
+                System.out.printf("%n");
+
+            }
+
+            System.out.printf("%n");
+            System.out.println("-------- RDS Backups --------");
+            System.out.println("Printing RDS list of size:" + responseRDS.recoveryPoints().size());
+            System.out.printf("%n");
+
+            for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: responseRDS.recoveryPoints()){
+
+                System.out.println(r.toString());
+                System.out.printf("%n");
+
+            }
+
+            System.out.printf("%n");
+            System.out.println("-------- S3 Backups --------");
+            System.out.println("Printing S3 list of size:" + responseS3.recoveryPoints().size());
+            System.out.printf("%n");
+
+            //Iterate through the response backup selections list, print
+            for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: responseS3.recoveryPoints()){
 
                 System.out.println(r.toString());
                 System.out.printf("%n");
