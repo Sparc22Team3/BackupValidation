@@ -90,7 +90,7 @@ public class SparcRestore {
         
         StartRestoreJobResponse response = client.startRestoreJob(request); 
 
-        return response.restoreJobId(); 
+        return response.restoreJobId();
 
     }
 

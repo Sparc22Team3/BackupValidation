@@ -46,6 +46,10 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>backup</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ec2</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
