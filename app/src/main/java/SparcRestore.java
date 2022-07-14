@@ -49,8 +49,6 @@ public class SparcRestore {
 
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
 
-            System.out.print(r); 
-            
             output.put(r.completionDate(), r); 
         }
 
@@ -65,15 +63,12 @@ public class SparcRestore {
 
     public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
 
-        System.out.println(recoveryPoints.size());
-
-        
         if (recoveryNumber > recoveryPoints.size()){
 
-            throw new Exception("Recovery Points Exhausted: " + recoveryPoints.size()); 
-
+            throw new Exception("Recovery Points Exhausted"); 
 
         }
+        
         return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]); 
     }
 
