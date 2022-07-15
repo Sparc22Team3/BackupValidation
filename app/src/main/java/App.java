@@ -3,9 +3,7 @@
 import java.io.IOException;
 
 //import com.example.rds.RDSRestore;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
 
@@ -40,8 +38,10 @@ public class App {
 
             RDSRestore rdsRestore = new RDSRestore(rdsClient, "rdssparcvault");
 
-            rdsRestore.describeInstances(rdsClient);
-            rdsRestore.restoreResource(0) ;
+            rdsRestore.describeSnapshots(rdsClient);
+            // rdsRestore.restoreResource("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-685723b2-f0b1-b990-7428-5cb3f804a7d6");
+            rdsRestore.restoreResource();
+
 
             rdsClient.close();
 
@@ -49,10 +49,12 @@ public class App {
         } catch(BackupException e){
 
             System.err.println(e.awsErrorDetails().errorMessage());
+            e.printStackTrace();
             System.exit(1);
         } catch (Exception e) {
 
             System.err.println("Recovery Points Exhausted");
+            e.printStackTrace();
             System.exit(1);
 
         }

@@ -6,6 +6,7 @@
 //package com.example.rds;
 
 // snippet-start:[rds.java2.describe_instances.import]
+import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -13,8 +14,6 @@ import software.amazon.awssdk.services.rds.model.*;
 
 import java.util.List;
 import java.util.function.Consumer;
-// snippet-end:[rds.java2.describe_instances.import]
-
 
 public class RDSRestore {
 
@@ -26,24 +25,43 @@ public class RDSRestore {
         this.backupVaultName = backupVaultName;
     }
 
-    public String restoreResource(int recoveryPoint) {
+    // public String restoreResource(String arn) {
+    public String restoreResource() {
 
         // If you are restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
 
-        StartRestoreJobRequest request = StartRestoreJobRequest
+/**        StartRestoreJobRequest r = StartRestoreJobRequest
                 .builder()
-                .recoveryPointArn("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-43482459-397a-8939-a116-353685d5d075")
+                .recoveryPointArn(arn)
+                //.recoveryPointArn("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-43482459-397a-8939-a116-353685d5d075")
                 .iamRoleArn("arn:aws:iam::490610433117:role/service-role/AWSBackupDefaultServiceRole")
                 .build();
+        StartRestoreJobResponse s = rdsClient.startDBInstanceAutomatedBackupsReplication(r)
+                .builder()
+                .build();
+ */
 
-         RestoreDbInstanceFromDbSnapshotRequest.Builder request1 = RestoreDbInstanceFromDbSnapshotRequest.builder().dbInstanceIdentifier("restoreInstance").dbSnapshotIdentifier("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-43482459-397a-8939-a116-353685d5d075");
-         RestoreDbInstanceFromDbSnapshotResponse response1 = rdsClient.restoreDBInstanceFromDBSnapshot((Consumer<RestoreDbInstanceFromDbSnapshotRequest.Builder>) request1);
+         RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
+                 .builder()
+                 .dbInstanceIdentifier("database-test-2-DELETE")
+                 .dbSnapshotIdentifier("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-527630e8-9d40-091d-7f0e-1037b90c4025")
+                 .build();
 
+         RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
 
-        return response1.toString();
+         System.out.println(" RESPONSE :: " + response.toString());
+         System.out.println(" INSTANCE :: " + response.dbInstance());
+         System.out.println(" RESPONSE META-DATA REQUEST ID :: " + response.responseMetadata().requestId());
+         // System.out.println(" RESPONSE META-DATA :: " + response.responseMetadata().toString());
+
+        //return response1.dbInstance();
+        //return response1.responseMetadata();
+        return response.toString();
     }
 
-    public void describeInstances(RdsClient rdsClient) {
+    /** modified from:
+     * https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javav2/example_code/rds/src/main/java/com/example/rds/DescribeDBInstances.java */
+    public void describeSnapshots(RdsClient rdsClient) {
 
         try {
             DescribeDbSnapshotsResponse requestS = rdsClient.describeDBSnapshots();
@@ -57,6 +75,7 @@ public class RDSRestore {
                 System.out.println("DB instance identifier is " +snapshot.dbInstanceIdentifier());
             }
 
+            // describe the RDS instance
             DescribeDbInstancesResponse responseI = rdsClient.describeDBInstances();
             List<DBInstance> instanceList = responseI.dbInstances();
             for (DBInstance instance: instanceList) {
@@ -70,7 +89,38 @@ public class RDSRestore {
             System.exit(1);
         }
     }
-    // snippet-end:[rds.java2.describe_instances.main]
+
+    /** modified from:
+     * https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javav2/example_code/rds/src/main/java/com/example/rds/ModifyDBInstance.java */
+    public  void updateDbName(RdsClient rdsClient, String dbInstanceIdentifier) {
+
+        try {
+            ModifyDbInstanceRequest request = ModifyDbInstanceRequest
+                    .builder()
+                    .dbInstanceIdentifier(dbInstanceIdentifier)
+                    .build();
+
+            ModifyDbInstanceResponse response = rdsClient.modifyDBInstance(request);
+            System.out.print("The ARN of the modified database is: " +response.dbInstance().dbInstanceArn());
+
+        } catch (RdsException e) {
+            System.out.println(e.getLocalizedMessage());
+            System.exit(1);
+        }
+    }
+
+    /**
+    public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
+
+        if (recoveryNumber > recoveryPoints.size()){
+
+            throw new Exception("Recovery Points Exhausted");
+
+        }
+
+        return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
+    }
+     */
 }
 
 //restore job
