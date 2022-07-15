@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 import software.amazon.awssdk.services.backup.BackupClient;
 
@@ -15,6 +16,9 @@ import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVa
 import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
+import software.amazon.awssdk.services.rds.model.RdsRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotResponse;
 
 /**
  * Class used to initiate restore of most recent EC2
@@ -50,7 +54,6 @@ public class SparcRestore {
         ListRecoveryPointsByBackupVaultResponse response = client.listRecoveryPointsByBackupVault(request);
 
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
-
             output.put(r.completionDate(), r);
         }
 
@@ -85,6 +88,35 @@ public class SparcRestore {
         RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         Map<String, String> raw = getRecoveryMetaData(recoveryPoint);
         Map<String, String> metadata = editRecoveryMeta(raw);
+
+        //restore job
+        // ?? // client.startRestoreJob(StartRestoreJobRequest.builder().build());
+        // RestoreDBInstanceFromDBSnapshot(nameOfDB); can that parameter be a new name b/c not replacing?
+
+        // https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/rds/model/RestoreDBInstanceFromDBSnapshotRequest.html
+        // RestoreDBInstanceFromDBSnapshotRequest(String restored_DB, client.getDBInstanceIdentifier());
+
+         //StartRestoreJobRequest.Builder r = StartRestoreJobRequest.builder().recoveryPointArn(String.valueOf(recoveryPoint));
+        //StartRestoreJobRequest r = StartRestoreJobRequest.builder().recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
+          //      .metadata(metadata).build();
+
+        // default StartRestoreJobResponse startRestoreJob(StartRestoreJobRequest startRestoreJobRequest)
+/**
+        RestoreDBInstanceFromDBSnapshotRequest restoreDBInstanceRequest = new RestoreDBInstanceFromDBSnapshotRequest();
+        restoreDBInstanceRequest.setDBSnapshotIdentifier("restoredDB");
+        restoreDBInstanceRequest.setDBName(rdsDev);
+        restoreDBInstanceRequest.setDBSubnetGroupName(subnetGroup);
+        restoreDBInstanceRequest.setAvailabilityZone(availabilityZone);
+        this.rds.restoreDBInstanceFromDBSnapshot(restoreDBInstanceRequest);
+
+
+        String arn = String.valueOf(recoveryPoint);
+        RestoreDBInstanceFromDBSnapshotRequest request = new RestoreDbInstanceFromDbSnapshotRequest();
+        RestoreDbInstanceFromDbSnapshotRequest.Builder restoredDB = RestoreDbInstanceFromDbSnapshotRequest.builder().dbInstanceIdentifier("restoredDB");
+
+        StartRestoreJobResponse response = client.startRestoreJob((Consumer<StartRestoreJobRequest.Builder>) restoredDB);
+        return response.restoreJobId();
+*/
 
         StartRestoreJobRequest request = StartRestoreJobRequest.builder().
                 recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
