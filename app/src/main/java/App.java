@@ -2,9 +2,12 @@
 
 import java.io.IOException;
 
+//import com.example.rds.RDSRestore;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
+import software.amazon.awssdk.services.rds.RdsClient;
 
 //BACKUP Plan IDs
 
@@ -17,15 +20,30 @@ public class App {
 
         try{
 
-            Region region = Region.US_EAST_1;
-            BackupClient client =  BackupClient.builder().region(region).build();
+/**            Region region = Region.US_EAST_1;
+            BackupClient client =  BackupClient.builder()
+                    .region(region).build();
 
-            SparcRestore restore = new SparcRestore(client, "rdssparcvault");
+            SparcRestore restore = new SparcRestore(client, "ec2sparcvault");
 
             restore.restoreResource(0);
 
             //close connection
             client.close();
+ */
+
+            Region region = Region.US_EAST_1;
+            RdsClient rdsClient = RdsClient.builder()
+                    .region(region)
+                  //  .credentialsProvider(ProfileCredentialsProvider.create())
+                    .build();
+
+            RDSRestore rdsRestore = new RDSRestore(rdsClient, "rdssparcvault");
+
+            rdsRestore.describeInstances(rdsClient);
+            rdsRestore.restoreResource(0) ;
+
+            rdsClient.close();
 
 
         } catch(BackupException e){

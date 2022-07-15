@@ -89,35 +89,6 @@ public class SparcRestore {
         Map<String, String> raw = getRecoveryMetaData(recoveryPoint);
         Map<String, String> metadata = editRecoveryMeta(raw);
 
-        //restore job
-        // ?? // client.startRestoreJob(StartRestoreJobRequest.builder().build());
-        // RestoreDBInstanceFromDBSnapshot(nameOfDB); can that parameter be a new name b/c not replacing?
-
-        // https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/rds/model/RestoreDBInstanceFromDBSnapshotRequest.html
-        // RestoreDBInstanceFromDBSnapshotRequest(String restored_DB, client.getDBInstanceIdentifier());
-
-         //StartRestoreJobRequest.Builder r = StartRestoreJobRequest.builder().recoveryPointArn(String.valueOf(recoveryPoint));
-        //StartRestoreJobRequest r = StartRestoreJobRequest.builder().recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
-          //      .metadata(metadata).build();
-
-        // default StartRestoreJobResponse startRestoreJob(StartRestoreJobRequest startRestoreJobRequest)
-/**
-        RestoreDBInstanceFromDBSnapshotRequest restoreDBInstanceRequest = new RestoreDBInstanceFromDBSnapshotRequest();
-        restoreDBInstanceRequest.setDBSnapshotIdentifier("restoredDB");
-        restoreDBInstanceRequest.setDBName(rdsDev);
-        restoreDBInstanceRequest.setDBSubnetGroupName(subnetGroup);
-        restoreDBInstanceRequest.setAvailabilityZone(availabilityZone);
-        this.rds.restoreDBInstanceFromDBSnapshot(restoreDBInstanceRequest);
-
-
-        String arn = String.valueOf(recoveryPoint);
-        RestoreDBInstanceFromDBSnapshotRequest request = new RestoreDbInstanceFromDbSnapshotRequest();
-        RestoreDbInstanceFromDbSnapshotRequest.Builder restoredDB = RestoreDbInstanceFromDbSnapshotRequest.builder().dbInstanceIdentifier("restoredDB");
-
-        StartRestoreJobResponse response = client.startRestoreJob((Consumer<StartRestoreJobRequest.Builder>) restoredDB);
-        return response.restoreJobId();
-*/
-
         StartRestoreJobRequest request = StartRestoreJobRequest.builder().
                 recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
                 .metadata(metadata).build();
