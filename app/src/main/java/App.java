@@ -6,6 +6,8 @@ import java.io.IOException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
+import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
 
 //BACKUP Plan IDs
 
@@ -38,10 +40,9 @@ public class App {
 
             RDSRestore rdsRestore = new RDSRestore(rdsClient, "rdssparcvault");
 
-            rdsRestore.describeSnapshots(rdsClient);
+            // rdsRestore.describeSnapshots(rdsClient);
             // rdsRestore.restoreResource("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-685723b2-f0b1-b990-7428-5cb3f804a7d6");
-            rdsRestore.restoreResource();
-
+             rdsRestore.restoreResource();
 
             rdsClient.close();
 
