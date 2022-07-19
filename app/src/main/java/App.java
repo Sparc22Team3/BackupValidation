@@ -32,14 +32,14 @@ public class App {
 
       S3Restore s3Restore = new S3Restore(client, "s3sparcvault"); 
 
-      String restoreJobId = s3Restore.restoreS3Resource(8);
+      String restoreJobId = s3Restore.restoreS3Resource(0);
 
       System.out.println("Starting restore job: " + restoreJobId);
 
       //Wait for restore to provide ID of EC2 instance it created
       int attempts = 0; 
       String resourceARN = "NULL"; 
-      while(attempts < 50){
+      while(attempts < 5){
 
         try{
 
@@ -52,6 +52,19 @@ public class App {
           if(restoreResult.status().toString() == "COMPLETED"){
             System.out.println(restoreResult.toString()); 
             resourceARN = restoreResult.createdResourceArn();
+
+            Pattern pattern = Pattern.compile("\\w+\\d+$");
+            Matcher matcher = pattern.matcher(resourceARN.toString()); 
+            String instanceId = ""; 
+            
+            if(matcher.find()){
+      
+              instanceId = matcher.group(); 
+      
+            }
+      
+            System.out.println("Creating S3 Instance With ID: " + instanceId); 
+
             break; 
           }
 
@@ -63,23 +76,10 @@ public class App {
           System.exit(1); 
 
         }
-        Thread.sleep(600000);
+        Thread.sleep(500000); // Takes about 8min for an S3 bucket to be restored
         attempts++; 
       }
 
-      Pattern pattern = Pattern.compile("i-\\w+");
-      Matcher matcher = pattern.matcher(resourceARN.toString()); 
-      String instanceId = ""; 
-      
-      if(matcher.find()){
-
-        instanceId = matcher.group(); 
-
-      }
-
-      System.out.println("Creating S3 Instance With ID: " + instanceId); 
-
-      //close connection
       client.close(); 
 
    } catch(BackupException e){
