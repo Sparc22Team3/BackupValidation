@@ -71,7 +71,7 @@ public class S3Restore {
 
         RecoveryPointByBackupVault recoveryPoint = recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
 
-        System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString()); //todo added print out of recovery point for debugging
+        // System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString()); //todo added print out of recovery point for debugging
 
         return recoveryPoint; 
     }
