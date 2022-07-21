@@ -3,9 +3,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import software.amazon.awssdk.services.backup.BackupClient;
-
+import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
+import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
 import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataRequest;
 import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataResponse;
 import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultRequest;
@@ -15,18 +18,22 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 
 /**
- * Class used to initiate restore of most recent EC2
+ * EC2Restore selects a recovery point to backup, restores the recovery point, and waits for the 
+ * recovered resource to pass initialization checks. 
  */
-public class SparcRestore {
+public class EC2Restore {
 
     BackupClient client; 
     String backupVaultName;
+    int recoveryNumber; 
     TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
 
-    public SparcRestore(BackupClient client, String backupVaultName){
+
+    public EC2Restore(BackupClient client, String backupVaultName, int recoveryAttempt){
 
         this.client = client; 
         this.backupVaultName = backupVaultName;
+        recoveryNumber = recoveryAttempt;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
     }
@@ -39,15 +46,19 @@ public class SparcRestore {
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<Instant, RecoveryPointByBackupVault>();
+        TreeMap<Instant, RecoveryPointByBackupVault> output = 
+        new TreeMap<Instant, RecoveryPointByBackupVault>();
         
         //call and response with amazon to get list of vault backups
-        ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().
+        ListRecoveryPointsByBackupVaultRequest  request = 
+        ListRecoveryPointsByBackupVaultRequest.builder().
         backupVaultName(backupVaultName).build();
         
-        ListRecoveryPointsByBackupVaultResponse response = client.listRecoveryPointsByBackupVault(request); 
+        ListRecoveryPointsByBackupVaultResponse response = 
+        client.listRecoveryPointsByBackupVault(request); 
 
-        for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
+        for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: 
+        response.recoveryPoints()){
 
             output.put(r.completionDate(), r); 
         }
@@ -78,7 +89,7 @@ public class SparcRestore {
      * @return
      * @throws Exception
      */
-    public String restoreResource(int recoveryNumber) throws Exception{
+    public String startRestore(int recoveryNumber) throws Exception{
         
         RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         Map<String, String> raw = getRecoveryMetaData(recoveryPoint);
@@ -103,9 +114,12 @@ public class SparcRestore {
 
         Map<String, String> output;
 
-        GetRecoveryPointRestoreMetadataRequest request = GetRecoveryPointRestoreMetadataRequest.builder().
+        GetRecoveryPointRestoreMetadataRequest request = 
+        GetRecoveryPointRestoreMetadataRequest.builder().
         recoveryPointArn(recoveryPoint.recoveryPointArn()).backupVaultName(backupVaultName).build();
-        GetRecoveryPointRestoreMetadataResponse response = client.getRecoveryPointRestoreMetadata(request);
+        
+        GetRecoveryPointRestoreMetadataResponse response = client
+        .getRecoveryPointRestoreMetadata(request);
 
         //Modify network settings
         output = response.restoreMetadata(); //this becomes immutable? Remove gets angry.
@@ -141,4 +155,54 @@ public class SparcRestore {
 
         return output; 
     }
+
+    public String restoreEC2FromBackup() throws Exception{
+
+        String restoreJobId = startRestore(recoveryNumber); 
+
+        int attempts = 0; 
+        String resourceARN = ""; 
+        while(attempts < 10){
+          
+          try{
+  
+            //get restore job information and wait until status of restore job is "completed"
+            DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
+            .builder().restoreJobId(restoreJobId).build(); 
+            DescribeRestoreJobResponse restoreResult = client.describeRestoreJob(newRequest);
+  
+            System.out.println("Restore Status:" + restoreResult.status().toString()); 
+            
+            if(restoreResult.status().toString() == "COMPLETED"){
+              resourceARN = restoreResult.createdResourceArn();
+              break; 
+            }
+  
+            
+          } catch(Exception e){
+  
+            System.err.println(e); 
+  
+            System.exit(1); 
+  
+          }
+          Thread.sleep(60000);
+          attempts++; 
+        }
+
+        return getInstanceId(resourceARN); 
+
+    }
+
+    public String getInstanceId(String resourceARN){
+
+        Pattern pattern = Pattern.compile("i-\\w+");
+        Matcher matcher = pattern.matcher(resourceARN.toString()); 
+        String instanceId = ""; 
+        
+        if(matcher.find()){instanceId = matcher.group();}
+
+        return instanceId; 
+    }
+
 }
