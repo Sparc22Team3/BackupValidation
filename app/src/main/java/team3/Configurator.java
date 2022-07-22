@@ -33,7 +33,7 @@ public class Configurator {
         setConfigFile(configFile);
     }
 
-    private void setConfigFile(Path configFile) throws IOException {
+    private void setConfigFile(Path configFile) {
         if (Files.isDirectory(configFile)) {
             configFile = configFile.resolve(defaultConfigName);
         }
@@ -41,12 +41,12 @@ public class Configurator {
         this.configFile = configFile;
     }
 
-    public Settings readConfigFile() throws IOException {
+    public Settings loadSettings() throws IOException {
         if (configFile == null)
             return null;
 
         if (!Files.exists(configFile))
-            throw new FileNotFoundException(configFile.toString() + " does not exist.");
+            throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
 
         ObjectMapper mapper = new ObjectMapper();
 
@@ -80,18 +80,20 @@ public class Configurator {
     }
 
 
-    public static void replaceHostname(String ec2, String rds, Settings settings) {
+    public static void replaceHostname(String ec2, String rds, String s3, Settings settings) {
         String ec2_placeholder = "ec2_hostname";
         String rds_placeholder = "rds_hostname";
+        String s3_placeholder = "s3_bucketname";
 
         for (ServerConfigFile configFile : settings.getConfigFiles()) {
-            configFile.getSettings().replaceAll((key, hostname) -> {
-                if (hostname.equals(ec2_placeholder))
+            configFile.getSettings().replaceAll((key, placeholder) -> {
+                if (placeholder.equals(ec2_placeholder))
                     return ec2;
-                else if (hostname.equals(rds_placeholder)) {
+                else if (placeholder.equals(rds_placeholder))
                     return rds;
-                }
-                return hostname;
+                else if (placeholder.equals(s3_placeholder))
+                    return s3;
+                return placeholder;
             });
         }
     }
