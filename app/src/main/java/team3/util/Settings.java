@@ -34,5 +34,12 @@ public final class Settings {
         return configFiles;
     }
 
-
+    @Override
+    public String toString() {
+        return "Settings{\n" +
+                "\tserverUsername='" + serverUsername + "'\n" +
+                "\tprivateKeyFile='" + privateKeyFile + "'\n" +
+                "\tconfigFiles=" + configFiles + "\n" +
+                '}';
+    }
 }

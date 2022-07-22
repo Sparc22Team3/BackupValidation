@@ -17,8 +17,8 @@ public final class ServerConfigFile {
                             ) {
         this.filename = filename.strip();
         path = path.strip();
-        if(path.charAt(path.length() - 1) != '/')
-            path = path + '/';
+        if(path.charAt(path.length() - 1) == '/')
+            path = path.substring(0, path.length() - 2);
         this.path = path;
         this.settings = settings;
 
@@ -41,4 +41,13 @@ public final class ServerConfigFile {
         return path + '/' + filename;
     }
 
+    @Override
+    public String toString() {
+        return "\n\t\tServerConfigFile{\n" +
+                "\t\t\tfilename='" + filename + "'\n" +
+                "\t\t\tpath='" + path + "'\n" +
+                "\t\t\tsettings=" + settings + "\n" +
+                "\t\t\tfullFilePath='" + getFullFilePath() + "'\n" +
+                "\t}";
+    }
 }
