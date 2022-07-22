@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 public class App {
-    Options options;
-    CommandLineParser parser;
+    final Options options;
+    final CommandLineParser parser;
     Configurator configurator;
     Settings settings;
     private App(){
