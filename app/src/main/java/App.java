@@ -1,14 +1,7 @@
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
 
 import software.amazon.awssdk.regions.Region;
 
@@ -17,20 +10,7 @@ import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
 
-import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
-
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
-import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectsResponse;
-import software.amazon.awssdk.services.s3.model.ObjectAttributes;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.S3Object;
 
 //EC2 BackupId a765a264-6cba-4c2d-a56c-42ec0d7abad3
 //RDS BackupID 6e36f3fa-d2e0-4afe-8f7f-7ab348f2851b

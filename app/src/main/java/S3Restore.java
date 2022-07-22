@@ -12,11 +12,6 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
-import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectsResponse;
-import software.amazon.awssdk.services.s3.model.ObjectAttributes;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
@@ -40,41 +35,6 @@ public class S3Restore {
         this.backupVaultName = backupVaultName;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
-    }
-
-    /**
-     * Extract S3 objects from a given S3 bucket, and returning their key and checksum values in a HashMap
-     * @param bucketName
-     * @param s3
-     * @return
-     */
-    public HashMap<String, String> GetS3Objects(String bucketName, S3Client s3){
-
-        // initialize return map
-        HashMap<String, String> s3Objects = new HashMap<>();
-
-        // initialize ListObjectsRequest
-        ListObjectsRequest listObjects = ListObjectsRequest
-                .builder()
-                .bucket(bucketName)
-                .build();
-
-        ListObjectsResponse res = s3.listObjects(listObjects);
-        List<S3Object> objects = res.contents();
-
-        // retrieve the keys of the S3 objects and add them to s3BucketObjs
-        for (S3Object myValue : objects) {
-
-            // initialize AWS object to get checksum value
-            GetObjectAttributesResponse
-            objectAttributes = s3.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(bucketName).key(myValue.key())
-            .objectAttributes(ObjectAttributes.OBJECT_PARTS, ObjectAttributes.CHECKSUM).build());
-
-            // add S3 object key and checksum value to map
-            s3Objects.put(myValue.key(), objectAttributes.checksum().checksumSHA256());
-        }
-
-        return s3Objects;
     }
 
     /**
