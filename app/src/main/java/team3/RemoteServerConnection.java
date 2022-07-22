@@ -51,12 +51,8 @@ public class RemoteServerConnection {
         sftp.chmod(fullFilePath, perms);
     }
 
-    void removeFile(Path file) {
-        try {
+    void removeFile(Path file) throws IOException {
             Files.delete(file);
-        } catch (IOException e){
-            System.err.format("%s: Unable to delete file: %s\n", e.getClass().getSimpleName(), e.getMessage());
-        }
     }
 
 

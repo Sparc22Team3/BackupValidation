@@ -39,20 +39,20 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
 
 
 
-    private void alterConfigFile(Set<Map.Entry<String,String>> settings, Path tempFile){
+    private void alterConfigFile(Set<Map.Entry<String,String>> settings, Path tempFile) throws IOException {
         LinkedList<String> lines = new LinkedList<>();
         boolean changed = false;
         try(BufferedReader r = Files.newBufferedReader(tempFile)) {
-            Iterator<Map.Entry<String,String>> it;
-            Map.Entry<String,String> entry;
+            Iterator<Map.Entry<String, String>> it;
+            Map.Entry<String, String> entry;
 
             String line;
             while ((line = r.readLine()) != null) {
 
                 it = settings.iterator();
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     entry = it.next();
-                    if(line.stripLeading().startsWith(entry.getKey())){
+                    if (line.stripLeading().startsWith(entry.getKey())) {
                         String[] parts = line.split("\\s*=\\s*");
                         line = parts[0] + " = " + entry.getValue();
                         changed = true;
@@ -61,9 +61,6 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
                 }
                 lines.add(line);
             }
-
-        } catch (IOException e) {
-            System.err.format("%s: Unable to read file: %s\n", e.getClass().getSimpleName(), e.getMessage());
         }
 
         if(changed && !lines.isEmpty() ){
@@ -75,8 +72,6 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
                     if(li.hasNext())
                         w.write('\n');
                 }
-            } catch (IOException e) {
-                System.err.format("%s: Unable to write file: %s\n", e.getClass().getSimpleName(), e.getMessage());
             }
 
         } else {
