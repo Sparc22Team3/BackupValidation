@@ -16,16 +16,14 @@ import java.util.LinkedList;
 
 public class Configurator {
     private Path configFile;
-    public static final String defaultConfigName = "config.json";
-    public static final String defaultConfigDir = ".config";
+
 
     public Configurator() throws IOException {
-        Path configHomeDir = Paths.get(System.getProperty("user.home"), defaultConfigDir, Util.dirName);
         // Create the config directory for the application
-        if(!Files.exists(configHomeDir)){
-            Files.createDirectories(configHomeDir);
+        if(!Files.exists(Util.defaultConfigDir)){
+            Files.createDirectories(Util.defaultConfigDir);
         }
-        setConfigFile(configHomeDir);
+        setConfigFile(Util.defaultConfigDir);
     }
 
     public Configurator(String configFileLocation) throws IOException {
@@ -35,7 +33,7 @@ public class Configurator {
 
     private void setConfigFile(Path configFile) {
         if (Files.isDirectory(configFile)) {
-            configFile = configFile.resolve(defaultConfigName);
+            configFile = configFile.resolve(Util.defaultConfigFilename);
         }
 
         this.configFile = configFile;

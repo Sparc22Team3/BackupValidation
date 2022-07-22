@@ -5,6 +5,7 @@ import team3.util.Settings;
 import team3.util.Util;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 public class App {
     Options options;
@@ -63,10 +64,11 @@ public class App {
         options.addOption(Option.builder("c")
                 .longOpt("config")
                 .hasArg().argName("file")
-                .desc("configuration settings for running " + Util.appName).build()
+                .desc("configuration settings json file or directory containing json file for running "
+                        + Util.appName + ". If no config file is specified, program will look in " + Util.defaultConfigDir + " for " + Util.defaultConfigFilename).build()
         );
         options.addOption(new Option("n", "newconfig", false, "create config template file at "
-                + "location provided to config or at default location in $home/.config if config is not specified"));
+                + "location provided to config or at default location in " + Util.defaultConfigDir + " if config is not specified"));
 
     }
 
