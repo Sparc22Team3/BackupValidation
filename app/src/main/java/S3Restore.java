@@ -28,16 +28,15 @@ public class S3Restore {
 
     BackupClient client; 
     S3Client s3;
-    String bucketName;
+    // String bucketName;
     String backupVaultName;
-    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints = new TreeMap<Instant, RecoveryPointByBackupVault>(); 
-    Map<String, String> objects = new HashMap<>();
+    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
-    public S3Restore(BackupClient client, S3Client s3, String bucketName, String backupVaultName){
+    public S3Restore(BackupClient client, S3Client s3, String backupVaultName){
 
         this.client = client; 
         this.s3 = s3;
-        this.bucketName = bucketName;
+        // this.bucketName = bucketName;
         this.backupVaultName = backupVaultName;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
@@ -49,7 +48,7 @@ public class S3Restore {
      * @param s3
      * @return
      */
-    public HashMap<String, String> getS3Objects(String bucketName, S3Client s3){
+    public HashMap<String, String> GetS3Objects(String bucketName, S3Client s3){
 
         // initialize return map
         HashMap<String, String> s3Objects = new HashMap<>();
@@ -118,7 +117,7 @@ public class S3Restore {
 
         RecoveryPointByBackupVault recoveryPoint = recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
 
-        // System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString()); //todo added print out of recovery point for debugging
+        // System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString());
 
         return recoveryPoint; 
     }

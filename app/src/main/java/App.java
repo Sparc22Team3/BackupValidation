@@ -31,7 +31,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectsResponse;
 import software.amazon.awssdk.services.s3.model.ObjectAttributes;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
-// import software.amazon.awssdk.services.s3.model.Checksum;
 
 //EC2 BackupId a765a264-6cba-4c2d-a56c-42ec0d7abad3
 //RDS BackupID 6e36f3fa-d2e0-4afe-8f7f-7ab348f2851b
@@ -49,10 +48,6 @@ public class App {
     System.out.print("Enter S3 Backup Vault Name: ");
     String s3BackupVaultName = scan.next();
 
-    // initialize hashmaps to store S3 objects
-    HashMap<String, String> s3BucketObjs = new HashMap<>();
-    HashMap<String, String> s3RestoredObjs = new HashMap<>();
-
     // initialize AWS objects
     Region region = Region.US_EAST_1;
     S3Client s3Client = S3Client.builder().region(region).build();
@@ -60,31 +55,8 @@ public class App {
 
     try{
 
-      // // initialize ListObjectsRequest
-      // ListObjectsRequest listObjects = ListObjectsRequest
-      //         .builder()
-      //         .bucket(s3BucketName)
-      //         .build();
-
-      // ListObjectsResponse res = s3Client.listObjects(listObjects);
-      // List<S3Object> objects = res.contents();
-
-      // // retrieve the keys of the S3 objects and add them to s3BucketObjs
-      // for (S3Object myValue : objects) {
-
-      //   // initialize AWS object to get checksum value
-      //   GetObjectAttributesResponse
-      //   objectAttributes = s3Client.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(s3BucketName).key(myValue.key())
-      //   .objectAttributes(ObjectAttributes.OBJECT_PARTS, ObjectAttributes.CHECKSUM).build());
-
-      //   // add S3 object key and checksum value to map
-      //   s3BucketObjs.put(myValue.key(), objectAttributes.checksum().checksumSHA256());
-      // }
-
       // initialize s3Restore instance
-      S3Restore s3Restore = new S3Restore(backupClient, s3Client, s3BucketName, s3BackupVaultName); 
-
-      s3BucketObjs = s3Restore.getS3Objects(s3BucketName, s3Client);
+      S3Restore s3Restore = new S3Restore(backupClient, s3Client, s3BackupVaultName); 
 
       String restoreJobId = s3Restore.restoreS3Resource(0);
 
@@ -111,20 +83,27 @@ public class App {
             Matcher matcher = pattern.matcher(resourceARN.toString()); 
             String instanceId = ""; 
             
+            // obtain the restored s3 bucket name using regex
             if(matcher.find()){
-      
               instanceId = matcher.group(); 
-      
             }
-      
+
             System.out.println("S3 Bucket " + s3BucketName + " Restored With ID: " + instanceId); 
 
-            // retrieve all objects from restored s3 bucket
+            // initialize S3Validate object
+            S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, instanceId);
 
+            // checksum validation
+            boolean checksumCheck = s3Validate.ChecksumValidate();
+
+            if (checksumCheck) {
+              System.out.println("S3 Restore successfully validated!");
+            } else {
+              System.out.println("S3 Restore validation failed.");
+            }
 
           }
 
-          
         } catch(Exception e){
 
           System.err.println(e); 
@@ -141,7 +120,7 @@ public class App {
         }
       }
 
-      client.close(); 
+      backupClient.close(); 
 
    } catch(BackupException e){
 
@@ -156,12 +135,10 @@ public class App {
 
   }
 
-
-
   // application concludes
-  System.out.println("Thank you for using our Backup Validation application! Goodbye!");
+  System.out.println("Thank you for using our Backup Validation application. Goodbye!");
   scan.close();
-  
+
   }
 
 }
