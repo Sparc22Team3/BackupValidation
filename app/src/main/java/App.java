@@ -25,6 +25,8 @@ public class App {
 
       System.out.println("Web Server Status 200: " + validated); 
 
+      instance.terminateEC2Instance();
+
       //close connection
       ec2Client.close();
       client.close(); 

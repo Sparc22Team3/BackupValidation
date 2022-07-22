@@ -9,18 +9,20 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.io.IOException;
 
 public class EC2Validate {
 
-    String instanceId; 
-    Ec2Client ec2Client; 
-    DescribeInstancesResponse description; 
+    private String instanceId; 
+    private Ec2Client ec2Client; 
+    private DescribeInstancesResponse description; 
+
+    private String url; 
 
     public EC2Validate(Ec2Client client, String instance){
         instanceId = instance; 
         ec2Client = client; 
         description = getInstanceDescription(instance);
+        url = getInstancePublicURL(description); 
     }
 
     /**
@@ -28,7 +30,7 @@ public class EC2Validate {
      * @param instance
      * @return
      */
-    DescribeInstancesResponse getInstanceDescription(String instance){
+    private DescribeInstancesResponse getInstanceDescription(String instance){
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest
         .builder().instanceIds(instanceId).build();
@@ -43,7 +45,7 @@ public class EC2Validate {
      * @param instanceRep
      * @return
      */
-    String getInstancePublicURL(DescribeInstancesResponse instanceRep){
+    private String getInstancePublicURL(DescribeInstancesResponse instanceRep){
 
         String url = instanceRep.reservations().get(0).instances().get(0).publicDnsName();
         
@@ -55,12 +57,10 @@ public class EC2Validate {
     /**
      * Ping url and check status code. 
      * @return
-     * @throws IOException
-     * @throws InterruptedException
+     * @throws Exception
      */
-    Boolean validateWithPing() throws IOException, InterruptedException{
+    public Boolean validateWithPing() throws Exception{
 
-        String url = getInstancePublicURL(description); 
         waitForEC2Checks();
 
         HttpClient httpClient = HttpClient.newHttpClient();
@@ -69,23 +69,23 @@ public class EC2Validate {
         
         if(httpResponse.statusCode() == 200){
 
-            terminateEC2Instance();
-
             return true;
 
         }
 
-        terminateEC2Instance();
-
         return false; 
 
     }
-
-    public void waitForEC2Checks() throws InterruptedException{
+    
+    /**
+     * Busy wait for EC2 to complete setup. 
+     * @throws Exception
+     */
+    private void waitForEC2Checks() throws Exception{
         
       //Wait for ec2 instance to complete setup
       int attempts = 0;
-      while(attempts < 10){
+      while(attempts < 11){
 
         try{
 
@@ -118,8 +118,16 @@ public class EC2Validate {
         Thread.sleep(60000); 
         attempts++; 
       }
+
+      if(attempts >= 11){
+
+        throw new Exception("EC2 Instance Timeout"); 
+      }
     }
 
+    /**
+     * Terminate ec2Instance attached to client.
+     */
     public void terminateEC2Instance(){
 
         System.out.println("Terminating Instance"); 
@@ -129,4 +137,14 @@ public class EC2Validate {
 
     }
     
+    /**
+     * Provide class with a new instanceId to reset description and url. 
+     */
+    public void setInstanceId(String instanceId){
+
+      this.instanceId = instanceId; 
+      
+      description = getInstanceDescription(this.instanceId);
+      url = getInstancePublicURL(description); 
+    }
 }

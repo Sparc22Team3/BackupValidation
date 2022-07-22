@@ -1,4 +1,5 @@
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -23,18 +24,24 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
  */
 public class EC2Restore {
 
-    BackupClient client; 
-    String backupVaultName;
-    int recoveryNumber; 
-    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
+    private BackupClient client; 
+    private String backupVaultName;
+    private int recoveryNumber; 
+    private TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
+
+    RecoveryPointByBackupVault currentRecoveryPoint;
+    Map<String, String> metadata; 
 
 
-    public EC2Restore(BackupClient client, String backupVaultName, int recoveryAttempt){
+    public EC2Restore(BackupClient client, String backupVaultName, int recoveryNumber) throws Exception{
 
         this.client = client; 
         this.backupVaultName = backupVaultName;
-        recoveryNumber = recoveryAttempt;
+        this.recoveryNumber = recoveryNumber;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
+
+        this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
+        this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
 
     }
     
@@ -44,10 +51,10 @@ public class EC2Restore {
      * @return
      * 
      */
-    public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
+    private TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
         TreeMap<Instant, RecoveryPointByBackupVault> output = 
-        new TreeMap<Instant, RecoveryPointByBackupVault>();
+        new TreeMap<Instant, RecoveryPointByBackupVault>(Collections.reverseOrder());
         
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest  request = 
@@ -60,7 +67,7 @@ public class EC2Restore {
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: 
         response.recoveryPoints()){
 
-            output.put(r.completionDate(), r); 
+            output.put(r.creationDate(), r); 
         }
 
         return output; 
@@ -72,7 +79,7 @@ public class EC2Restore {
      * @throws Exception
      */
 
-    public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
+    private RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
 
         if (recoveryNumber > recoveryPoints.size()){
 
@@ -84,19 +91,15 @@ public class EC2Restore {
     }
 
     /**
-     * Given a recovery point, the function initates the recovery given a recovery point. 
+     * Start the restore job given a recovery point. 
      * @param recoveryPoint
      * @return
      * @throws Exception
      */
-    public String startRestore(int recoveryNumber) throws Exception{
-        
-        RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
-        Map<String, String> raw = getRecoveryMetaData(recoveryPoint);
-        Map<String, String> metadata = editRecoveryMeta(raw);
+    private String startRestore(int recoveryNumber) throws Exception{
         
         StartRestoreJobRequest request = StartRestoreJobRequest.builder().
-        recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
+        recoveryPointArn(currentRecoveryPoint.recoveryPointArn()).iamRoleArn(currentRecoveryPoint.iamRoleArn())
         .metadata(metadata).build();
         
         StartRestoreJobResponse response = client.startRestoreJob(request); 
@@ -110,7 +113,7 @@ public class EC2Restore {
      * @param recoveryPoint
      * @return
      */
-    public  Map<String, String> getRecoveryMetaData(RecoveryPointByBackupVault recoveryPoint){
+    private  Map<String, String> getRecoveryMetaData(RecoveryPointByBackupVault recoveryPoint){
 
         Map<String, String> output;
 
@@ -138,7 +141,7 @@ public class EC2Restore {
      * @return
      */
 
-    public Map<String, String> editRecoveryMeta(Map<String, String> metaData){
+    private Map<String, String> editRecoveryMeta(Map<String, String> metaData){
 
         Map<String, String> output = new HashMap<String, String>(); 
 
@@ -156,13 +159,21 @@ public class EC2Restore {
         return output; 
     }
 
+    /**
+     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
+     * longer than 10 minutes.
+     * 
+     * Throws error if job isn't completed within alotted time. 
+     * @return
+     * @throws Exception
+     */
     public String restoreEC2FromBackup() throws Exception{
 
         String restoreJobId = startRestore(recoveryNumber); 
 
         int attempts = 0; 
         String resourceARN = ""; 
-        while(attempts < 10){
+        while(attempts < 11){
           
           try{
   
@@ -190,11 +201,22 @@ public class EC2Restore {
           attempts++; 
         }
 
-        return getInstanceId(resourceARN); 
+        if (attempts >= 11){
+
+            throw new Exception("Backup Restore Timeout");
+
+        }
+
+        return parseInstanceId(resourceARN); 
 
     }
-
-    public String getInstanceId(String resourceARN){
+    
+    /**
+     * Parse resource ARN to obtain EC2 instanceId
+     * @param resourceARN
+     * @return
+     */
+    private String parseInstanceId(String resourceARN){
 
         Pattern pattern = Pattern.compile("i-\\w+");
         Matcher matcher = pattern.matcher(resourceARN.toString()); 
@@ -204,5 +226,33 @@ public class EC2Restore {
 
         return instanceId; 
     }
+    
+    /**
+     * Returns recovery points in sorted order. 
+     * @return
+     */
+    public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
 
+        return recoveryPoints;
+    }
+
+    /**
+     * Returns current recovery number of object. 
+     * @return
+     */
+    public int getRecoveryPointNumber(){
+        return recoveryNumber;
+    }
+
+    /**
+     * Set current recovery number of object. 
+     * @param number
+     * @throws Exception
+     */
+    public void setRecoveryPointNumber(int recoveryNumber) throws Exception{
+        this.recoveryNumber=recoveryNumber;
+
+        this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
+        this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
+    }
 }
