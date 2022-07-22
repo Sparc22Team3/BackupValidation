@@ -24,7 +24,7 @@ public class Configurator {
         setConfigFile(Util.defaultConfigDir);
     }
 
-    public Configurator(String configFileLocation) throws IOException {
+    public Configurator(String configFileLocation) {
         Path configFile = Paths.get(configFileLocation);
         setConfigFile(configFile);
     }

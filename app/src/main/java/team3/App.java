@@ -5,7 +5,6 @@ import team3.util.Settings;
 import team3.util.Util;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 
 public class App {
     final Options options;
