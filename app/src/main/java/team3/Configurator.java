@@ -2,9 +2,7 @@ package team3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import team3.util.ServerConfigFile;
-import team3.util.Settings;
-import team3.util.Util;
+import team3.util.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -72,8 +70,25 @@ public class Configurator {
         LinkedList<ServerConfigFile> fileList = new LinkedList<>();
         fileList.add(cf1);
         fileList.add(cf2);
+        SecurityGroup sg1 = new SecurityGroup("security group 1 id ", "security group 1 name");
+        SecurityGroup sg2 = new SecurityGroup("security group 2 id ", "security group 2 name");
+        LinkedList<SecurityGroup> sgList = new LinkedList<>();
+        sgList.add(sg1);
+        sgList.add(sg2);
+        InstanceSettings ec2Settings = new InstanceSettings(sgList, "subnet id", "subnet name");
+        InstanceSettings rdsSettings = new InstanceSettings(sgList, "subnet id", "subnet name");
+        InstanceSettings s3Settings = new InstanceSettings(sgList, "subnet id", "subnet name");
+
         // Create Settings object
-        Settings settings = new Settings("ec2-user", "testKeyFile", fileList);
+        Settings settings = new Settings("ec2-user",
+                "testKeyFile",
+                fileList,
+                "us-east-1a",
+                "vpc id",
+                "vpc name",
+                ec2Settings,
+                rdsSettings,
+                s3Settings);
         mapper.writeValue(configFile.toFile(), settings);
     }
 

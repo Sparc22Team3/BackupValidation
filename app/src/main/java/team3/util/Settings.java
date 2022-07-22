@@ -10,14 +10,33 @@ public final class Settings {
     private final String serverUsername;
     private final String privateKeyFile;
     private final LinkedList<ServerConfigFile> configFiles;
+    private final String availabilityZone;
+    private final String vpcID;
+    private final String vpcName;
+    private final InstanceSettings ec2Settings;
+    private final InstanceSettings rdsSettings;
+    private final InstanceSettings s3Settings;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
-                    @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles) {
+                    @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
+                    @JsonProperty("availabilityZone") String availabilityZone,
+                    @JsonProperty("vpcID") String vpcID,
+                    @JsonProperty("vpcName") String vpcName,
+                    @JsonProperty("ec2Settings") InstanceSettings ec2Settings,
+                    @JsonProperty("rdsSettings") InstanceSettings rdsSettings,
+                    @JsonProperty("s3Settings") InstanceSettings s3Settings) {
+
         this.serverUsername = serverUsername;
         this.privateKeyFile = privateKeyFile;
         this.configFiles = configFiles;
+        this.availabilityZone = availabilityZone;
+        this.vpcID = vpcID;
+        this.vpcName = vpcName;
+        this.ec2Settings = ec2Settings;
+        this.rdsSettings = rdsSettings;
+        this.s3Settings = s3Settings;
     }
 
     public String getServerUsername() {
@@ -32,6 +51,30 @@ public final class Settings {
 
     public LinkedList<ServerConfigFile> getConfigFiles() {
         return configFiles;
+    }
+
+    public String getAvailabilityZone() {
+        return availabilityZone;
+    }
+
+    public String getVpcID() {
+        return vpcID;
+    }
+
+    public String getVpcName() {
+        return vpcName;
+    }
+
+    public InstanceSettings getEc2Settings() {
+        return ec2Settings;
+    }
+
+    public InstanceSettings getRdsSettings() {
+        return rdsSettings;
+    }
+
+    public InstanceSettings getS3Settings() {
+        return s3Settings;
     }
 
     @Override
