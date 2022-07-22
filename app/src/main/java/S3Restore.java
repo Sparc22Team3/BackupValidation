@@ -1,8 +1,5 @@
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Map.Entry;
+import java.util.*;
 
 import software.amazon.awssdk.services.backup.BackupClient;
 
@@ -14,21 +11,71 @@ import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectsResponse;
+import software.amazon.awssdk.services.s3.model.ObjectAttributes;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+
+
 /**
  * Class used to restore the most recent S3 recovery point from "s3sparcvault"
  */
 public class S3Restore {
 
     BackupClient client; 
+    S3Client s3;
+    String bucketName;
     String backupVaultName;
-    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
+    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints = new TreeMap<Instant, RecoveryPointByBackupVault>(); 
+    Map<String, String> objects = new HashMap<>();
 
-    public S3Restore(BackupClient client, String backupVaultName){
+    public S3Restore(BackupClient client, S3Client s3, String bucketName, String backupVaultName){
 
         this.client = client; 
+        this.s3 = s3;
+        this.bucketName = bucketName;
         this.backupVaultName = backupVaultName;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
+    }
+
+    /**
+     * Extract S3 objects from a given S3 bucket, and returning their key and checksum values in a HashMap
+     * @param bucketName
+     * @param s3
+     * @return
+     */
+    public HashMap<String, String> getS3Objects(String bucketName, S3Client s3){
+
+        // initialize return map
+        HashMap<String, String> s3Objects = new HashMap<>();
+
+        // initialize ListObjectsRequest
+        ListObjectsRequest listObjects = ListObjectsRequest
+                .builder()
+                .bucket(bucketName)
+                .build();
+
+        ListObjectsResponse res = s3.listObjects(listObjects);
+        List<S3Object> objects = res.contents();
+
+        // retrieve the keys of the S3 objects and add them to s3BucketObjs
+        for (S3Object myValue : objects) {
+
+            // initialize AWS object to get checksum value
+            GetObjectAttributesResponse
+            objectAttributes = s3.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(bucketName).key(myValue.key())
+            .objectAttributes(ObjectAttributes.OBJECT_PARTS, ObjectAttributes.CHECKSUM).build());
+
+            // add S3 object key and checksum value to map
+            s3Objects.put(myValue.key(), objectAttributes.checksum().checksumSHA256());
+        }
+
+        return s3Objects;
     }
 
     /**
