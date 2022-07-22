@@ -6,59 +6,61 @@ import team3.util.ServerConfigFile;
 import team3.util.Settings;
 import team3.util.Util;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 
 public class Configurator {
-    private File configFile;
+    private Path configFile;
     public static final String defaultConfigName = "config.json";
     public static final String defaultConfigDir = ".config";
 
     public Configurator() throws IOException {
-        File configHomeDir = new File (System.getProperty("user.home") + File.separatorChar + defaultConfigDir + File.separatorChar + Util.dirName);
+        Path configHomeDir = Paths.get(System.getProperty("user.home"), defaultConfigDir, Util.dirName);
         // Create the config directory for the application
-        if(!configHomeDir.exists()){
-            if (!configHomeDir.mkdirs())
-                throw new IOException("Unable to create directories:" + configHomeDir);
+        if(!Files.exists(configHomeDir)){
+            Files.createDirectories(configHomeDir);
         }
         setConfigFile(configHomeDir);
     }
 
     public Configurator(String configFileLocation) throws IOException {
-        File configFile = new File(configFileLocation);
+        Path configFile = Paths.get(configFileLocation);
         setConfigFile(configFile);
     }
 
-    private void setConfigFile(File configFile) throws IOException {
-        try {
-            if (configFile.isDirectory()) {
-                configFile = new File(configFile.getCanonicalPath() + File.separatorChar + defaultConfigName);
-            }
-
-            if (!configFile.exists())
-                throw new FileNotFoundException(configFile.getCanonicalPath() + " does not exist.  Empty config file created in "
-                        + configFile.getParent() + ".");
-            this.configFile = configFile;
-        } catch (IOException e) {
-            createBlankConfigFile(configFile);
-            System.out.print(e.getMessage());
-            System.exit(2);
+    private void setConfigFile(Path configFile) throws IOException {
+        if (Files.isDirectory(configFile)) {
+            configFile = configFile.resolve(defaultConfigName);
         }
+
+        this.configFile = configFile;
     }
 
     public Settings readConfigFile() throws IOException {
         if (configFile == null)
             return null;
+
+        if (!Files.exists(configFile))
+            throw new FileNotFoundException(configFile.toString() + " does not exist.");
+
         ObjectMapper mapper = new ObjectMapper();
 
-        return mapper.readValue(configFile, Settings.class);
+        return mapper.readValue(configFile.toFile(), Settings.class);
     }
 
 
-    public void createBlankConfigFile(File configFile) throws IOException {
+    public void createBlankConfigFile() throws IOException {
+        if(Files.exists(configFile)){
+            String filename = "backup." + configFile.getFileName().toString();
+            Path backup = configFile.resolveSibling(filename);
+            Files.move(configFile, backup);
+        }
+
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -74,7 +76,7 @@ public class Configurator {
         fileList.add(cf2);
         // Create Settings object
         Settings settings = new Settings("ec2-user", "testKeyFile", fileList);
-        mapper.writeValue(configFile, settings);
+        mapper.writeValue(configFile.toFile(), settings);
     }
 
 

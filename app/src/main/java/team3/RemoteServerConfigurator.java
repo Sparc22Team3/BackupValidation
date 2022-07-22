@@ -5,7 +5,6 @@ import team3.util.Settings;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +24,7 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
             // Download the config file from the remote server and save it to the local temp directory
             downloadFile(configFile.getFullFilePath(), tempDir);
 
-            Path tempFile = Paths.get(tempDir + File.separatorChar + configFile.getFilename());
+            Path tempFile = Paths.get(tempDir,configFile.getFilename());
 
             // Modify and upload the temp config file
             alterConfigFile(configFile.getSettings().entrySet(), tempFile);
