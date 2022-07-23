@@ -1,19 +1,11 @@
-import java.time.Instant;
-import java.util.*;
-
 import software.amazon.awssdk.services.backup.BackupClient;
-
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataRequest;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataResponse;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultRequest;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultResponse;
-import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
-
+import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.S3Object;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 
 /**
@@ -21,18 +13,17 @@ import software.amazon.awssdk.services.s3.model.S3Object;
  */
 public class S3Restore {
 
-    BackupClient client; 
-    S3Client s3;
-    // String bucketName;
-    String backupVaultName;
-    TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
+    private BackupClient client;
+//    private S3Client s3;
+    private String restoreBucketName;
+//    private String backupVaultName;
+    private TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
-    public S3Restore(BackupClient client, S3Client s3, String backupVaultName){
+    public S3Restore(BackupClient client, String backupVaultName){
 
         this.client = client; 
-        this.s3 = s3;
-        // this.bucketName = bucketName;
-        this.backupVaultName = backupVaultName;
+//        this.s3 = s3;
+//        this.backupVaultName = backupVaultName;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
     }
@@ -75,11 +66,9 @@ public class S3Restore {
 
         }
 
-        RecoveryPointByBackupVault recoveryPoint = recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
-
         // System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString());
 
-        return recoveryPoint; 
+        return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
     }
 
     /**
@@ -111,8 +100,8 @@ public class S3Restore {
         Map<String, String> output = new HashMap<>();
 
         // The destination bucket for your restore
-        String bucketName = "bucket" + System.currentTimeMillis();
-        output.put("DestinationBucketName", bucketName);
+        restoreBucketName = "bucket" + System.currentTimeMillis();
+        output.put("DestinationBucketName", restoreBucketName);
 
         // Boolean to indicate whether to create a new bucket
         output.put("NewBucket", "true");
@@ -127,5 +116,13 @@ public class S3Restore {
         output.put("EncryptionType", "original");
 
         return output;
+    }
+
+    /**
+     * Returns the name of the newly created S3 bucket name
+     * @return
+     */
+    public String getRestoreBucketName() {
+        return restoreBucketName;
     }
 }

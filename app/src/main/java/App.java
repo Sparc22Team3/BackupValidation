@@ -1,16 +1,20 @@
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.Scanner;
-
+import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.regions.Region;
-
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
-
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.waiters.S3Waiter;
+
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 //EC2 BackupId a765a264-6cba-4c2d-a56c-42ec0d7abad3
 //RDS BackupID 6e36f3fa-d2e0-4afe-8f7f-7ab348f2851b
@@ -35,82 +39,110 @@ public class App {
 
     try{
 
-      // initialize s3Restore instance
-      S3Restore s3Restore = new S3Restore(backupClient, s3Client, s3BackupVaultName); 
+      // restore s3
+      S3Restore s3Restore = new S3Restore(backupClient, s3BackupVaultName);
 
-      String restoreJobId = s3Restore.restoreS3Resource(0);
+      // start with the latest recovery point
+      int recoveryNumber = 0;
 
+      //! potential to add loop here to restore later recovery points if first one fails
+      String restoreJobId = s3Restore.restoreS3Resource(recoveryNumber);
+
+      // get the name of the restored S3 instance to initialize S3 Waiter
+      String restoredBucketName = s3Restore.getRestoreBucketName();
       System.out.println("Starting restore job: " + restoreJobId);
 
-      //Wait for restore to provide ID of S3 instance it created
-      int attempts = 0; 
-      String resourceARN = "NULL"; 
-      while(attempts < 5){
+      // Wait until the bucket is created and print out the response
+      S3Waiter s3Waiter = s3Client.waiter();
+      HeadBucketRequest bucketRequestWait = HeadBucketRequest.builder()
+              .bucket(restoredBucketName)
+              .build();
 
-        try{
+      //! could add a try-catch here to catch exception that the restore did not complete
+      WaiterResponse<HeadBucketResponse> waiterResponse = s3Waiter.waitUntilBucketExists(bucketRequestWait);
+      waiterResponse.matched().response().ifPresent(System.out::println);
+      System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucketName);
 
-          //get restore job information and wait until status of restore job is "completed"
-          DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest.builder().restoreJobId(restoreJobId).build(); 
-          DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+      // initialize S3Validate object
+      S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucketName);
 
-          System.out.println("Restore Status:" + restoreResult.status().toString()); 
-          
-          if(restoreResult.status().toString() == "COMPLETED"){
-            System.out.println(restoreResult.toString()); 
-            resourceARN = restoreResult.createdResourceArn();
-
-            Pattern pattern = Pattern.compile("\\w+\\d+$");
-            Matcher matcher = pattern.matcher(resourceARN.toString()); 
-            String instanceId = ""; 
-            
-            // obtain the restored s3 bucket name using regex
-            if(matcher.find()){
-              instanceId = matcher.group(); 
-            }
-
-            System.out.println("S3 Bucket " + s3BucketName + " Restored With ID: " + instanceId); 
-
-            // initialize S3Validate object
-            S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, instanceId);
-
-            // checksum validation
-            boolean checksumCheck = s3Validate.ChecksumValidate();
-
-            if (checksumCheck) {
-              System.out.println("S3 Restore successfully validated!");
-            } else {
-              System.out.println("S3 Restore validation failed.");
-            }
-
-          }
-
-        } catch(Exception e){
-
-          System.err.println(e); 
-
-          System.exit(1); 
-
-        }
-        Thread.sleep(250000); // Takes about 8min for an S3 bucket to be restored
-        attempts++; 
-
-        // Print out message is restore is not successful by the 5th try
-        if (attempts == 5){
-          System.out.println("Restore job timeout. Please check AWS Backup console to check job status.");
-        }
+      // checksum validation
+      boolean checksumCheck = s3Validate.ChecksumValidate();
+      if (checksumCheck) {
+        System.out.println("S3 Restore successfully validated!");
+      } else {
+        System.out.println("S3 Restore validation failed.");
       }
 
-      backupClient.close(); 
+//      //Wait for restore to provide ID of S3 instance it created
+//      int attempts = 0;
+//      String resourceARN = "NULL";
+//      while(attempts < 5){
+//
+//        try{
+//
+//          //get restore job information and wait until status of restore job is "completed"
+//          DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest.builder().restoreJobId(restoreJobId).build();
+//          DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+//
+//          System.out.println("Restore Status:" + restoreResult.status().toString());
+//
+//          if(Objects.equals(restoreResult.status().toString(), "COMPLETED")){
+//            System.out.println(restoreResult.toString());
+//            resourceARN = restoreResult.createdResourceArn();
+//
+//            Pattern pattern = Pattern.compile("\\w+\\d+$");
+//            Matcher matcher = pattern.matcher(resourceARN.toString());
+//            String restoredBucket = "";
+//
+//            // obtain the restored s3 bucket name using regex
+//            if(matcher.find()){
+//              restoredBucket = matcher.group();
+//            }
+//
+//            System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucket);
+//
+//            // initialize S3Validate object
+//            S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucket);
+//
+//            // checksum validation
+//            boolean checksumCheck = s3Validate.ChecksumValidate();
+//
+//            if (checksumCheck) {
+//              System.out.println("S3 Restore successfully validated!");
+//            } else {
+//              System.out.println("S3 Restore validation failed.");
+//            }
+//
+//          }
+//
+//        } catch(Exception e){
+//
+//          System.err.println(e);
+//
+//          System.exit(1);
+//
+//        }
+//        Thread.sleep(250000); // Takes about 8min for an S3 bucket to be restored
+//        attempts++;
+//
+//        // Print out message is restore is not successful by the 5th try
+//        if (attempts == 5){
+//          System.out.println("Restore job timeout. Please check AWS Backup console to check job status.");
+//        }
+//      }
 
-   } catch(BackupException e){
+      backupClient.close();
+      s3Client.close();
+
+   }  catch (S3Exception | BackupException e) {
 
       System.err.println(e.awsErrorDetails().errorMessage());
-      System.exit(1); 
-      
+      System.exit(1);
+
    } catch (Exception e) {
 
-     System.err.println(e); 
-
+     System.err.println(e);
      System.exit(1); 
 
   }

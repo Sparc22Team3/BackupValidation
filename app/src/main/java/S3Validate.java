@@ -1,24 +1,8 @@
-import java.time.Instant;
-import java.util.*;
-
-import software.amazon.awssdk.services.backup.BackupClient;
-
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataRequest;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataResponse;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultRequest;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultResponse;
-import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
-
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
-import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectsResponse;
-import software.amazon.awssdk.services.s3.model.ObjectAttributes;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.*;
+
+import java.util.HashMap;
+import java.util.List;
 
 
 /**
@@ -73,7 +57,7 @@ public class S3Validate {
     }
 
     /**
-     * Cross check the checksum values of each S3 object in the original S3 bucket and the restored S3 bucket.
+     * Cross-check the checksum values of each S3 object in the original S3 bucket and the restored S3 bucket.
      * If all values match, return true; otherwise, false
      * @return
      */
