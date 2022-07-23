@@ -16,9 +16,6 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//EC2 BackupId a765a264-6cba-4c2d-a56c-42ec0d7abad3
-//RDS BackupID 6e36f3fa-d2e0-4afe-8f7f-7ab348f2851b
-//S3 BackupID 8A387580-B50A-4F9A-6CF9-436FE67F96C5
 
 public class App {
 

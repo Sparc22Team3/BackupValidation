@@ -1,7 +1,5 @@
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
-import software.amazon.awssdk.services.s3.S3Client;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
