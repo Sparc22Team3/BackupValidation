@@ -1,29 +1,40 @@
-package team3;
+package sparc.team3.validator;
 
 import org.apache.commons.cli.*;
-import team3.util.Settings;
-import team3.util.Util;
+import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.util.Util;
 
 import java.io.IOException;
 
-public class App {
+/**
+ * Main class, sets up BackupValidator to run.
+ */
+public class BackupValidator {
     final Options options;
     final CommandLineParser parser;
     Configurator configurator;
     Settings settings;
-    private App(){
+
+    /**
+     * Constructs the BlackupValidator class by setting up the command line options and parser.
+     */
+    private BackupValidator(){
         parser = new DefaultParser();
         options = new Options();
         options();
     }
 
+    /**
+     * Controls the flow of the program based on command line options.
+     * @param args the string array from the command line
+     */
     private void run(String[] args) {
 
         try {
             CommandLine line = parser.parse(options, args);
             if(line.hasOption("help")){
                 HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp(Util.dirName, options);
+                formatter.printHelp(Util.APP_DIR_NAME, options);
                 return;
             }
             if(line.hasOption("config"))
@@ -48,6 +59,10 @@ public class App {
             printExceptionAndExit(e);
         }
     }
+
+    /**
+     * Calls the configurator to output a blank config file
+     */
     private void runNewConfig(){
         try {
             configurator.createBlankConfigFile();
@@ -57,6 +72,9 @@ public class App {
         }
     }
 
+    /**
+     * Creates and adds options for the command line
+     */
     private void options(){
         //options.addOption(new Option());
         options.addOption(new Option("h", "help", false, "print this message"));
@@ -64,25 +82,36 @@ public class App {
                 .longOpt("config")
                 .hasArg().argName("file")
                 .desc("configuration settings json file or directory containing json file for running "
-                        + Util.appName + ". If no config file is specified, program will look in " + Util.defaultConfigDir + " for " + Util.defaultConfigFilename).build()
+                        + Util.APP_DISPLAY_NAME + ". If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_CONFIG_FILENAME).build()
         );
         options.addOption(new Option("n", "newconfig", false, "create config template file at "
-                + "location provided to config or at default location in " + Util.defaultConfigDir + " if config is not specified"));
+                + "location provided to config or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
 
     }
 
+    /**
+     * Formats and prints an exception message.
+     * @param e the exception to print message from
+     */
     public static void printException(Exception e){
         System.err.format("%s: %s\n", e.getClass().getSimpleName(), e.getMessage());
     }
 
+    /**
+     * Formats and prints an exception message before exiting the program.
+     * @param e the exception to print message from
+     */
     public static void printExceptionAndExit(Exception e){
         printException(e);
         System.exit(-1);
     }
 
-
+    /**
+     * Entry point for BackupValidator
+     * @param args the string array from the command line
+     */
     public static void main(String[] args) {
-        App app = new App();
-        app.run(args);
+        BackupValidator backupValidator = new BackupValidator();
+        backupValidator.run(args);
     }
 }

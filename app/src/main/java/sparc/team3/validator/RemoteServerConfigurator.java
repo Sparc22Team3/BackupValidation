@@ -1,7 +1,7 @@
-package team3;
+package sparc.team3.validator;
 
-import team3.util.ServerConfigFile;
-import team3.util.Settings;
+import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.util.ServerConfigFile;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -11,8 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Connects to remote server and changes config files on the server.
+ */
 public class RemoteServerConfigurator extends RemoteServerConnection{
-
+    /**
+     * Sets ups connection to remote server, downloads the files specified in {@link Settings}, alters the files according to the settings,
+     * uploads the files back to the server and deletes the downloaded files.
+     * @param server The string containing the server hostname or ip address to connect to.
+     * @param settings The settings object containing the config files to alter and what alterations to make.
+     * @throws IOException if an I/O error occurs
+     */
     public RemoteServerConfigurator(String server, Settings settings) throws IOException {
         super(server, settings.getServerUsername(), settings.getPrivateKeyFile());
         String tempDir = System.getProperty("java.io.tmpdir");
@@ -37,8 +46,12 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
         closeSSHConnection();
     }
 
-
-
+    /**
+     * Searches through a file altering the specified server settings.
+     * @param settings set of map entries with setting to change and the new value to set
+     * @param tempFile the path to the local copy of the server config file
+     * @throws IOException if an I/O error occurs
+     */
     private void alterConfigFile(Set<Map.Entry<String,String>> settings, Path tempFile) throws IOException {
         LinkedList<String> lines = new LinkedList<>();
         boolean changed = false;

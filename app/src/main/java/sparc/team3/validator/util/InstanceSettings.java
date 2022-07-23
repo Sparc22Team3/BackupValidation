@@ -1,11 +1,16 @@
-package team3.util;
+package sparc.team3.validator.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.LinkedList;
 
-public class InstanceSettings {
+/**
+ * Settings for an AWS resource instance.
+ *
+ * @see sparc.team3.validator.Configurator
+ */
+public final class InstanceSettings {
     private final LinkedList<SecurityGroup> securityGroups;
     private final String subnetID;
     private final String subnetName;
@@ -29,6 +34,14 @@ public class InstanceSettings {
 
     public String getSubnetName() {
         return subnetName;
+    }
+
+    public String toString() {
+        return "\n\t\tInstanceSettings{\n" +
+                "\t\t\tsecurityGroups='" + securityGroups + "'\n" +
+                "\t\t\tsubnetID='" + subnetID + "'\n" +
+                "\t\t\tsubnetName=" + subnetName + "\n" +
+                "\t}";
     }
 
 }

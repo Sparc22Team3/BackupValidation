@@ -1,10 +1,15 @@
-package team3.util;
+package sparc.team3.validator.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.HashMap;
 
+/**
+ * Information about config files on remote server and the settings to change in the specified file.
+ *
+ * @see sparc.team3.validator.RemoteServerConfigurator
+ */
 public final class ServerConfigFile {
     private final String filename;
     private final String path;

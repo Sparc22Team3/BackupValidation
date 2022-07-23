@@ -1,10 +1,15 @@
-package team3.util;
+package sparc.team3.validator.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.LinkedList;
+
+/**
+ * Settings for the program to run.
+ * @see sparc.team3.validator.Configurator
+ */
 @JsonPropertyOrder({"serverUsername", "privateKeyFile"})
 public final class Settings {
     private final String serverUsername;
@@ -83,6 +88,9 @@ public final class Settings {
                 "\tserverUsername='" + serverUsername + "'\n" +
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tconfigFiles=" + configFiles + "\n" +
+                "\tec2settings=" + ec2Settings + "\n" +
+                "\trdssettings=" + rdsSettings + "\n" +
+                "\ts3settings=" + s3Settings + "\n" +
                 '}';
     }
 }

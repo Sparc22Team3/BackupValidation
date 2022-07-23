@@ -1,6 +1,9 @@
-package team3.util;
+package sparc.team3.validator.util;
 
-public class InstanceData {
+/**
+ * Information about an AWS resource instance
+ */
+public final class InstanceData {
     private final String name;
     private final String instanceID;
     private final String arn;

@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="No Arguments Default Config Location" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="team3.App" />
-    <module name="SPARC.BackupValidation" />
+    <option name="MAIN_CLASS_NAME" value="sparc.team3.validator.BackupValidator" />
+    <module name="BackupValidator" />
     <extension name="software.aws.toolkits.jetbrains.core.execution.JavaAwsConnectionExtension">
       <option name="credential" />
       <option name="region" />
