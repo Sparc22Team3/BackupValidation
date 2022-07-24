@@ -53,7 +53,6 @@ public class RDSRestore {
 
 
     private List<DBSnapshot> getSnapshots() {
-        //TreeSet<DBSnapshot> snapshotSet = new TreeSet<>();
         List<DBSnapshot> snapshotList = null;
 
         try {
@@ -97,6 +96,10 @@ public class RDSRestore {
 
          waitForInstanceToBeAvailable(restoredInstanceID);
 
+         rebootInstance(restoredInstanceID);
+
+         waitForInstanceToBeAvailable(restoredInstanceID);
+
          //delete db instance after testing
          deleteDBTestInstance(restoredInstanceID);
 
@@ -122,6 +125,15 @@ public class RDSRestore {
                 .build();
 
         rdsClient.modifyDBInstance(modifyDbRequest);
+    }
+
+    private void rebootInstance(String dbInstanceIdentifier) {
+        RebootDbInstanceRequest request = RebootDbInstanceRequest
+                .builder()
+                .dbInstanceIdentifier(dbInstanceIdentifier)
+                .build();
+
+        rdsClient.rebootDBInstance(request);
     }
 
     private void deleteDBTestInstance(String dbInstanceIdentifier) {

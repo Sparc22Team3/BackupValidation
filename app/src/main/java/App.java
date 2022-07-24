@@ -33,6 +33,8 @@ public class App {
              RDSRestore rdsRestore
                      = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName, securityGroupID);
 
+             rdsRestore.restoreResource();
+
             //RdsValidate rdsValidate = new RdsValidate(restoredRDS, instanceIdentifier);
 
              rdsClient.close();
