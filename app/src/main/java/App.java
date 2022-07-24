@@ -4,11 +4,10 @@ import java.io.IOException;
 
 //import com.example.rds.RDSRestore;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.DBSnapshot;
-import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RestoreDbInstanceFromDbSnapshotRequest;
+import software.amazon.awssdk.services.rds.model.*;
 
 //BACKUP Plan IDs
 
@@ -21,18 +20,24 @@ public class App {
 
         try{
 
-
             Region region = Region.US_EAST_1;
+            String uniqueNameForRestoredDBInstance = "database-test" +System.currentTimeMillis(); //put in util
             String rdsSparcVault = "rdssparcvault";
-            RdsClient rdsClient = RdsClient.builder()
+            String subnetGroupName = "team3-sparc-db-subnet-group"; //add to settings (or a security class?)
+            RdsClient rdsClient = RdsClient
+                    .builder()
                     .region(region)
                     .build();
 
-            RDSRestore rdsRestore = new RDSRestore(rdsClient, rdsSparcVault);
-            // rdsRestore.describeSnapshots(); //just for testing
-            rdsRestore.restoreResource();
+             RDSRestore rdsRestore = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName);
 
-            rdsClient.close();
+            // rdsRestore.describeSnapshots(); //just for testing
+            String instanceIdentifier = rdsRestore.restoreResource();
+            System.out.println("in main: " +instanceIdentifier);
+
+            //RdsValidate rdsValidate = new RdsValidate(restoredRDS, instanceIdentifier);
+
+             rdsClient.close();
 
 
         } catch(BackupException e){

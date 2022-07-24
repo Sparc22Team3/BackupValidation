@@ -11,21 +11,24 @@ import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 
-import java.util.List;
+import java.util.*;
 
 import static java.lang.Thread.sleep;
 
 public class RDSRestore {
 
-    RdsClient rdsClient;
-    String backupVaultName;
-    List<DBSnapshot> snapshotList;
-   // TreeSet
+    private RdsClient rdsClient;
+    private String uniqueNameForRestoredDBInstance;
+    private String backupVaultName;
+    private String subnetGroupName;
+    private List<DBSnapshot> snapshots;
 
-    public RDSRestore(RdsClient rdsClient, String backupVaultName) {
+    public RDSRestore(RdsClient rdsClient, String uniqueNameForRestoredDBInstance, String backupVaultName, String subnetGroupName) {
         this.rdsClient = rdsClient;
+        this.uniqueNameForRestoredDBInstance = uniqueNameForRestoredDBInstance;
         this.backupVaultName = backupVaultName;
-        this.snapshotList = getListOfSnapshots();
+        this.subnetGroupName = subnetGroupName;
+        this.snapshots = getSnapshots();
     }
 
     /**
@@ -42,83 +45,21 @@ public class RDSRestore {
      * @return
      * @throws InterruptedException
      */
-    public String restoreResource() throws InterruptedException {
-        //return the hostname
 
-        // If you are restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
 
-        //String dbSnapShotIdentifier = String.valueOf(snapshotList.get(0));
-        //System.out.println(dbSnapShotIdentifier);
-        System.out.println();
-
-         RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
-                 .builder()
-                 .dbInstanceIdentifier("database-TEST" +System.currentTimeMillis()) //put in util
-                 //.dbSnapshotIdentifier(dbSnapShotIdentifier)
-                 .dbSnapshotIdentifier("arn:aws:rds:us-east-1:490610433117:snapshot:awsbackup:job-c3fbf429-a4bb-0237-d0bd-9775134de8df")
-                 //.vpcSecurityGroupIds("vpc-02926b86fed57e4e5")
-                 .dbSubnetGroupName("team3-sparc-db-subnet-group") //add to Settings (security class?
-                 .build();
-
-         RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
-
-        CreateDbInstanceRequest instanceRequest = CreateDbInstanceRequest
-                .builder()
-                .masterUserPassword("WHAt is it")
-                .build();
-
-        CreateDbInstanceResponse instanceResponse = rdsClient.createDBInstance(instanceRequest);
-        System.out.print("The status is " + instanceResponse.dbInstance().dbInstanceStatus());
-        System.out.print("The identifier is " + instanceResponse.dbInstance().dbInstanceIdentifier());
-        System.out.print("The vpc security group is " + instanceResponse.dbInstance().vpcSecurityGroups());
-        System.out.print("The db security is " + instanceResponse.dbInstance().dbSecurityGroups());
-
-         // vpc security group IDs is empty; if there is one, might be able to update there in the restore rather than afterwards
-         //System.out.println("vpcSecurityGroupIds : " +request.vpcSecurityGroupIds());
-         //System.out.println("dbSubnetGroupName : " +request.dbSubnetGroupName());
-
-        String restoredInstanceID = response.dbInstance().dbInstanceIdentifier();
-        System.out.println("restoredInstanceID : " +restoredInstanceID);
-        System.out.println("sleeping for 5 minutes now");
-        sleep(300000);
-        //rdsClient.waiter().waitUntilDBInstanceAvailable();
-        updateSecurityGroup(response);
-
-        // the modified security group is reflected in console, but not with print statements below
-        String identifier = response.dbInstance().dbInstanceIdentifier();
-        System.out.println("identifier: " + identifier);
-        System.out.println("vpc security group: " + response.dbInstance().vpcSecurityGroups());
-
-        System.out.println("sleeping for 3 minutes now");
-     //   sleep(180000);
-     //   deleteDBTestInstance(response);
-
-        //return response1.dbInstance();
-        //return response1.responseMetadata();
-        return response.toString();
-    }
-
-    List<DBSnapshot>  getListOfSnapshots() {
-
-        //TreeMap<Instance, DBSnapshot> mapSortedByCreateTimeRDSSnapshots = new TreeMap<>();
+    private List<DBSnapshot> getSnapshots() {
+        //TreeSet<DBSnapshot> snapshotSet = new TreeSet<>();
+        List<DBSnapshot> snapshotList = null;
 
         try {
 
-            // describe the RDS snapshots
             DescribeDbSnapshotsRequest request = DescribeDbSnapshotsRequest
                     .builder()
                     .build();
 
-            DescribeDbSnapshotsResponse responseS = rdsClient.describeDBSnapshots(request);
-            System.out.println("RESPONSE snapshots: " +responseS.dbSnapshots());
+            DescribeDbSnapshotsResponse response = rdsClient.describeDBSnapshots(request);
 
-            // List is sorted by dbSnapshotIdentifier
-            // not allowed to sort (unmodifiable list) // snapshotList.sort(null);
-            // so put in TreeMap sorted by SnapshotCreateTime
-            List<DBSnapshot> snapshotList = responseS.dbSnapshots();
-            // 0th element is not the most recent; it's a random one, but order is preserved across runs
-            System.out.println("id :: " +snapshotList.get(0).dbSnapshotIdentifier());
-            System.out.println("arn :: " +snapshotList.get(0).dbSnapshotArn());
+            snapshotList = response.dbSnapshots();
 
         } catch (RdsException e) {
             System.out.println(e.getLocalizedMessage());
@@ -127,32 +68,68 @@ public class RDSRestore {
         return snapshotList;
     }
 
-    public void updateSecurityGroup(RestoreDbInstanceFromDbSnapshotResponse response) {
+    public String restoreResource() throws InterruptedException {
+        //return the hostname
+
+        // If you are restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
+
+        String arn = snapshots.get(0).dbSnapshotArn();
+
+         RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
+                 .builder()
+                 .dbInstanceIdentifier(uniqueNameForRestoredDBInstance)
+                 .dbSnapshotIdentifier(arn)
+                 .dbSubnetGroupName(subnetGroupName)
+                 .build();
+
+         RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
+
+        String restoredInstanceID = response.dbInstance().dbInstanceIdentifier();
+        System.out.println("restoredInstanceID : " +restoredInstanceID);
+        System.out.println("response class :: " +response.getClass());
+        System.out.println("sleeping for 5 minutes now");
+        sleep(300000);
+        //rdsClient.waiter().waitUntilDBInstanceAvailable();
+
+        // update security group to custom one
+        updateSecurityGroup(response, "sg-078715763233fad97");
+
+        System.out.println("sleeping for 5 minutes now");
+        sleep(300000);
+
+        //delete db instance after testing
+        deleteDBTestInstance(restoredInstanceID);
+
+        return response.dbInstance().dbInstanceIdentifier();
+    }
+
+
+    public void updateSecurityGroup(RestoreDbInstanceFromDbSnapshotResponse response, String securityGroupID) {
     //public void updateSecurityGroup() {
         //if (response.dbInstance().dbInstanceStatus() != "available")
         ModifyDbInstanceRequest modifyDbRequest = ModifyDbInstanceRequest
                 .builder()
                 .dbInstanceIdentifier(response.dbInstance().dbInstanceIdentifier())
-                //.vpcSecurityGroupIds("sg-078715763233fad97")
+                .vpcSecurityGroupIds(securityGroupID)
                 .build();
 
         ModifyDbInstanceResponse modifyDBResponse = rdsClient.modifyDBInstance(modifyDbRequest);
         System.out.println(" Modified db restore, vpc security group: " + modifyDBResponse.dbInstance().vpcSecurityGroups());
         System.out.println("dbInstanceStatus " +modifyDBResponse.dbInstance().dbInstanceStatus());
        // if (modifyDBResponse.dbInstance().dbInstanceStatus() != "available")
-        modifyDbRequest.vpcSecurityGroupIds().add("sg-078715763233fad97");
+        //modifyDbRequest.vpcSecurityGroupIds().add("sg-078715763233fad97");
         System.out.println("value of modify db response : " +String.valueOf(modifyDBResponse));
 
     }
 
     //public void deleteDBTestInstance(String dbInstanceIdentifier) {
-    public void deleteDBTestInstance(RestoreDbInstanceFromDbSnapshotResponse response) {
+    public void deleteDBTestInstance(String restoredInstanceID) {
 
         DeleteDbInstanceRequest deleteRequest = DeleteDbInstanceRequest
                 .builder()
-                .dbInstanceIdentifier(response.dbInstance().dbInstanceIdentifier())
+                .dbInstanceIdentifier(restoredInstanceID)
+                .skipFinalSnapshot(true)
                 .build();
-        deleteRequest.skipFinalSnapshot();
         DeleteDbInstanceResponse deleteResponse = rdsClient.deleteDBInstance(deleteRequest);
     }
 
@@ -171,15 +148,9 @@ public class RDSRestore {
                     .build();
 
             DescribeDbSnapshotsResponse responseS = rdsClient.describeDBSnapshots(request);
-            System.out.println("RESPONSE snapshots: " +responseS.dbSnapshots());
 
-            // List is sorted by dbSnapshotIdentifier
-            // not allowed to sort (unmodifiable list) // snapshotList.sort(null);
-             // so put in TreeMap sorted by SnapshotCreateTime
+            // List is auto-sorted by ARN / RecoveryPointID; ie. not the most recent backup
             List<DBSnapshot> snapshotList = responseS.dbSnapshots();
-            // 0th element is not the most recent; it's a random one
-            System.out.println("id :: " +snapshotList.get(1).dbSnapshotIdentifier());
-            System.out.println("arn :: " +snapshotList.get(1).dbSnapshotArn());
 
  /**           System.out.println("size of snapshot list: " + snapshotList.size());
             for (DBSnapshot snapshot : snapshotList) {
