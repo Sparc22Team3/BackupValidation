@@ -24,16 +24,14 @@ public class App {
             String uniqueNameForRestoredDBInstance = "database-test" +System.currentTimeMillis(); //put in util
             String rdsSparcVault = "rdssparcvault";
             String subnetGroupName = "team3-sparc-db-subnet-group"; //add to settings (or a security class?)
+            String securityGroupID = "sg-078715763233fad97"; //add to settings (or a security class?)
             RdsClient rdsClient = RdsClient
                     .builder()
                     .region(region)
                     .build();
 
-             RDSRestore rdsRestore = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName);
-
-            // rdsRestore.describeSnapshots(); //just for testing
-            String instanceIdentifier = rdsRestore.restoreResource();
-            System.out.println("in main: " +instanceIdentifier);
+             RDSRestore rdsRestore
+                     = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName, securityGroupID);
 
             //RdsValidate rdsValidate = new RdsValidate(restoredRDS, instanceIdentifier);
 
