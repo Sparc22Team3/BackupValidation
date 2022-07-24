@@ -10,19 +10,27 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class EC2Validate {
+public class EC2ValidateInstance {
 
+    private String instanceARN; 
     private String instanceId; 
     private Ec2Client ec2Client; 
     private DescribeInstancesResponse description; 
 
-    private String url; 
+    private String publicDNS; 
+    private String publicIP;
+    private String privateIP; 
+    private String subnet;
 
-    public EC2Validate(Ec2Client client, String instance){
+    public EC2ValidateInstance(Ec2Client client, String instance, String resourceARN){
+        instanceARN = resourceARN; 
         instanceId = instance; 
         ec2Client = client; 
         description = getInstanceDescription(instance);
-        url = getInstancePublicURL(description); 
+        publicDNS = getInstancePublicDNS(description); 
+        publicIP = description.reservations().get(0).instances().get(0).publicIpAddress();
+        privateIP = description.reservations().get(0).instances().get(0).privateIpAddress();
+        subnet = description.reservations().get(0).instances().get(0).subnetId();
     }
 
     /**
@@ -45,7 +53,7 @@ public class EC2Validate {
      * @param instanceRep
      * @return
      */
-    private String getInstancePublicURL(DescribeInstancesResponse instanceRep){
+    private String getInstancePublicDNS(DescribeInstancesResponse instanceRep){
 
         String url = instanceRep.reservations().get(0).instances().get(0).publicDnsName();
         
@@ -64,7 +72,7 @@ public class EC2Validate {
         waitForEC2Checks();
 
         HttpClient httpClient = HttpClient.newHttpClient();
-        HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build(); 
+        HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(publicDNS)).build(); 
         HttpResponse httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
         
         if(httpResponse.statusCode() == 200){
@@ -145,6 +153,25 @@ public class EC2Validate {
       this.instanceId = instanceId; 
       
       description = getInstanceDescription(this.instanceId);
-      url = getInstancePublicURL(description); 
+      publicDNS = getInstancePublicDNS(description); 
+    }
+
+    public String getPublicIP(){
+
+      return publicIP;
+
+    }
+
+    public String getPrivateIP(){
+
+      return privateIP;
+    }
+
+    public String getSubnet(){
+      return subnet;
+    }
+
+    public String getInstanceARN(){
+      return instanceARN;
     }
 }

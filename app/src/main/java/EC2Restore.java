@@ -29,8 +29,9 @@ public class EC2Restore {
     private int recoveryNumber; 
     private TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
 
-    RecoveryPointByBackupVault currentRecoveryPoint;
-    Map<String, String> metadata; 
+    private RecoveryPointByBackupVault currentRecoveryPoint;
+    private Map<String, String> metadata; 
+    private String resourceARN; 
 
 
     public EC2Restore(BackupClient client, String backupVaultName, int recoveryNumber) throws Exception{
@@ -172,7 +173,6 @@ public class EC2Restore {
         String restoreJobId = startRestore(recoveryNumber); 
 
         int attempts = 0; 
-        String resourceARN = ""; 
         while(attempts < 11){
           
           try{
@@ -254,5 +254,9 @@ public class EC2Restore {
 
         this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
+    }
+
+    public String getResourceARN(){
+        return resourceARN;
     }
 }

@@ -19,7 +19,7 @@ public class App {
       String instanceId = restore.restoreEC2FromBackup();
       Ec2Client ec2Client = Ec2Client.builder().region(region).build(); 
 
-      EC2Validate instance = new EC2Validate(ec2Client, instanceId);
+      EC2ValidateInstance instance = new EC2ValidateInstance(ec2Client, instanceId, restore.getResourceARN());
 
       Boolean validated = instance.validateWithPing();
 
