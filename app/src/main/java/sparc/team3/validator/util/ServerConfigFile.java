@@ -1,6 +1,7 @@
 package sparc.team3.validator.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.HashMap;
@@ -42,6 +43,7 @@ public final class ServerConfigFile {
         return settings;
     }
 
+    @JsonIgnore
     public String getFullFilePath() {
         return path + '/' + filename;
     }
