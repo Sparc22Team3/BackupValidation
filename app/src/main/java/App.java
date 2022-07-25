@@ -4,18 +4,25 @@ import java.io.IOException;
 
 //import com.example.rds.RDSRestore;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
-import software.amazon.awssdk.services.rds.model.*;
 
 //BACKUP Plan IDs
 
 //EC2 BackupId a765a264-6cba-4c2d-a56c-42ec0d7abad3
 //RDS BackupID 6e36f3fa-d2e0-4afe-8f7f-7ab348f2851b
 
+/**
+ * Runs the restore, test, and validate of an RDS snapshot.
+ */
 public class App {
 
+    /**
+     * The entry point of application.
+     *
+     * @param args the input arguments
+     * @throws IOException the io exception
+     */
     public static void main(String[] args) throws IOException {
 
         try{
@@ -30,14 +37,15 @@ public class App {
                     .region(region)
                     .build();
 
-             RDSRestore rdsRestore
+            RDSRestore rdsRestore
                      = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName, securityGroupID);
 
-             rdsRestore.restoreResource();
+            String restoredInstanceID = rdsRestore.restoreResource();
 
-            //RdsValidate rdsValidate = new RdsValidate(restoredRDS, instanceIdentifier);
+            RDSValidate rdsValidate = new RDSValidate(rdsClient, restoredInstanceID);
+            rdsValidate.validateResource(restoredInstanceID);
 
-             rdsClient.close();
+            rdsClient.close();
 
 
         } catch(BackupException e){

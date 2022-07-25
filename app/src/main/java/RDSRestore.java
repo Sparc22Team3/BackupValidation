@@ -5,18 +5,20 @@
 
 //package com.example.rds;
 
-import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.ModifyDbInstanceResponse;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
+import software.amazon.awssdk.utils.HostnameValidator;
 
+import javax.net.ssl.HostnameVerifier;
 import java.util.*;
 
-import static java.lang.Thread.sleep;
 
+/**
+ * This class restores an RDS instance from a snapshot
+ */
 public class RDSRestore {
 
     private RdsClient rdsClient;
@@ -26,6 +28,15 @@ public class RDSRestore {
     private String securityGroupID;
     private List<DBSnapshot> snapshots;
 
+    /**
+     * Instantiates a new Rds restore.
+     *
+     * @param rdsClient                       the rds client
+     * @param uniqueNameForRestoredDBInstance the unique name for restored db instance
+     * @param backupVaultName                 the backup vault name
+     * @param subnetGroupName                 the subnet group name
+     * @param securityGroupID                 the security group id
+     */
     public RDSRestore(RdsClient rdsClient, String uniqueNameForRestoredDBInstance,
                       String backupVaultName, String subnetGroupName,String securityGroupID) {
         this.rdsClient = rdsClient;
@@ -52,6 +63,10 @@ public class RDSRestore {
      */
 
 
+    /**
+     * Gets the list of current RDS snapshots
+     * @return List of DBSnapshots
+     */
     private List<DBSnapshot> getSnapshots() {
         List<DBSnapshot> snapshotList = null;
 
@@ -71,9 +86,13 @@ public class RDSRestore {
         return snapshotList;
     }
 
+    /**
+     * Restore database instance from snapshot.
+     *
+     * @return the restored instance ID as a string
+     * @throws InterruptedException the interrupted exception
+     */
     public String restoreResource() throws InterruptedException {
-        //return the hostname
-
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
 
         String arn = snapshots.get(0).dbSnapshotArn();
@@ -89,24 +108,23 @@ public class RDSRestore {
 
          String restoredInstanceID = response.dbInstance().dbInstanceIdentifier();
 
+         // wait for snapshot to finish restoring to a new instance
          waitForInstanceToBeAvailable(restoredInstanceID);
 
          // update security group to custom one
          updateSecurityGroup(restoredInstanceID, securityGroupID);
 
-         waitForInstanceToBeAvailable(restoredInstanceID);
-
+         // reboot for modifications to take effect immediately
          rebootInstance(restoredInstanceID);
 
-         waitForInstanceToBeAvailable(restoredInstanceID);
-
-         //delete db instance after testing
-         deleteDBTestInstance(restoredInstanceID);
-
-         return response.dbInstance().dbInstanceIdentifier();
+         return restoredInstanceID;
     }
 
-    // synchronous wait with rds waiter
+
+    /**
+     * Synchronous wait to ensure database is in available state
+     * @param dbInstanceIdentifier
+     */
     private void waitForInstanceToBeAvailable(String dbInstanceIdentifier) {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest
                 .builder()
@@ -117,16 +135,28 @@ public class RDSRestore {
         waiter.waitUntilDBInstanceAvailable(request);
     }
 
+
+    /**
+     * Update the security group to the custom one
+     * @param restoredInstanceID
+     * @param securityGroupID
+     */
     private void updateSecurityGroup(String restoredInstanceID, String securityGroupID) {
         ModifyDbInstanceRequest modifyDbRequest = ModifyDbInstanceRequest
                 .builder()
                 .dbInstanceIdentifier(restoredInstanceID)
                 .vpcSecurityGroupIds(securityGroupID)
+                .applyImmediately(true)
                 .build();
 
         rdsClient.modifyDBInstance(modifyDbRequest);
+        waitForInstanceToBeAvailable(restoredInstanceID);
     }
 
+    /**
+     * Reboot the database instance to ensure any change requests are complete
+     * @param dbInstanceIdentifier
+     */
     private void rebootInstance(String dbInstanceIdentifier) {
         RebootDbInstanceRequest request = RebootDbInstanceRequest
                 .builder()
@@ -134,22 +164,10 @@ public class RDSRestore {
                 .build();
 
         rdsClient.rebootDBInstance(request);
-    }
-
-    private void deleteDBTestInstance(String dbInstanceIdentifier) {
-
-        DeleteDbInstanceRequest deleteRequest = DeleteDbInstanceRequest
-                .builder()
-                .dbInstanceIdentifier(dbInstanceIdentifier)
-                .skipFinalSnapshot(true)
-                .build();
-
-        rdsClient.deleteDBInstance(deleteRequest);
+        waitForInstanceToBeAvailable(dbInstanceIdentifier);
     }
 
 }
-
-//restore job NOTES
 
 /**       WindowStateListener listener = new WindowStateListener() {
 @Override
