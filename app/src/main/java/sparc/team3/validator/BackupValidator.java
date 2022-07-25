@@ -1,10 +1,13 @@
 package sparc.team3.validator;
 
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 /**
  * Main class, sets up BackupValidator to run.
@@ -14,9 +17,10 @@ public class BackupValidator {
     final CommandLineParser parser;
     Configurator configurator;
     Settings settings;
+    Logger logger;
 
     /**
-     * Constructs the BlackupValidator class by setting up the command line options and parser.
+     * Constructs the BackupValidator class by setting up the command line options and parser.
      */
     private BackupValidator(){
         parser = new DefaultParser();
@@ -29,10 +33,21 @@ public class BackupValidator {
      * @param args the string array from the command line
      */
     private void run(String[] args) {
-
         try {
             CommandLine line = parser.parse(options, args);
+            // Set logger values before loading logger
+            if(line.hasOption("debug"))
+                System.setProperty("log-level", "DEBUG");
+            if(line.hasOption("trace"))
+                System.setProperty("log-level", "TRACE");
+            if(line.hasOption("log-file"))
+                System.setProperty("log-file", line.getOptionValue("log-file"));
+
+            logger = LoggerFactory.getLogger(BackupValidator.class);
+            logger.info("Start - Arguments: {}", String.join(" ", args));
+
             if(line.hasOption("help")){
+
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp(Util.APP_DIR_NAME, options);
                 return;
@@ -86,6 +101,13 @@ public class BackupValidator {
         );
         options.addOption(new Option("n", "newconfig", false, "create config template file at "
                 + "location provided to config or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+
+        options.addOption(new Option("d","debug", false, "change log level from INFO to DEBUG"));
+        options.addOption(new Option("t", "trace",false, "change log level from INFO to TRACE"));
+        options.addOption(Option.builder("lf")
+                .longOpt("log-file")
+                .hasArg().argName("file")
+                .desc("change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
 
     }
 
