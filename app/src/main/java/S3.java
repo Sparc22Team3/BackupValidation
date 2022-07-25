@@ -2,22 +2,19 @@ import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.waiters.S3Waiter;
+import sparc.team3.validator.restore.S3Restore;
+import sparc.team3.validator.validate.S3Validate;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
-public class App {
+public class S3 {
 
   public static void main(String[] args) throws IOException {
 
@@ -60,7 +57,7 @@ public class App {
       waiterResponse.matched().response().ifPresent(System.out::println);
       System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucketName);
 
-      // initialize S3Validate object
+      // initialize sparc.team3.validator.validate.S3Validate object
       S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucketName);
 
       // checksum validation
@@ -99,8 +96,8 @@ public class App {
 //
 //            System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucket);
 //
-//            // initialize S3Validate object
-//            S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucket);
+//            // initialize sparc.team3.validator.validate.S3Validate object
+//            sparc.team3.validator.validate.S3Validate s3Validate = new sparc.team3.validator.validate.S3Validate(s3Client, s3BucketName, restoredBucket);
 //
 //            // checksum validation
 //            boolean checksumCheck = s3Validate.ChecksumValidate();
