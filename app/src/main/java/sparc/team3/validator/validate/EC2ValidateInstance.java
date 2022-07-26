@@ -44,10 +44,8 @@ public class EC2ValidateInstance {
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest
         .builder().instanceIds(instanceId).build();
-        
-        DescribeInstancesResponse instanceRep = ec2Client.describeInstances(instanceReq); 
 
-        return instanceRep;
+        return ec2Client.describeInstances(instanceReq);
     }
 
     /**
@@ -75,15 +73,9 @@ public class EC2ValidateInstance {
 
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(publicDNS)).build(); 
-        HttpResponse httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-        if(httpResponse.statusCode() == 200){
-
-            return true;
-
-        }
-
-        return false;
+        return httpResponse.statusCode() == 200;
 
     }
     

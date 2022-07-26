@@ -32,7 +32,7 @@ public class S3Restore {
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<Instant, RecoveryPointByBackupVault>();
+        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<>();
         
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().

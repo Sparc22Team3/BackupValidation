@@ -56,8 +56,8 @@ public class EC2Restore {
      */
     private TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output = 
-        new TreeMap<Instant, RecoveryPointByBackupVault>(Collections.reverseOrder());
+        TreeMap<Instant, RecoveryPointByBackupVault> output =
+                new TreeMap<>(Collections.reverseOrder());
         
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest  request = 
@@ -98,9 +98,8 @@ public class EC2Restore {
      * Start the restore job given a recovery point. 
      * @param recoveryNumber the int of the recovery point to restore
      * @return a string of the response of the restore job
-     * @throws Exception when there is a problem with the restore job
      */
-    private String startRestore(int recoveryNumber) throws Exception{
+    private String startRestore(int recoveryNumber){
         
         StartRestoreJobRequest request = StartRestoreJobRequest.builder().
         recoveryPointArn(currentRecoveryPoint.recoveryPointArn()).iamRoleArn(currentRecoveryPoint.iamRoleArn())
@@ -147,7 +146,7 @@ public class EC2Restore {
 
     private Map<String, String> editRecoveryMeta(Map<String, String> metaData){
 
-        Map<String, String> output = new HashMap<String, String>(); 
+        Map<String, String> output = new HashMap<>();
 
         for(Entry<String, String> entry: metaData.entrySet()){
 
@@ -222,7 +221,7 @@ public class EC2Restore {
     private String parseInstanceId(String resourceARN){
 
         Pattern pattern = Pattern.compile("i-\\w+");
-        Matcher matcher = pattern.matcher(resourceARN.toString()); 
+        Matcher matcher = pattern.matcher(resourceARN);
         String instanceId = ""; 
         
         if(matcher.find()){instanceId = matcher.group();}
