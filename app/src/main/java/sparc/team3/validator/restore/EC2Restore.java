@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 
 /**
- * sparc.team3.validator.restore.EC2Restore selects a recovery point to backup, restores the recovery point, and waits for the
+ * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
  * recovered resource to pass initialization checks. 
  */
 public class EC2Restore {
@@ -112,9 +112,9 @@ public class EC2Restore {
     }
 
     /**
-     * Gets meta data of recovery point for restore job request. 
-     * @param recoveryPoint the RecoveryPointByBackupVault to get meta data from
-     * @return a Map of the string meta data
+     * Gets metadata of recovery point for restore job request.
+     * @param recoveryPoint the RecoveryPointByBackupVault to get metadata from
+     * @return a Map of the string metadata
      */
     private  Map<String, String> getRecoveryMetaData(RecoveryPointByBackupVault recoveryPoint){
 
@@ -135,10 +135,10 @@ public class EC2Restore {
     }
 
     /**
-     * Solves issue with meta data where restore job request does not work with 
+     * Solves issue with metadata where restore job request does not work with
      * NetworkInterfaces if security group and subnet are specified. 
      * 
-     * Also CpuOptions causes restore job request to fail. 
+     * Also, CpuOptions causes restore job request to fail.
      * 
      * @param metaData a Map of string metadata
      * @return the edited meta data Map
@@ -166,7 +166,7 @@ public class EC2Restore {
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 10 minutes.
      * 
-     * Throws error if job isn't completed within alotted time. 
+     * Throws error if job isn't completed within allotted time.
      * @return a string of the instance id
      * @throws Exception when the backup restore times out
      */

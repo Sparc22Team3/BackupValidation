@@ -49,7 +49,7 @@ public class EC2ValidateInstance {
     }
 
     /**
-     * Given instance meta data, return formated url. 
+     * Given instance meta data, return formatted url.
      * @param instanceRep a DescribeInstancesResponse to get the public DNS name from.
      * @return a string of the url
      */

@@ -7,7 +7,7 @@ import java.util.List;
 
 
 /**
- * Class used to restore the most recent S3 recovery point from "s3sparcvault"
+ * Class to validate original and restored S3 buckets
  */
 public class S3Validate {
 
@@ -60,7 +60,7 @@ public class S3Validate {
     /**
      * Cross-check the checksum values of each S3 object in the original S3 bucket and the restored S3 bucket.
      * If all values match, return true; otherwise, false
-     * @return a boolean of whether the checksum's match
+     * @return a boolean value of whether the checksums match
      */
     public boolean ChecksumValidate(){
 

@@ -9,7 +9,7 @@ import java.util.TreeMap;
 
 
 /**
- * Class used to restore the most recent S3 recovery point from "s3sparcvault"
+ * Class used to restore the most recent S3 recovery point from S3 backup vault
  */
 public class S3Restore {
 
@@ -89,7 +89,7 @@ public class S3Restore {
 
     /**
      * Populates a Map with metadata required for S3 restore
-     * @return a Map of the string meta data
+     * @return a Map of the string metadata
      */
     public Map<String, String> s3RecoveryMetaData()
     {

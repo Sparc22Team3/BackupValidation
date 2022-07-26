@@ -88,9 +88,9 @@ public final class Settings {
                 "\tserverUsername='" + serverUsername + "'\n" +
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tconfigFiles=" + configFiles + "\n" +
-                "\tec2settings=" + ec2Settings + "\n" +
-                "\trdssettings=" + rdsSettings + "\n" +
-                "\ts3settings=" + s3Settings + "\n" +
+                "\tec2Settings=" + ec2Settings + "\n" +
+                "\trdsSettings=" + rdsSettings + "\n" +
+                "\ts3Settings=" + s3Settings + "\n" +
                 '}';
     }
 }
