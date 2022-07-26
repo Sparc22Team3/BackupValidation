@@ -1,3 +1,5 @@
+package sparc.team3.validator.restore;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,7 +21,7 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
 
 /**
- * EC2Restore selects a recovery point to backup, restores the recovery point, and waits for the 
+ * sparc.team3.validator.restore.EC2Restore selects a recovery point to backup, restores the recovery point, and waits for the
  * recovered resource to pass initialization checks. 
  */
 public class EC2Restore {

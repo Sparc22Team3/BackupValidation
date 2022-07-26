@@ -1,3 +1,5 @@
+package sparc.team3.validator.validate;
+
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;

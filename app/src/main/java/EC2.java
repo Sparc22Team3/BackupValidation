@@ -3,8 +3,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import sparc.team3.validator.restore.EC2Restore;
+import sparc.team3.validator.validate.EC2ValidateInstance;
 
-public class App {
+public class EC2 {
 
   public static void main(String[] args) throws IOException {
 
@@ -14,7 +16,7 @@ public class App {
       BackupClient client =  BackupClient.builder().region(region).build();
       int recoveryAttempt = 0; 
 
-      EC2Restore restore = new EC2Restore(client, "ec2sparcvault", recoveryAttempt); 
+      EC2Restore restore = new EC2Restore(client, "ec2sparcvault", recoveryAttempt);
 
       String instanceId = restore.restoreEC2FromBackup();
       Ec2Client ec2Client = Ec2Client.builder().region(region).build(); 
