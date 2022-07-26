@@ -108,7 +108,7 @@ public class Configurator {
         Settings settings = new Settings("ec2-user",
                 "testKeyFile",
                 fileList,
-                "us-east-1a",
+                "US_EAST_1",
                 "vpc id",
                 "vpc name",
                 ec2Settings,
