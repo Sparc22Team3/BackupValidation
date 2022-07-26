@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Help" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="sparc.team3.validator.BackupValidator" />
+    <module name="BackupValidator" />
+    <option name="PROGRAM_PARAMETERS" value="--help -d" />
+    <extension name="software.aws.toolkits.jetbrains.core.execution.JavaAwsConnectionExtension">
+      <option name="credential" />
+      <option name="region" />
+      <option name="useCurrentConnection" value="false" />
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
