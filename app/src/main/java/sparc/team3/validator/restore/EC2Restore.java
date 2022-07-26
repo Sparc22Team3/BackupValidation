@@ -26,10 +26,10 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
  */
 public class EC2Restore {
 
-    private BackupClient client; 
-    private String backupVaultName;
+    private final BackupClient client;
+    private final String backupVaultName;
     private int recoveryNumber; 
-    private TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints; 
+    private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
     private RecoveryPointByBackupVault currentRecoveryPoint;
     private Map<String, String> metadata; 
@@ -50,8 +50,8 @@ public class EC2Restore {
     
     /**
      * Method gets a list of backup restore points from backup vault and populates a sorted data structure. 
-     * @param backupVaultName
-     * @return
+     * @param backupVaultName the string name of the backup vault to retrieve recovery points from
+     * @return a TreeMap of the recovery points in the backup vault
      * 
      */
     private TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
@@ -77,9 +77,10 @@ public class EC2Restore {
     }
 
     /**
-     * Return most recent recovery point from vault. 
-     * @return
-     * @throws Exception
+     * Return most recent recovery point from vault.
+     * @param recoveryNumber the number of the recovery point to get
+     * @return a RecoveryPointByBackupVault
+     * @throws Exception when recovery points have been exhausted
      */
 
     private RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
@@ -95,9 +96,9 @@ public class EC2Restore {
 
     /**
      * Start the restore job given a recovery point. 
-     * @param recoveryPoint
-     * @return
-     * @throws Exception
+     * @param recoveryNumber the int of the recovery point to restore
+     * @return a string of the response of the restore job
+     * @throws Exception when there is a problem with the restore job
      */
     private String startRestore(int recoveryNumber) throws Exception{
         
@@ -113,8 +114,8 @@ public class EC2Restore {
 
     /**
      * Gets meta data of recovery point for restore job request. 
-     * @param recoveryPoint
-     * @return
+     * @param recoveryPoint the RecoveryPointByBackupVault to get meta data from
+     * @return a Map of the string meta data
      */
     private  Map<String, String> getRecoveryMetaData(RecoveryPointByBackupVault recoveryPoint){
 
@@ -140,8 +141,8 @@ public class EC2Restore {
      * 
      * Also CpuOptions causes restore job request to fail. 
      * 
-     * @param metaData
-     * @return
+     * @param metaData a Map of string metadata
+     * @return the edited meta data Map
      */
 
     private Map<String, String> editRecoveryMeta(Map<String, String> metaData){
@@ -167,8 +168,8 @@ public class EC2Restore {
      * longer than 10 minutes.
      * 
      * Throws error if job isn't completed within alotted time. 
-     * @return
-     * @throws Exception
+     * @return a string of the instance id
+     * @throws Exception when the backup restore times out
      */
     public String restoreEC2FromBackup() throws Exception{
 
@@ -194,7 +195,7 @@ public class EC2Restore {
             
           } catch(Exception e){
   
-            System.err.println(e); 
+            System.err.println(e);
   
             System.exit(1); 
   
@@ -215,8 +216,8 @@ public class EC2Restore {
     
     /**
      * Parse resource ARN to obtain EC2 instanceId
-     * @param resourceARN
-     * @return
+     * @param resourceARN a resourceARN string to parse
+     * @return the string of the instance id
      */
     private String parseInstanceId(String resourceARN){
 
@@ -231,7 +232,7 @@ public class EC2Restore {
     
     /**
      * Returns recovery points in sorted order. 
-     * @return
+     * @return a TreeMap of recoveryPointsByBackupVault
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
 
@@ -240,7 +241,7 @@ public class EC2Restore {
 
     /**
      * Returns current recovery number of object. 
-     * @return
+     * @return the int of the current recovery number
      */
     public int getRecoveryPointNumber(){
         return recoveryNumber;
@@ -248,8 +249,8 @@ public class EC2Restore {
 
     /**
      * Set current recovery number of object. 
-     * @param number
-     * @throws Exception
+     * @param recoveryNumber the int to set the number of the recovery point
+     * @throws Exception when there is an issue getting the recent recovery point
      */
     public void setRecoveryPointNumber(int recoveryNumber) throws Exception{
         this.recoveryNumber=recoveryNumber;

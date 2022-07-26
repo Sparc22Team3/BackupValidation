@@ -11,9 +11,9 @@ import java.util.List;
  */
 public class S3Validate {
 
-    S3Client s3;
-    String originalBucket;
-    String restoredBucket;
+    final S3Client s3;
+    final String originalBucket;
+    final String restoredBucket;
 
     public S3Validate(S3Client s3, String originalBucket, String restoredBucket){
 
@@ -25,8 +25,8 @@ public class S3Validate {
 
     /**
      * Extract S3 objects from a given S3 bucket, and returning their key and checksum values in a HashMap
-     * @param bucketName
-     * @return
+     * @param bucketName the string name of the bucket to get the objects of
+     * @return a HashMap of S3 objects
      */
     public HashMap<String, String> GetS3Objects(String bucketName){
 
@@ -60,7 +60,7 @@ public class S3Validate {
     /**
      * Cross-check the checksum values of each S3 object in the original S3 bucket and the restored S3 bucket.
      * If all values match, return true; otherwise, false
-     * @return
+     * @return a boolean of whether the checksum's match
      */
     public boolean ChecksumValidate(){
 

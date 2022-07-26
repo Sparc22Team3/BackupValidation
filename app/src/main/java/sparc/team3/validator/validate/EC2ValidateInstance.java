@@ -14,15 +14,15 @@ import java.net.http.HttpResponse;
 
 public class EC2ValidateInstance {
 
-    private String instanceARN; 
-    private String instanceId; 
-    private Ec2Client ec2Client; 
-    private DescribeInstancesResponse description; 
+    private final String instanceARN;
+    private String instanceId;
+    private final Ec2Client ec2Client;
+    private DescribeInstancesResponse description;
 
-    private String publicDNS; 
-    private String publicIP;
-    private String privateIP; 
-    private String subnet;
+    private String publicDNS;
+    private final String publicIP;
+    private final String privateIP;
+    private final String subnet;
 
     public EC2ValidateInstance(Ec2Client client, String instance, String resourceARN){
         instanceARN = resourceARN; 
@@ -37,8 +37,8 @@ public class EC2ValidateInstance {
 
     /**
      * Return the medata data for the instance
-     * @param instance
-     * @return
+     * @param instance a string of the instance
+     * @return a DescribeInstanceResponse of the instance
      */
     private DescribeInstancesResponse getInstanceDescription(String instance){
 
@@ -52,8 +52,8 @@ public class EC2ValidateInstance {
 
     /**
      * Given instance meta data, return formated url. 
-     * @param instanceRep
-     * @return
+     * @param instanceRep a DescribeInstancesResponse to get the public DNS name from.
+     * @return a string of the url
      */
     private String getInstancePublicDNS(DescribeInstancesResponse instanceRep){
 
@@ -66,8 +66,8 @@ public class EC2ValidateInstance {
 
     /**
      * Ping url and check status code. 
-     * @return
-     * @throws Exception
+     * @return boolean whether the instance is pingable
+     * @throws Exception when there is a problem pinging the instance
      */
     public Boolean validateWithPing() throws Exception{
 
@@ -76,20 +76,20 @@ public class EC2ValidateInstance {
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(publicDNS)).build(); 
         HttpResponse httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-        
+
         if(httpResponse.statusCode() == 200){
 
             return true;
 
         }
 
-        return false; 
+        return false;
 
     }
     
     /**
      * Busy wait for EC2 to complete setup. 
-     * @throws Exception
+     * @throws Exception when the instance times out.
      */
     private void waitForEC2Checks() throws Exception{
         
