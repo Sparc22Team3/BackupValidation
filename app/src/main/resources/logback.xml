@@ -22,6 +22,9 @@
     <logger name="sparc.team3.validator" level="${log-level:-INFO}">
         <appender-ref ref="FILE" />
     </logger>
+    <logger name="software.amazon.awssdk" level="${aws-log-level:-WARN}">
+        <appender-ref ref="FILE" />
+    </logger>
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>
