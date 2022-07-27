@@ -152,9 +152,9 @@ public class EC2Restore {
 
         for(Entry<String, String> entry: metaData.entrySet()){
 
-            if(entry.getKey() != "NetworkInterfaces"){
+            if(!entry.getKey().equals("NetworkInterfaces")){
 
-                if(entry.getKey() == "CpuOptions"){continue;}
+                if(entry.getKey().equals("CpuOptions")){continue;}
 
                 output.put(entry.getKey(), entry.getValue()); 
             }

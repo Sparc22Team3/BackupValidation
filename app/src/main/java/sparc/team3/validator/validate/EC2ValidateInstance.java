@@ -66,7 +66,7 @@ public class EC2ValidateInstance {
           System.out.println("Reach Pass: "+ reachPass);
 
     
-          if((running == "running") && (sysPass == "passed" || sysPass == "ok" ) && (reachPass == "passed" ||reachPass == "ok")){
+          if((running.equals("running")) && (sysPass.equals("passed") || sysPass.equals("ok")) && (reachPass.equals("passed") || reachPass.equals("ok"))){
             break;
           }
 
