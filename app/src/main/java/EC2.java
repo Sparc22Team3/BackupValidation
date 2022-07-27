@@ -1,4 +1,3 @@
-import java.io.IOException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;

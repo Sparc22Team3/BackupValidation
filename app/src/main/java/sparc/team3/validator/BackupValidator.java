@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,7 +16,6 @@ import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 
 import java.io.IOException;
-import java.util.LinkedList;
 
 /**
  * Main class, sets up BackupValidator to run.

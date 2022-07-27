@@ -1,33 +1,23 @@
 package sparc.team3.validator.restore;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.backup.BackupClient;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataRequest;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataResponse;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultRequest;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultResponse;
-import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
+import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Reservation;
 import sparc.team3.validator.util.InstanceSettings;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 /**
  * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
