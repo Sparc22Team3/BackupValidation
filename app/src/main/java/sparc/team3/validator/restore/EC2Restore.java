@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
@@ -19,6 +21,12 @@ import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVa
 import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Reservation;
+import sparc.team3.validator.util.InstanceSettings;
 
 /**
  * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
@@ -26,22 +34,26 @@ import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
  */
 public class EC2Restore {
 
-    private final BackupClient client;
-    private final String backupVaultName;
+    private final BackupClient backupClient;
+    private final Ec2Client ec2Client;
+    private final InstanceSettings instanceSettings;
     private int recoveryNumber; 
     private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
     private RecoveryPointByBackupVault currentRecoveryPoint;
     private Map<String, String> metadata; 
-    private String resourceARN; 
+    private String resourceARN;
+    private final Logger logger;
 
 
-    public EC2Restore(BackupClient client, String backupVaultName, int recoveryNumber) throws Exception{
+    public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings, int recoveryNumber) throws Exception{
+        logger = LoggerFactory.getLogger(EC2Restore.class);
 
-        this.client = client; 
-        this.backupVaultName = backupVaultName;
+        this.backupClient = backupClient;
+        this.ec2Client = ec2Client;
+        this.instanceSettings = instanceSettings;
         this.recoveryNumber = recoveryNumber;
-        this.recoveryPoints = getRecoveryPoints(backupVaultName);
+        this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
 
         this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
@@ -65,7 +77,7 @@ public class EC2Restore {
         backupVaultName(backupVaultName).build();
         
         ListRecoveryPointsByBackupVaultResponse response = 
-        client.listRecoveryPointsByBackupVault(request); 
+        backupClient.listRecoveryPointsByBackupVault(request);
 
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: 
         response.recoveryPoints()){
@@ -105,7 +117,7 @@ public class EC2Restore {
         recoveryPointArn(currentRecoveryPoint.recoveryPointArn()).iamRoleArn(currentRecoveryPoint.iamRoleArn())
         .metadata(metadata).build();
         
-        StartRestoreJobResponse response = client.startRestoreJob(request); 
+        StartRestoreJobResponse response = backupClient.startRestoreJob(request);
 
         return response.restoreJobId();
 
@@ -122,9 +134,9 @@ public class EC2Restore {
 
         GetRecoveryPointRestoreMetadataRequest request = 
         GetRecoveryPointRestoreMetadataRequest.builder().
-        recoveryPointArn(recoveryPoint.recoveryPointArn()).backupVaultName(backupVaultName).build();
+        recoveryPointArn(recoveryPoint.recoveryPointArn()).backupVaultName(instanceSettings.getBackupVault()).build();
         
-        GetRecoveryPointRestoreMetadataResponse response = client
+        GetRecoveryPointRestoreMetadataResponse response = backupClient
         .getRecoveryPointRestoreMetadata(request);
 
         //Modify network settings
@@ -170,7 +182,7 @@ public class EC2Restore {
      * @return a string of the instance id
      * @throws Exception when the backup restore times out
      */
-    public String restoreEC2FromBackup() throws Exception{
+    public Instance restoreEC2FromBackup() throws Exception{
 
         String restoreJobId = startRestore(recoveryNumber); 
 
@@ -182,7 +194,7 @@ public class EC2Restore {
             //get restore job information and wait until status of restore job is "completed"
             DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
             .builder().restoreJobId(restoreJobId).build(); 
-            DescribeRestoreJobResponse restoreResult = client.describeRestoreJob(newRequest);
+            DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
   
             System.out.println("Restore Status:" + restoreResult.status().toString()); 
             
@@ -209,8 +221,31 @@ public class EC2Restore {
 
         }
 
-        return parseInstanceId(resourceARN); 
+        return getInstance();
 
+    }
+
+    /**
+     * Get the Instance information about the EC2 instance that was restored
+     * @return an Instance describing the instance that was restored
+     */
+    private Instance getInstance(){
+        String id = parseInstanceId(resourceARN);
+
+        DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
+
+        DescribeInstancesResponse descriptionRes = ec2Client.describeInstances(instanceReq);
+
+        // Get first reservation in a list of reservations that should only have 1
+        Reservation reservation = descriptionRes.reservations().get(0);
+        if(descriptionRes.reservations().size() > 1)
+            logger.warn("More than 1 reservation was returned");
+        // Get first instance in list of instances that should only have 1
+        Instance instance = reservation.instances().get(0);
+        if(reservation.instances().size() > 1)
+            logger.warn("More than 1 instance was returned");
+
+        return instance;
     }
     
     /**
