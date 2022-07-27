@@ -250,22 +250,6 @@ public class EC2Restore {
     }
     
     /**
-     * Parse resource ARN to obtain EC2 instanceId
-     * @param resourceARN a resourceARN string to parse
-     * @return the string of the instance id
-     */
-    private String parseInstanceId(String resourceARN){
-
-        Pattern pattern = Pattern.compile("i-\\w+");
-        Matcher matcher = pattern.matcher(resourceARN);
-        String instanceId = ""; 
-        
-        if(matcher.find()){instanceId = matcher.group();}
-
-        return instanceId; 
-    }
-    
-    /**
      * Returns recovery points in sorted order. 
      * @return a TreeMap of recoveryPointsByBackupVault
      */
