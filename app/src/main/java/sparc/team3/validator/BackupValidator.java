@@ -92,7 +92,7 @@ public class BackupValidator {
             s3Client = S3Client.builder().region(region).build();
             rdsClient = RdsClient.builder().region(region).build();
 
-            //restore();
+            restore();
             validate();
             cleanUp();
 
