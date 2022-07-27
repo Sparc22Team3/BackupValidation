@@ -2,10 +2,12 @@
 
 import java.io.IOException;
 
-//import com.example.rds.RDSRestore;
+//import com.example.rds.sparc.team3.validator.restore.RDSRestore;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
+import sparc.team3.validator.restore.RDSRestore;
+import sparc.team3.validator.validate.RDSValidate;
 
 //BACKUP Plan IDs
 
@@ -15,7 +17,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 /**
  * Runs the restore, test, and validate of an RDS snapshot.
  */
-public class App {
+public class RDS {
 
     /**
      * The entry point of application.
