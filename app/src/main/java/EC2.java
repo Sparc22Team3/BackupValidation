@@ -1,4 +1,3 @@
-import java.io.IOException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
@@ -18,7 +17,7 @@ public class EC2 {
       BackupClient client =  BackupClient.builder().region(region).build();
       int recoveryAttempt = 0;
       Ec2Client ec2Client = Ec2Client.builder().region(region).build();
-      InstanceSettings instanceSettings = new InstanceSettings("ec2sparcvault", null, null, null);
+      InstanceSettings instanceSettings = new InstanceSettings("Web Server Production", "ec2sparcvault", null, null, null);
 
       EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings, recoveryAttempt);
 

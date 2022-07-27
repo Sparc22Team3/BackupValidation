@@ -1,7 +1,10 @@
 package sparc.team3.validator.validate;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -63,7 +66,7 @@ public class EC2ValidateInstance {
           System.out.println("Reach Pass: "+ reachPass);
 
     
-          if((running == "running") && (sysPass == "passed" || sysPass == "ok" ) && (reachPass == "passed" ||reachPass == "ok")){
+          if((running.equals("running")) && (sysPass.equals("passed") || sysPass.equals("ok")) && (reachPass.equals("passed") || reachPass.equals("ok"))){
             break;
           }
 

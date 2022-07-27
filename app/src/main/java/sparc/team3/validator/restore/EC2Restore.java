@@ -1,32 +1,23 @@
 package sparc.team3.validator.restore;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.backup.BackupClient;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataRequest;
-import software.amazon.awssdk.services.backup.model.GetRecoveryPointRestoreMetadataResponse;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultRequest;
-import software.amazon.awssdk.services.backup.model.ListRecoveryPointsByBackupVaultResponse;
-import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.StartRestoreJobResponse;
+import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Reservation;
 import sparc.team3.validator.util.InstanceSettings;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 /**
  * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
@@ -42,7 +33,7 @@ public class EC2Restore {
 
     private RecoveryPointByBackupVault currentRecoveryPoint;
     private Map<String, String> metadata; 
-    private String resourceARN;
+    private Arn resourceArn;
     private final Logger logger;
 
 
@@ -148,8 +139,7 @@ public class EC2Restore {
 
     /**
      * Solves issue with metadata where restore job request does not work with
-     * NetworkInterfaces if security group and subnet are specified. 
-     * 
+     * NetworkInterfaces if security group and subnet are specified.
      * Also, CpuOptions causes restore job request to fail.
      * 
      * @param metaData a Map of string metadata
@@ -162,9 +152,9 @@ public class EC2Restore {
 
         for(Entry<String, String> entry: metaData.entrySet()){
 
-            if(entry.getKey() != "NetworkInterfaces"){
+            if(!entry.getKey().equals("NetworkInterfaces")){
 
-                if(entry.getKey() == "CpuOptions"){continue;}
+                if(entry.getKey().equals("CpuOptions")){continue;}
 
                 output.put(entry.getKey(), entry.getValue()); 
             }
@@ -177,48 +167,39 @@ public class EC2Restore {
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 10 minutes.
-     * 
      * Throws error if job isn't completed within allotted time.
      * @return a string of the instance id
      * @throws Exception when the backup restore times out
      */
-    public Instance restoreEC2FromBackup() throws Exception{
+    public Instance restoreEC2FromBackup() throws Exception {
 
-        String restoreJobId = startRestore(recoveryNumber); 
+        String restoreJobId = startRestore(recoveryNumber);
 
-        int attempts = 0; 
-        while(attempts < 11){
-          
-          try{
-  
-            //get restore job information and wait until status of restore job is "completed"
-            DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
-            .builder().restoreJobId(restoreJobId).build(); 
-            DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
-  
-            System.out.println("Restore Status:" + restoreResult.status().toString()); 
-            
-            if(restoreResult.status().toString() == "COMPLETED"){
-              resourceARN = restoreResult.createdResourceArn();
-              break; 
+        int attempts = 0;
+        while (attempts < 11) {
+
+            try {
+                //get restore job information and wait until status of restore job is "completed"
+                DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
+                        .builder().restoreJobId(restoreJobId).build();
+                DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+
+                System.out.println("Restore Status:" + restoreResult.status().toString());
+
+                if (restoreResult.status().toString().equals("COMPLETED")) {
+                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
+                    break;
+                }
+            } catch (Exception e) {
+                System.err.println(e);
+                System.exit(1);
             }
-  
-            
-          } catch(Exception e){
-  
-            System.err.println(e);
-  
-            System.exit(1); 
-  
-          }
-          Thread.sleep(60000);
-          attempts++; 
+            Thread.sleep(60000);
+            attempts++;
         }
 
-        if (attempts >= 11){
-
+        if (attempts >= 11) {
             throw new Exception("Backup Restore Timeout");
-
         }
 
         return getInstance();
@@ -230,7 +211,7 @@ public class EC2Restore {
      * @return an Instance describing the instance that was restored
      */
     private Instance getInstance(){
-        String id = parseInstanceId(resourceARN);
+        String id = resourceArn.resource().resource();
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
 
@@ -246,22 +227,6 @@ public class EC2Restore {
             logger.warn("More than 1 instance was returned");
 
         return instance;
-    }
-    
-    /**
-     * Parse resource ARN to obtain EC2 instanceId
-     * @param resourceARN a resourceARN string to parse
-     * @return the string of the instance id
-     */
-    private String parseInstanceId(String resourceARN){
-
-        Pattern pattern = Pattern.compile("i-\\w+");
-        Matcher matcher = pattern.matcher(resourceARN);
-        String instanceId = ""; 
-        
-        if(matcher.find()){instanceId = matcher.group();}
-
-        return instanceId; 
     }
     
     /**
@@ -293,7 +258,7 @@ public class EC2Restore {
         this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
     }
 
-    public String getResourceARN(){
-        return resourceARN;
+    public Arn getResourceArn(){
+        return resourceArn;
     }
 }

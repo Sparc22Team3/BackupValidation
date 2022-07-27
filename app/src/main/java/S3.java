@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 import sparc.team3.validator.restore.S3Restore;
+import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.validate.S3Validate;
 
 import java.io.IOException;
@@ -32,15 +33,16 @@ public class S3 {
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
     try{
+      InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null, null);
 
       // restore s3
-      S3Restore s3Restore = new S3Restore(backupClient, s3BackupVaultName);
+      S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
 
       // start with the latest recovery point
       int recoveryNumber = 0;
 
       //! potential to add loop here to restore later recovery points if first one fails
-      String restoreJobId = s3Restore.restoreS3Resource(recoveryNumber);
+      String restoreJobId = s3Restore.startRestore(recoveryNumber);
 
       // get the name of the restored S3 instance to initialize S3 Waiter
       String restoredBucketName = s3Restore.getRestoreBucketName();

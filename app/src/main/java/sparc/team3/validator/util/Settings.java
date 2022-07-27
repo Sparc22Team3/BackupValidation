@@ -87,6 +87,9 @@ public final class Settings {
         return "Settings{\n" +
                 "\tserverUsername='" + serverUsername + "'\n" +
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
+                "\tawsRegion='" + awsRegion + "'\n" +
+                "\tvpcID='" + vpcID + "'\n" +
+                "\tvpcName='" + vpcName + "'\n" +
                 "\tconfigFiles=" + configFiles + "\n" +
                 "\tec2Settings=" + ec2Settings + "\n" +
                 "\trdsSettings=" + rdsSettings + "\n" +
