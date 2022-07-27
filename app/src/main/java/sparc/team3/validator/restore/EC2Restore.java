@@ -183,43 +183,35 @@ public class EC2Restore {
      * @return a string of the instance id
      * @throws Exception when the backup restore times out
      */
-    public Instance restoreEC2FromBackup() throws Exception{
+    public Instance restoreEC2FromBackup() throws Exception {
 
-        String restoreJobId = startRestore(recoveryNumber); 
+        String restoreJobId = startRestore(recoveryNumber);
 
-        int attempts = 0; 
-        while(attempts < 11){
-          
-          try{
-  
-            //get restore job information and wait until status of restore job is "completed"
-            DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
-            .builder().restoreJobId(restoreJobId).build(); 
-            DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
-  
-            System.out.println("Restore Status:" + restoreResult.status().toString()); 
-            
-            if(restoreResult.status().toString() == "COMPLETED"){
-              resourceArn = Arn.fromString(restoreResult.createdResourceArn());
-              break; 
+        int attempts = 0;
+        while (attempts < 11) {
+
+            try {
+                //get restore job information and wait until status of restore job is "completed"
+                DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
+                        .builder().restoreJobId(restoreJobId).build();
+                DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+
+                System.out.println("Restore Status:" + restoreResult.status().toString());
+
+                if (restoreResult.status().toString().equals("COMPLETED")) {
+                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
+                    break;
+                }
+            } catch (Exception e) {
+                System.err.println(e);
+                System.exit(1);
             }
-  
-            
-          } catch(Exception e){
-  
-            System.err.println(e);
-  
-            System.exit(1); 
-  
-          }
-          Thread.sleep(60000);
-          attempts++; 
+            Thread.sleep(60000);
+            attempts++;
         }
 
-        if (attempts >= 11){
-
+        if (attempts >= 11) {
             throw new Exception("Backup Restore Timeout");
-
         }
 
         return getInstance();
