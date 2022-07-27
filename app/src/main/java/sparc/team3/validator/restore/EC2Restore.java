@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
@@ -42,7 +43,7 @@ public class EC2Restore {
 
     private RecoveryPointByBackupVault currentRecoveryPoint;
     private Map<String, String> metadata; 
-    private String resourceARN;
+    private Arn resourceArn;
     private final Logger logger;
 
 
@@ -199,7 +200,7 @@ public class EC2Restore {
             System.out.println("Restore Status:" + restoreResult.status().toString()); 
             
             if(restoreResult.status().toString() == "COMPLETED"){
-              resourceARN = restoreResult.createdResourceArn();
+              resourceArn = Arn.fromString(restoreResult.createdResourceArn());
               break; 
             }
   
@@ -230,7 +231,7 @@ public class EC2Restore {
      * @return an Instance describing the instance that was restored
      */
     private Instance getInstance(){
-        String id = parseInstanceId(resourceARN);
+        String id = resourceArn.resource().resource();
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
 
@@ -293,7 +294,7 @@ public class EC2Restore {
         this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
     }
 
-    public String getResourceARN(){
-        return resourceARN;
+    public Arn getResourceArn(){
+        return resourceArn;
     }
 }
