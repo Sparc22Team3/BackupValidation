@@ -45,6 +45,7 @@ public final class InstanceSettings {
 
     public String toString() {
         return "\n\t\tInstanceSettings{\n" +
+                "\t\t\tbackupVault='" + backupVault + "'\n" +
                 "\t\t\tsecurityGroups='" + securityGroups + "'\n" +
                 "\t\t\tsubnetID='" + subnetID + "'\n" +
                 "\t\t\tsubnetName=" + subnetName + "\n" +
