@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Default Config Location" type="Application" factoryName="Application">
+  <configuration default="false" name="Default Config Location DEBUG Logging" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="sparc.team3.validator.BackupValidator" />
     <module name="BackupValidator" />
     <option name="PROGRAM_PARAMETERS" value="-d" />
