@@ -1,7 +1,20 @@
 package sparc.team3.validator.restore;
 
+import software.amazon.awssdk.arns.Arn;
+import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.ec2.model.Reservation;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.waiters.S3Waiter;
+import sparc.team3.validator.util.InstanceSettings;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,43 +26,45 @@ import java.util.TreeMap;
  */
 public class S3Restore {
 
-    private final BackupClient client;
+    private final BackupClient backupClient;
+    private final S3Client s3Client;
     private String restoreBucketName;
     private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
+    private Arn resourceArn;
 
-    public S3Restore(BackupClient client, String backupVaultName){
-
-        this.client = client;
-        this.recoveryPoints = getRecoveryPoints(backupVaultName);
+    public S3Restore(BackupClient backupClient, S3Client s3Client, InstanceSettings instanceSettings){
+        this.backupClient = backupClient;
+        this.s3Client = s3Client;
+        this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
 
     }
 
     /**
-     * Method gets a list of backup restore points from backup vault and populates a sorted data structure. 
+     * Method gets a list of backup restore points from backup vault and populates a sorted data structure.
      * @param backupVaultName a string of the name of the backup vault
      * @return a TreeMap of the restore points
-     * 
+     *
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
         TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<>();
-        
+
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().
         backupVaultName(backupVaultName).build();
-        
-        ListRecoveryPointsByBackupVaultResponse response = client.listRecoveryPointsByBackupVault(request); 
+
+        ListRecoveryPointsByBackupVaultResponse response = backupClient.listRecoveryPointsByBackupVault(request);
 
         for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
 
-            output.put(r.completionDate(), r); 
+            output.put(r.completionDate(), r);
         }
 
-        return output; 
+        return output;
     }
 
     /**
-     * Return most recent recovery point from vault. 
+     * Return most recent recovery point from vault.
      * @return the most recent RecoveryPointByBackupVault
      * @throws Exception when there are no recovery points remaining
      */
@@ -58,7 +73,7 @@ public class S3Restore {
 
         if (recoveryNumber > recoveryPoints.size()){
 
-            throw new Exception("Recovery Points Exhausted"); 
+            throw new Exception("Recovery Points Exhausted");
 
         }
 
@@ -73,7 +88,7 @@ public class S3Restore {
      * @return Restore Job ID
      * @throws Exception when there is a problem restoring the bucket
      */
-    public String restoreS3Resource(int recoveryNumber) throws Exception
+    public String startRestore(int recoveryNumber) throws Exception
     {
         RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         Map<String, String> metadata = s3RecoveryMetaData();
@@ -82,9 +97,52 @@ public class S3Restore {
         recoveryPointArn(recoveryPoint.recoveryPointArn()).iamRoleArn(recoveryPoint.iamRoleArn())
         .metadata(metadata).build();
 
-        StartRestoreJobResponse response = client.startRestoreJob(request);
+        StartRestoreJobResponse response = backupClient.startRestoreJob(request);
 
         return response.restoreJobId();
+    }
+
+    /**
+     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
+     * longer than 10 minutes.
+     *
+     * Throws error if job isn't completed within allotted time.
+     * @return a string of the bucket name
+     * @throws Exception when the backup restore times out
+     */
+    public String restoreS3FromBackup(int recoveryNumber) throws Exception{
+
+        String restoreJobId = startRestore(recoveryNumber);
+
+        int attempts = 0;
+        while (attempts < 11) {
+
+            try {
+                //get restore job information and wait until status of restore job is "completed"
+                DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
+                        .builder().restoreJobId(restoreJobId).build();
+                DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+
+                System.out.println("Restore Status:" + restoreResult.status().toString());
+
+                if (restoreResult.status().toString().equals("COMPLETED")) {
+                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
+                    break;
+                }
+            } catch (Exception e) {
+                System.err.println(e);
+                System.exit(1);
+            }
+            Thread.sleep(60000);
+            attempts++;
+        }
+
+        if (attempts >= 11) {
+            throw new Exception("Backup Restore Timeout");
+        }
+
+        return restoreBucketName;
+
     }
 
     /**
@@ -120,5 +178,9 @@ public class S3Restore {
      */
     public String getRestoreBucketName() {
         return restoreBucketName;
+    }
+
+    public Arn getResourceArn(){
+        return resourceArn;
     }
 }

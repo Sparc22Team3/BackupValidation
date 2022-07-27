@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import sparc.team3.validator.restore.EC2Restore;
+import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.EC2ValidateInstance;
@@ -128,6 +129,13 @@ public class BackupValidator {
         System.out.println("Web Server Status 200: " + validated);
 
         ec2ValidateInstance.terminateEC2Instance();
+
+        int s3RecoveryAttempt = 0;
+        S3Restore s3Restore = new S3Restore(backupClient, s3Client, settings.getS3Settings());
+
+        String bucketName = s3Restore.restoreS3FromBackup(s3RecoveryAttempt);
+
+        System.out.println(bucketName);
 
     }
 
