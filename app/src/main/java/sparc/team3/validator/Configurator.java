@@ -100,9 +100,9 @@ public class Configurator {
         LinkedList<SecurityGroup> sgList = new LinkedList<>();
         sgList.add(sg1);
         sgList.add(sg2);
-        InstanceSettings ec2Settings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
-        InstanceSettings rdsSettings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
-        InstanceSettings s3Settings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
+        InstanceSettings ec2Settings = new InstanceSettings("ec2 instance name", "backup vault name", sgList, "subnet id", "subnet name");
+        InstanceSettings rdsSettings = new InstanceSettings("rds instance name","backup vault name", sgList, "subnet id", "subnet name");
+        InstanceSettings s3Settings = new InstanceSettings("s3 bucket name", "backup vault name", sgList, "subnet id", "subnet name");
 
         // Create Settings object
         Settings settings = new Settings("ec2-user",
