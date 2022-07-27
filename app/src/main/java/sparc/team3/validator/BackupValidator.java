@@ -3,8 +3,17 @@ package sparc.team3.validator;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.backup.BackupClient;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.Instance;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
+import sparc.team3.validator.validate.EC2ValidateInstance;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -19,6 +28,11 @@ public class BackupValidator {
     Settings settings;
     Logger logger;
 
+    BackupClient backupClient;
+    Ec2Client ec2Client;
+    S3Client s3Client;
+    RdsClient rdsClient;
+
     /**
      * Constructs the BackupValidator class by setting up the command line options and parser.
      */
@@ -26,6 +40,8 @@ public class BackupValidator {
         parser = new DefaultParser();
         options = new Options();
         options();
+
+
     }
 
     /**
@@ -68,10 +84,22 @@ public class BackupValidator {
 
             Configurator.replaceHostname("ec2_test", "rds_test", "s3_test", settings);
 
-            System.out.println(settings);
+            logger.debug("Settings: {}", settings);
+
+            Region region = Region.of(settings.getAwsRegion());
+            backupClient = BackupClient.builder().region(region).build();
+            ec2Client = Ec2Client.builder().region(region).build();
+            s3Client = S3Client.builder().region(region).build();
+            rdsClient = RdsClient.builder().region(region).build();
+
+            restore();
+            validate();
+            cleanUp();
 
         } catch (ParseException | IOException e) {
             printExceptionAndExit(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -85,6 +113,33 @@ public class BackupValidator {
         } catch (IOException e) {
             printException(e);
         }
+    }
+
+    private void restore() throws Exception {
+        int ec2RecoveryAttempt = 0;
+        EC2Restore ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings(), ec2RecoveryAttempt);
+
+        Instance ec2instance = ec2Restore.restoreEC2FromBackup();
+
+        EC2ValidateInstance ec2ValidateInstance = new EC2ValidateInstance(ec2Client, ec2instance);
+
+        Boolean validated = ec2ValidateInstance.validateWithPing("/wiki/index.php?title=Main_Page");
+
+        System.out.println("Web Server Status 200: " + validated);
+
+        ec2ValidateInstance.terminateEC2Instance();
+
+    }
+
+    private void validate(){
+
+    }
+
+    private void cleanUp(){
+        backupClient.close();
+        ec2Client.close();
+        s3Client.close();
+        rdsClient.close();
     }
 
     /**

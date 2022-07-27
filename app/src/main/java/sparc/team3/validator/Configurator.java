@@ -43,7 +43,7 @@ public class Configurator {
     }
 
     /**
-     * If path is a directory, configFile is set to config.json in the directory provided.  Otherwise sets configFile to the file provided.
+     * If path is a directory, configFile is set to config.json in the directory provided.  Otherwise, sets configFile to the file provided.
      * @param path the Path of the configFile or directory where config file is located.
      */
     private void setConfigFile(Path path) {
@@ -100,15 +100,15 @@ public class Configurator {
         LinkedList<SecurityGroup> sgList = new LinkedList<>();
         sgList.add(sg1);
         sgList.add(sg2);
-        InstanceSettings ec2Settings = new InstanceSettings(sgList, "subnet id", "subnet name");
-        InstanceSettings rdsSettings = new InstanceSettings(sgList, "subnet id", "subnet name");
-        InstanceSettings s3Settings = new InstanceSettings(sgList, "subnet id", "subnet name");
+        InstanceSettings ec2Settings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
+        InstanceSettings rdsSettings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
+        InstanceSettings s3Settings = new InstanceSettings("backup vault name", sgList, "subnet id", "subnet name");
 
         // Create Settings object
         Settings settings = new Settings("ec2-user",
                 "testKeyFile",
                 fileList,
-                "us-east-1a",
+                "US_EAST_1",
                 "vpc id",
                 "vpc name",
                 ec2Settings,
@@ -121,7 +121,7 @@ public class Configurator {
      * Replaces placeholders for instance hostnames/names in the {@link ServerConfigFile ServerConfigFiles} in Settings with the values passed in.
      * @param ec2 the string of the restored ec2 instance's hostname to replace the ec2 placeholder with
      * @param rds the string of the restored rds instance's hostname to replace the rds placeholder with
-     * @param s3 the string of the restored s3 buckets's name to replace the s3 placeholder with
+     * @param s3 the string of the restored s3 bucket's name to replace the s3 placeholder with
      * @param settings the settings object for the program
      */
     public static void replaceHostname(String ec2, String rds, String s3, Settings settings) {

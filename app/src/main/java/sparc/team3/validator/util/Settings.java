@@ -15,7 +15,7 @@ public final class Settings {
     private final String serverUsername;
     private final String privateKeyFile;
     private final LinkedList<ServerConfigFile> configFiles;
-    private final String availabilityZone;
+    private final String awsRegion;
     private final String vpcID;
     private final String vpcName;
     private final InstanceSettings ec2Settings;
@@ -26,7 +26,7 @@ public final class Settings {
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
                     @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
-                    @JsonProperty("availabilityZone") String availabilityZone,
+                    @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
                     @JsonProperty("ec2Settings") InstanceSettings ec2Settings,
@@ -36,7 +36,7 @@ public final class Settings {
         this.serverUsername = serverUsername;
         this.privateKeyFile = privateKeyFile;
         this.configFiles = configFiles;
-        this.availabilityZone = availabilityZone;
+        this.awsRegion = awsRegion;
         this.vpcID = vpcID;
         this.vpcName = vpcName;
         this.ec2Settings = ec2Settings;
@@ -58,8 +58,8 @@ public final class Settings {
         return configFiles;
     }
 
-    public String getAvailabilityZone() {
-        return availabilityZone;
+    public String getAwsRegion() {
+        return awsRegion;
     }
 
     public String getVpcID() {
@@ -88,9 +88,9 @@ public final class Settings {
                 "\tserverUsername='" + serverUsername + "'\n" +
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tconfigFiles=" + configFiles + "\n" +
-                "\tec2settings=" + ec2Settings + "\n" +
-                "\trdssettings=" + rdsSettings + "\n" +
-                "\ts3settings=" + s3Settings + "\n" +
+                "\tec2Settings=" + ec2Settings + "\n" +
+                "\trdsSettings=" + rdsSettings + "\n" +
+                "\ts3Settings=" + s3Settings + "\n" +
                 '}';
     }
 }

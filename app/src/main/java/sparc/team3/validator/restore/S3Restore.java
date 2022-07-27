@@ -9,34 +9,30 @@ import java.util.TreeMap;
 
 
 /**
- * Class used to restore the most recent S3 recovery point from "s3sparcvault"
+ * Class used to restore the most recent S3 recovery point from S3 backup vault
  */
 public class S3Restore {
 
-    private BackupClient client;
-//    private S3Client s3;
+    private final BackupClient client;
     private String restoreBucketName;
-//    private String backupVaultName;
-    private TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
+    private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
     public S3Restore(BackupClient client, String backupVaultName){
 
-        this.client = client; 
-//        this.s3 = s3;
-//        this.backupVaultName = backupVaultName;
+        this.client = client;
         this.recoveryPoints = getRecoveryPoints(backupVaultName);
 
     }
 
     /**
      * Method gets a list of backup restore points from backup vault and populates a sorted data structure. 
-     * @param backupVaultName
-     * @return
+     * @param backupVaultName a string of the name of the backup vault
+     * @return a TreeMap of the restore points
      * 
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<Instant, RecoveryPointByBackupVault>();
+        TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<>();
         
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest  request = ListRecoveryPointsByBackupVaultRequest.builder().
@@ -54,8 +50,8 @@ public class S3Restore {
 
     /**
      * Return most recent recovery point from vault. 
-     * @return
-     * @throws Exception
+     * @return the most recent RecoveryPointByBackupVault
+     * @throws Exception when there are no recovery points remaining
      */
 
     public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
@@ -73,9 +69,9 @@ public class S3Restore {
 
     /**
      * Given a recovery point number, initiates a S3 bucket restore.
-     * @param recoveryNumber
+     * @param recoveryNumber an int of the recovery point to restore
      * @return Restore Job ID
-     * @throws Exception
+     * @throws Exception when there is a problem restoring the bucket
      */
     public String restoreS3Resource(int recoveryNumber) throws Exception
     {
@@ -93,7 +89,7 @@ public class S3Restore {
 
     /**
      * Populates a Map with metadata required for S3 restore
-     * @return
+     * @return a Map of the string metadata
      */
     public Map<String, String> s3RecoveryMetaData()
     {
@@ -120,7 +116,7 @@ public class S3Restore {
 
     /**
      * Returns the name of the newly created S3 bucket name
-     * @return
+     * @return a string of the restored bucket name
      */
     public String getRestoreBucketName() {
         return restoreBucketName;

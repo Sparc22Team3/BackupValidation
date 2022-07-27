@@ -1,11 +1,7 @@
 package sparc.team3.validator.validate;
 
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.*;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,83 +9,37 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class EC2ValidateInstance {
+    private final Instance instance;
+    private final Ec2Client ec2Client;
 
-    private String instanceARN; 
-    private String instanceId; 
-    private Ec2Client ec2Client; 
-    private DescribeInstancesResponse description; 
-
-    private String publicDNS; 
-    private String publicIP;
-    private String privateIP; 
-    private String subnet;
-
-    public EC2ValidateInstance(Ec2Client client, String instance, String resourceARN){
-        instanceARN = resourceARN; 
-        instanceId = instance; 
-        ec2Client = client; 
-        description = getInstanceDescription(instance);
-        publicDNS = getInstancePublicDNS(description); 
-        publicIP = description.reservations().get(0).instances().get(0).publicIpAddress();
-        privateIP = description.reservations().get(0).instances().get(0).privateIpAddress();
-        subnet = description.reservations().get(0).instances().get(0).subnetId();
-    }
-
-    /**
-     * Return the medata data for the instance
-     * @param instance
-     * @return
-     */
-    private DescribeInstancesResponse getInstanceDescription(String instance){
-
-        DescribeInstancesRequest instanceReq = DescribeInstancesRequest
-        .builder().instanceIds(instanceId).build();
-        
-        DescribeInstancesResponse instanceRep = ec2Client.describeInstances(instanceReq); 
-
-        return instanceRep;
-    }
-
-    /**
-     * Given instance meta data, return formated url. 
-     * @param instanceRep
-     * @return
-     */
-    private String getInstancePublicDNS(DescribeInstancesResponse instanceRep){
-
-        String url = instanceRep.reservations().get(0).instances().get(0).publicDnsName();
-        
-        url = "http://" + url + "/wiki/index.php?title=Main_Page";
-
-        return url;
+    public EC2ValidateInstance(Ec2Client ec2Client, Instance instance){
+        this.ec2Client = ec2Client;
+        this.instance = instance;
     }
 
     /**
      * Ping url and check status code. 
-     * @return
-     * @throws Exception
+     * @return boolean whether the instance is pingable
+     * @throws Exception when there is a problem pinging the instance
      */
-    public Boolean validateWithPing() throws Exception{
+    public Boolean validateWithPing(String entryPoint) throws Exception{
+        String url = instance.publicDnsName();
+
+        url = "http://" + url + entryPoint;
 
         waitForEC2Checks();
 
         HttpClient httpClient = HttpClient.newHttpClient();
-        HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(publicDNS)).build(); 
-        HttpResponse httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-        
-        if(httpResponse.statusCode() == 200){
+        HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build();
+        HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-            return true;
-
-        }
-
-        return false; 
+        return httpResponse.statusCode() == 200;
 
     }
     
     /**
      * Busy wait for EC2 to complete setup. 
-     * @throws Exception
+     * @throws Exception when the instance times out.
      */
     private void waitForEC2Checks() throws Exception{
         
@@ -100,7 +50,7 @@ public class EC2ValidateInstance {
         try{
 
           DescribeInstanceStatusRequest statusReq = DescribeInstanceStatusRequest
-          .builder().instanceIds(instanceId).build();
+          .builder().instanceIds(instance.instanceId()).build();
           
           DescribeInstanceStatusResponse statusRes = ec2Client.describeInstanceStatus(statusReq); 
 
@@ -142,38 +92,8 @@ public class EC2ValidateInstance {
 
         System.out.println("Terminating Instance"); 
 
-        TerminateInstancesRequest terminateRequest = TerminateInstancesRequest.builder().instanceIds(instanceId).build(); 
+        TerminateInstancesRequest terminateRequest = TerminateInstancesRequest.builder().instanceIds(instance.instanceId()).build();
         ec2Client.terminateInstances(terminateRequest); 
 
-    }
-    
-    /**
-     * Provide class with a new instanceId to reset description and url. 
-     */
-    public void setInstanceId(String instanceId){
-
-      this.instanceId = instanceId; 
-      
-      description = getInstanceDescription(this.instanceId);
-      publicDNS = getInstancePublicDNS(description); 
-    }
-
-    public String getPublicIP(){
-
-      return publicIP;
-
-    }
-
-    public String getPrivateIP(){
-
-      return privateIP;
-    }
-
-    public String getSubnet(){
-      return subnet;
-    }
-
-    public String getInstanceARN(){
-      return instanceARN;
     }
 }
