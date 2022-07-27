@@ -96,7 +96,6 @@ public class S3Restore {
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 10 minutes.
-     *
      * Throws error if job isn't completed within allotted time.
      * @return a string of the bucket name
      * @throws Exception when the backup restore times out

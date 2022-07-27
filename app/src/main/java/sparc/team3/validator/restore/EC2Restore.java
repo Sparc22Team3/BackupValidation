@@ -139,8 +139,7 @@ public class EC2Restore {
 
     /**
      * Solves issue with metadata where restore job request does not work with
-     * NetworkInterfaces if security group and subnet are specified. 
-     * 
+     * NetworkInterfaces if security group and subnet are specified.
      * Also, CpuOptions causes restore job request to fail.
      * 
      * @param metaData a Map of string metadata
@@ -168,7 +167,6 @@ public class EC2Restore {
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 10 minutes.
-     * 
      * Throws error if job isn't completed within allotted time.
      * @return a string of the instance id
      * @throws Exception when the backup restore times out

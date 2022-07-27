@@ -80,7 +80,6 @@ public class RemoteServerConnection {
 
     /**
      * Uploads the local file to the specified path on the remote server.
-     *
      * Providing the final full path of the file on the remote server and the desired permissions will set the permissions on the remote file.
      * @param localFile the path of the local file
      * @param path the string of the path to upload local file to on the remote server
