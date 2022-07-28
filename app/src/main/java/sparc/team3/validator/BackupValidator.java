@@ -119,9 +119,9 @@ public class BackupValidator {
 
     private void restore() throws Exception {
         int ec2RecoveryAttempt = 0;
-        EC2Restore ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings(), ec2RecoveryAttempt);
+        EC2Restore ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings());
 
-        Instance ec2instance = ec2Restore.restoreEC2FromBackup();
+        Instance ec2instance = ec2Restore.restoreEC2FromBackup(ec2RecoveryAttempt);
 
         EC2ValidateInstance ec2ValidateInstance = new EC2ValidateInstance(ec2Client, ec2instance);
 

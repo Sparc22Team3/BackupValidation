@@ -19,9 +19,9 @@ public class EC2 {
       Ec2Client ec2Client = Ec2Client.builder().region(region).build();
       InstanceSettings instanceSettings = new InstanceSettings("Web Server Production", "ec2sparcvault", null, null);
 
-      EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings, recoveryAttempt);
+      EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings);
 
-      Instance instance = restore.restoreEC2FromBackup();
+      Instance instance = restore.restoreEC2FromBackup( recoveryAttempt);
 
       EC2ValidateInstance validateInstance = new EC2ValidateInstance(ec2Client, instance);
 
