@@ -8,12 +8,15 @@ import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.s3.S3Client;
 import sparc.team3.validator.restore.EC2Restore;
+import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.EC2ValidateInstance;
+import sparc.team3.validator.validate.RDSValidate;
 
 import java.io.IOException;
 
@@ -134,6 +137,12 @@ public class BackupValidator {
         String bucketName = s3Restore.restoreS3FromBackup(s3RecoveryAttempt);
 
         System.out.println(bucketName);
+
+        RDSRestore rdsRestore = new RDSRestore(rdsClient, settings.getRdsSettings());
+        DBInstance rdsInstance = rdsRestore.restoreRDSFromBackup();
+
+        RDSValidate rdsValidate = new RDSValidate(rdsClient, rdsInstance);
+        rdsValidate.validateResource();
 
     }
 

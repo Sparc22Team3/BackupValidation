@@ -14,19 +14,16 @@ public final class InstanceSettings {
     private final String productionName;
     private final String backupVault;
     private final LinkedList<SecurityGroup> securityGroups;
-    private final String subnetID;
     private final String subnetName;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public InstanceSettings(@JsonProperty("productionName") String productionName,
                             @JsonProperty("backupVault") String backupVault,
                             @JsonProperty("securityGroups") LinkedList<SecurityGroup> securityGroups,
-                            @JsonProperty("subnetID") String subnetID,
                             @JsonProperty("subnetName") String subnetName) {
         this.productionName = productionName;
         this.backupVault = backupVault;
         this.securityGroups = securityGroups;
-        this.subnetID = subnetID;
         this.subnetName = subnetName;
     }
     public String getProductionName(){
@@ -41,10 +38,6 @@ public final class InstanceSettings {
         return securityGroups;
     }
 
-    public String getSubnetID() {
-        return subnetID;
-    }
-
     public String getSubnetName() {
         return subnetName;
     }
@@ -54,7 +47,6 @@ public final class InstanceSettings {
                 "\t\t\tproductionName='" + productionName + "'\n" +
                 "\t\t\tbackupVault='" + backupVault + "'\n" +
                 "\t\t\tsecurityGroups='" + securityGroups + "'\n" +
-                "\t\t\tsubnetID='" + subnetID + "'\n" +
                 "\t\t\tsubnetName=" + subnetName + "\n" +
                 "\t}";
     }

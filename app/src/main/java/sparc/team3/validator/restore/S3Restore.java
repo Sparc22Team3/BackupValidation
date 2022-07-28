@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Util;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -144,7 +145,7 @@ public class S3Restore {
         Map<String, String> output = new HashMap<>();
 
         // The destination bucket for your restore
-        restoreBucketName = "bucket" + System.currentTimeMillis();
+        restoreBucketName = Util.UNIQUE_RESTORE_NAME_BASE + System.currentTimeMillis();
         output.put("DestinationBucketName", restoreBucketName);
 
         // Boolean to indicate whether to create a new bucket
