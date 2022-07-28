@@ -12,15 +12,53 @@ import java.util.List;
  */
 public class S3Validate {
 
-    final S3Client s3;
-    final String originalBucket;
-    final String restoredBucket;
+    private final S3Client s3;
+    private final String originalBucket;
+    private final String restoredBucket;
 
     public S3Validate(S3Client s3, String originalBucket, String restoredBucket){
 
-        this.s3 = s3; 
+        this.s3 = s3;
         this.originalBucket = originalBucket;
         this.restoredBucket = restoredBucket;
+
+    }
+
+    /**
+     * Before validating objects, all objects need to be copied to the same bucket with the "SHA-256" checksum
+     * algorithm turned on.
+     * This function is called within the ChecksumValidate function
+     */
+    private void CopyS3Objects() {
+
+        // initialize ListObjectsRequest
+        ListObjectsRequest listObjects = ListObjectsRequest
+                .builder()
+                .bucket(restoredBucket)
+                .build();
+
+        ListObjectsResponse res = s3.listObjects(listObjects);
+        List<S3Object> objects = res.contents();
+
+        System.out.println("Preparing S3 buckets for validation...");
+
+        // iterate through each object in the bucket and perform the copy action
+        for (S3Object myValue : objects) {
+
+            // initialize CopyObjectsRequest
+            CopyObjectRequest copyObjects = CopyObjectRequest
+                    .builder()
+                    .sourceBucket(restoredBucket)
+                    .sourceKey(myValue.key())
+                    .destinationBucket(restoredBucket)
+                    .destinationKey(myValue.key())
+                    .checksumAlgorithm("SHA256") // turn on checksum for SHA256
+                    .storageClass(StorageClass.STANDARD_IA) // added in to ensure copy action passes through
+                    .build();
+
+            // copy objects
+            s3.copyObject(copyObjects);
+        }
 
     }
 
@@ -29,7 +67,7 @@ public class S3Validate {
      * @param bucketName the string name of the bucket to get the objects of
      * @return a HashMap of S3 objects
      */
-    public HashMap<String, String> GetS3Objects(String bucketName){
+    private HashMap<String, String> GetS3Objects(String bucketName){
 
         // initialize return map
         HashMap<String, String> s3Objects = new HashMap<>();
@@ -43,13 +81,13 @@ public class S3Validate {
         ListObjectsResponse res = s3.listObjects(listObjects);
         List<S3Object> objects = res.contents();
 
-        // retrieve the keys of the S3 objects and add them to s3BucketObjs
+        // retrieve the keys of the S3 objects and add them to s3Objects
         for (S3Object myValue : objects) {
 
-            // initialize AWS object to get checksum value
+            // initialize AWS GetObjectAttributesResponse object to get checksum value
             GetObjectAttributesResponse
-            objectAttributes = s3.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(bucketName).key(myValue.key())
-            .objectAttributes(ObjectAttributes.OBJECT_PARTS, ObjectAttributes.CHECKSUM).build());
+                    objectAttributes = s3.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(bucketName).key(myValue.key())
+                    .objectAttributes(ObjectAttributes.OBJECT_PARTS, ObjectAttributes.CHECKSUM).build());
 
             // add S3 object key and checksum value to map
             s3Objects.put(myValue.key(), objectAttributes.checksum().checksumSHA256());
@@ -63,22 +101,24 @@ public class S3Validate {
      * If all values match, return true; otherwise, false
      * @return a boolean value of whether the checksums match
      */
-    public boolean ChecksumValidate(){
+    public boolean ChecksumValidate() {
+
+        // copy objects to get SHA-256 checksum values
+        CopyS3Objects();
 
         HashMap<String, String> originalObjs = GetS3Objects(originalBucket);
         HashMap<String, String> restoredObjs = GetS3Objects(restoredBucket);
 
         for (String key : originalObjs.keySet()){
-          if (restoredObjs.containsKey(key)){
-            // compare checksum value of the obj
-            if (!originalObjs.get(key).equals(restoredObjs.get(key))){
-              return false;
+            if (restoredObjs.containsKey(key)){
+                // compare checksum value of the obj
+                if (!originalObjs.get(key).equals(restoredObjs.get(key))){
+                    return false;
+                }
+            } else {
+                return false;
             }
-          } else {
-            return false;
-          }
         }
-
         return true;
     }
 }

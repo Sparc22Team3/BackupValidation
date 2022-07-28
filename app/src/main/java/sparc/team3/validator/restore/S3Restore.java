@@ -1,6 +1,5 @@
 package sparc.team3.validator.restore;
 
-import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -19,16 +18,14 @@ import java.util.TreeMap;
 public class S3Restore {
 
     private final BackupClient backupClient;
-    private final S3Client s3Client;
     private String restoreBucketName;
+    private final S3Client s3Client;
     private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
-    private Arn resourceArn;
 
     public S3Restore(BackupClient backupClient, S3Client s3Client, InstanceSettings instanceSettings){
         this.backupClient = backupClient;
         this.s3Client = s3Client;
         this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
-
     }
 
     /**
@@ -37,7 +34,7 @@ public class S3Restore {
      * @return a TreeMap of the restore points
      *
      */
-    public TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
+    private TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
         TreeMap<Instant, RecoveryPointByBackupVault> output = new TreeMap<>();
 
@@ -47,8 +44,7 @@ public class S3Restore {
 
         ListRecoveryPointsByBackupVaultResponse response = backupClient.listRecoveryPointsByBackupVault(request);
 
-        for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: response.recoveryPoints()){
-
+        for(RecoveryPointByBackupVault r: response.recoveryPoints()){
             output.put(r.completionDate(), r);
         }
 
@@ -61,15 +57,13 @@ public class S3Restore {
      * @throws Exception when there are no recovery points remaining
      */
 
-    public RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
+    private RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
 
         if (recoveryNumber > recoveryPoints.size()){
 
             throw new Exception("Recovery Points Exhausted");
 
         }
-
-        // System.out.println("S3 Backup Recovery Point: " + recoveryPoint.toString());
 
         return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
     }
@@ -80,7 +74,7 @@ public class S3Restore {
      * @return Restore Job ID
      * @throws Exception when there is a problem restoring the bucket
      */
-    public String startRestore(int recoveryNumber) throws Exception
+    private String startRestore(int recoveryNumber) throws Exception
     {
         RecoveryPointByBackupVault recoveryPoint = getRecentRecoveryPoint(recoveryNumber);
         Map<String, String> metadata = s3RecoveryMetaData();
@@ -96,7 +90,7 @@ public class S3Restore {
 
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
-     * longer than 10 minutes.
+     * longer than 20 minutes.
      * Throws error if job isn't completed within allotted time.
      * @return a string of the bucket name
      * @throws Exception when the backup restore times out
@@ -104,9 +98,11 @@ public class S3Restore {
     public String restoreS3FromBackup(int recoveryNumber) throws Exception{
 
         String restoreJobId = startRestore(recoveryNumber);
+        System.out.println("Starting restore job: " + restoreJobId);
+        System.out.println("Please wait patiently as an S3 bucket restore takes about 20min...");
 
         int attempts = 0;
-        while (attempts < 11) {
+        while (attempts < 6) {
 
             try {
                 //get restore job information and wait until status of restore job is "completed"
@@ -116,20 +112,26 @@ public class S3Restore {
 
                 System.out.println("Restore Status:" + restoreResult.status().toString());
 
+                // when restore job is completed, break out of the loop
                 if (restoreResult.status().toString().equals("COMPLETED")) {
-                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
+                    System.out.println("Restore job COMPLETED!");
                     break;
                 }
+
             } catch (Exception e) {
                 System.err.println(e);
                 System.exit(1);
             }
-            Thread.sleep(60000);
+
+            // loop takes into account the avg time it takes for S3 bucket to complete restore
+            // each loop sleeps for 3 minutes, 3 * 6 = 18min
+            Thread.sleep(180000);
             attempts++;
         }
 
-        if (attempts >= 11) {
-            throw new Exception("Backup Restore Timeout");
+        // Print out message if restore is not completed by the 7th try
+        if (attempts >= 6) {
+            throw new Exception("Backup Restore Job Timeout");
         }
 
         return restoreBucketName;
@@ -140,7 +142,7 @@ public class S3Restore {
      * Populates a Map with metadata required for S3 restore
      * @return a Map of the string metadata
      */
-    public Map<String, String> s3RecoveryMetaData()
+    private Map<String, String> s3RecoveryMetaData()
     {
         Map<String, String> output = new HashMap<>();
 
@@ -163,15 +165,4 @@ public class S3Restore {
         return output;
     }
 
-    /**
-     * Returns the name of the newly created S3 bucket name
-     * @return a string of the restored bucket name
-     */
-    public String getRestoreBucketName() {
-        return restoreBucketName;
-    }
-
-    public Arn getResourceArn(){
-        return resourceArn;
-    }
 }

@@ -1,12 +1,8 @@
-import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.validate.S3Validate;
@@ -19,7 +15,6 @@ public class S3 {
   public static void main(String[] args) {
 
     // ask user to provide S3 bucket name and S3 backup vault name
-
     Scanner scan = new Scanner(System.in);
     System.out.print("Enter S3 Bucket Name: ");
     String s3BucketName = scan.next();
@@ -31,32 +26,36 @@ public class S3 {
     S3Client s3Client = S3Client.builder().region(region).build();
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
+    //---------- TESTING VALIDATION ------------//
+//    String s3BucketName = "sparc-s3-team3-test";
+//    String s3BackupVaultName = "s3backupvault";
+//    String s3RestoredBucketName = "sparc-team3-s3-test2";
+//
+//    // initialize sparc.team3.validator.validate.S3Validate object
+//    S3Validate s3Validate1 = new S3Validate(s3Client, s3BucketName, s3RestoredBucketName);
+//
+//    // checksum validation
+//    boolean checksumCheck1 = s3Validate1.ChecksumValidate();
+//    if (checksumCheck1) {
+//      System.out.println("S3 Restore successfully validated!");
+//    } else {
+//      System.out.println("S3 Restore validation failed.");
+//    }
+//
+//    System.exit(0);
+    //---------- TESTING VALIDATION ------------//
+
     try{
       InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null);
 
-      // restore s3
+      // create a S3Restore instance
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
 
-      // start with the latest recovery point
+      // use the latest recovery point for restore job - hard-coded for now, no need for user specification
       int recoveryNumber = 0;
 
-      //! potential to add loop here to restore later recovery points if first one fails
-      String restoreJobId = s3Restore.startRestore(recoveryNumber);
-
-      // get the name of the restored S3 instance to initialize S3 Waiter
-      String restoredBucketName = s3Restore.getRestoreBucketName();
-      System.out.println("Starting restore job: " + restoreJobId);
-
-      // Wait until the bucket is created and print out the response
-      S3Waiter s3Waiter = s3Client.waiter();
-      HeadBucketRequest bucketRequestWait = HeadBucketRequest.builder()
-              .bucket(restoredBucketName)
-              .build();
-
-      //! could add a try-catch here to catch exception that the restore did not complete
-      WaiterResponse<HeadBucketResponse> waiterResponse = s3Waiter.waitUntilBucketExists(bucketRequestWait);
-      waiterResponse.matched().response().ifPresent(System.out::println);
-      System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucketName);
+      // start restore job
+      String restoredBucketName = s3Restore.restoreS3FromBackup(recoveryNumber);
 
       // initialize sparc.team3.validator.validate.S3Validate object
       S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucketName);
@@ -68,64 +67,6 @@ public class S3 {
       } else {
         System.out.println("S3 Restore validation failed.");
       }
-
-//      //Wait for restore to provide ID of S3 instance it created
-//      int attempts = 0;
-//      String resourceARN = "NULL";
-//      while(attempts < 5){
-//
-//        try{
-//
-//          //get restore job information and wait until status of restore job is "completed"
-//          DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest.builder().restoreJobId(restoreJobId).build();
-//          DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
-//
-//          System.out.println("Restore Status:" + restoreResult.status().toString());
-//
-//          if(Objects.equals(restoreResult.status().toString(), "COMPLETED")){
-//            System.out.println(restoreResult.toString());
-//            resourceARN = restoreResult.createdResourceArn();
-//
-//            Pattern pattern = Pattern.compile("\\w+\\d+$");
-//            Matcher matcher = pattern.matcher(resourceARN.toString());
-//            String restoredBucket = "";
-//
-//            // obtain the restored s3 bucket name using regex
-//            if(matcher.find()){
-//              restoredBucket = matcher.group();
-//            }
-//
-//            System.out.println("S3 Bucket " + s3BucketName + " Restored to new Bucket: " + restoredBucket);
-//
-//            // initialize sparc.team3.validator.validate.S3Validate object
-//            sparc.team3.validator.validate.S3Validate s3Validate = new sparc.team3.validator.validate.S3Validate(s3Client, s3BucketName, restoredBucket);
-//
-//            // checksum validation
-//            boolean checksumCheck = s3Validate.ChecksumValidate();
-//
-//            if (checksumCheck) {
-//              System.out.println("S3 Restore successfully validated!");
-//            } else {
-//              System.out.println("S3 Restore validation failed.");
-//            }
-//
-//          }
-//
-//        } catch(Exception e){
-//
-//          System.err.println(e);
-//
-//          System.exit(1);
-//
-//        }
-//        Thread.sleep(250000); // Takes about 8min for an S3 bucket to be restored
-//        attempts++;
-//
-//        // Print out message is restore is not successful by the 5th try
-//        if (attempts == 5){
-//          System.out.println("Restore job timeout. Please check AWS Backup console to check job status.");
-//        }
-//      }
 
       backupClient.close();
       s3Client.close();
