@@ -1,19 +1,12 @@
-import software.amazon.awssdk.core.waiters.WaiterResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
-import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.validate.S3Validate;
 
-import java.util.Objects;
 import java.util.Scanner;
 
 
