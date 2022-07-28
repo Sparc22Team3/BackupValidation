@@ -11,13 +11,12 @@ import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.validate.S3Validate;
 
-import java.io.IOException;
 import java.util.Scanner;
 
 
 public class S3 {
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
 
     // ask user to provide S3 bucket name and S3 backup vault name
 

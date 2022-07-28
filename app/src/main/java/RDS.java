@@ -1,9 +1,5 @@
 //package com.example.myapp;
 
-import java.io.IOException;
-import java.util.LinkedList;
-
-//import com.example.rds.sparc.team3.validator.restore.RDSRestore;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
@@ -12,6 +8,8 @@ import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.SecurityGroup;
 import sparc.team3.validator.validate.RDSValidate;
+
+import java.util.LinkedList;
 
 //BACKUP Plan IDs
 
@@ -27,9 +25,8 @@ public class RDS {
      * The entry point of application.
      *
      * @param args the input arguments
-     * @throws IOException the io exception
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
         try{
 
