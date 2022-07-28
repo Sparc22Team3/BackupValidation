@@ -37,9 +37,9 @@ public class S3 {
 //    // checksum validation
 //    boolean checksumCheck1 = s3Validate1.ChecksumValidate();
 //    if (checksumCheck1) {
-//      System.out.println("S3 Restore successfully validated!");
+//      System.out.println("S3 AWSRestore successfully validated!");
 //    } else {
-//      System.out.println("S3 Restore validation failed.");
+//      System.out.println("S3 AWSRestore validation failed.");
 //    }
 //
 //    System.exit(0);
@@ -63,9 +63,9 @@ public class S3 {
       // checksum validation
       boolean checksumCheck = s3Validate.ChecksumValidate();
       if (checksumCheck) {
-        System.out.println("S3 Restore successfully validated!");
+        System.out.println("S3 AWSRestore successfully validated!");
       } else {
-        System.out.println("S3 Restore validation failed.");
+        System.out.println("S3 AWSRestore validation failed.");
       }
 
       backupClient.close();
