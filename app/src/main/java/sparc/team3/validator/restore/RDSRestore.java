@@ -10,14 +10,24 @@ import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
-import software.amazon.awssdk.utils.HostnameValidator;
+import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Util;
 
-import javax.net.ssl.HostnameVerifier;
 import java.util.*;
 
 
 /**
  * This class restores an RDS instance from a snapshot
+ * 1. get collection of snapshots
+ * 2. restore a backup
+ * 3. wait for it to be available
+ * 4. update security group
+ * 5. reboot instance
+ * 6. wait for it to be available
+ * 7. connect to EC2
+ * 8. Test/validate
+ * 9. log
+ * 10. delete instance
  */
 public class RDSRestore {
 
@@ -32,36 +42,17 @@ public class RDSRestore {
      * Instantiates a new Rds restore.
      *
      * @param rdsClient                       the rds client
-     * @param uniqueNameForRestoredDBInstance the unique name for restored db instance
-     * @param backupVaultName                 the backup vault name
-     * @param subnetGroupName                 the subnet group name
-     * @param securityGroupID                 the security group id
+     * @param instanceSettings                the instanceSettings for the rds instance
      */
-    public RDSRestore(RdsClient rdsClient, String uniqueNameForRestoredDBInstance,
-                      String backupVaultName, String subnetGroupName,String securityGroupID) {
+    public RDSRestore(RdsClient rdsClient, InstanceSettings instanceSettings) {
+
         this.rdsClient = rdsClient;
-        this.uniqueNameForRestoredDBInstance = uniqueNameForRestoredDBInstance;
-        this.backupVaultName = backupVaultName;
-        this.subnetGroupName = subnetGroupName;
-        this.securityGroupID = securityGroupID;
+        setUniqueNameForRestoredDBInstance();
+        this.backupVaultName = instanceSettings.getBackupVault();
+        this.subnetGroupName = instanceSettings.getSubnetName();
+        this.securityGroupID = instanceSettings.getSecurityGroups().get(0).getId();
         this.snapshots = getSnapshots();
     }
-
-    /**
-     * 1. get collection of snapshots
-     * 2. restore a backup
-     * 3. wait for it to be available
-     * 4. update security group
-     * 5. reboot instance
-     * 6. wait for it to be available
-     * 7. connect to EC2
-     * 8. Test/validate
-     * 9. log
-     * 10. delete instance
-     * @return
-     * @throws InterruptedException
-     */
-
 
     /**
      * Gets the list of current RDS snapshots
@@ -92,7 +83,7 @@ public class RDSRestore {
      * @return the restored instance ID as a string
      * @throws InterruptedException the interrupted exception
      */
-    public String restoreResource() throws InterruptedException {
+    public DBInstance restoreRDSFromBackup() throws InterruptedException {
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
 
         String arn = snapshots.get(0).dbSnapshotArn();
@@ -106,18 +97,18 @@ public class RDSRestore {
 
          RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
 
-         String restoredInstanceID = response.dbInstance().dbInstanceIdentifier();
+         DBInstance restoredInstance = response.dbInstance();
 
          // wait for snapshot to finish restoring to a new instance
-         waitForInstanceToBeAvailable(restoredInstanceID);
+         waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
          // update security group to custom one
-         updateSecurityGroup(restoredInstanceID, securityGroupID);
+         updateSecurityGroup(restoredInstance.dbInstanceIdentifier(), securityGroupID);
 
          // reboot for modifications to take effect immediately
-         rebootInstance(restoredInstanceID);
+         rebootInstance(restoredInstance.dbInstanceIdentifier());
 
-         return restoredInstanceID;
+         return restoredInstance;
     }
 
 
@@ -165,6 +156,10 @@ public class RDSRestore {
 
         rdsClient.rebootDBInstance(request);
         waitForInstanceToBeAvailable(dbInstanceIdentifier);
+    }
+
+    public void setUniqueNameForRestoredDBInstance(){
+        uniqueNameForRestoredDBInstance = Util.UNIQUE_RESTORE_NAME_BASE + System.currentTimeMillis();
     }
 
 }

@@ -1,12 +1,16 @@
 //package com.example.myapp;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 //import com.example.rds.sparc.team3.validator.restore.RDSRestore;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import sparc.team3.validator.restore.RDSRestore;
+import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.SecurityGroup;
 import sparc.team3.validator.validate.RDSValidate;
 
 //BACKUP Plan IDs
@@ -30,22 +34,25 @@ public class RDS {
         try{
 
             Region region = Region.US_EAST_1;
-            String uniqueNameForRestoredDBInstance = "database-test" +System.currentTimeMillis(); //put in util
             String rdsSparcVault = "rdssparcvault";
             String subnetGroupName = "team3-sparc-db-subnet-group"; //add to settings (or a security class?)
             String securityGroupID = "sg-078715763233fad97"; //add to settings (or a security class?)
+            SecurityGroup securityGroup = new SecurityGroup(securityGroupID, "VPC-DB-Security-Group");
+            LinkedList<SecurityGroup> sgs = new LinkedList<>();
+            sgs.add(securityGroup);
+            InstanceSettings instanceSettings = new InstanceSettings("database-1", rdsSparcVault, sgs, subnetGroupName);
             RdsClient rdsClient = RdsClient
                     .builder()
                     .region(region)
                     .build();
 
             RDSRestore rdsRestore
-                     = new RDSRestore(rdsClient, uniqueNameForRestoredDBInstance, rdsSparcVault, subnetGroupName, securityGroupID);
+                     = new RDSRestore(rdsClient, instanceSettings);
 
-            String restoredInstanceID = rdsRestore.restoreResource();
+            DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 
-            RDSValidate rdsValidate = new RDSValidate(rdsClient, restoredInstanceID);
-            rdsValidate.validateResource(restoredInstanceID);
+            RDSValidate rdsValidate = new RDSValidate(rdsClient, restoredInstance);
+            rdsValidate.validateResource();
 
             rdsClient.close();
 

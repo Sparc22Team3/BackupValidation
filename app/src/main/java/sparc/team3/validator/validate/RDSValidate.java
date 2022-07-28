@@ -1,6 +1,7 @@
 package sparc.team3.validator.validate;
 
 import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
 
 /**
@@ -8,28 +9,27 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
  */
 public class RDSValidate {
     private RdsClient rdsClient;
-    private String uniqueNameForRestoredDBInstance;
+    private DBInstance dbInstance;
 
     /**
      * Instantiates a new Rds validate.
      *
-     * @param rdsClient                       the rds client
-     * @param uniqueNameForRestoredDBInstance the unique name for restored db instance
+     * @param rdsClient     the rds client
+     * @param dbInstance    the db instance representing the RDS DB instance
      */
-    public RDSValidate(RdsClient rdsClient, String uniqueNameForRestoredDBInstance) {
+    public RDSValidate(RdsClient rdsClient, DBInstance dbInstance) {
         this.rdsClient = rdsClient;
-        this.uniqueNameForRestoredDBInstance = uniqueNameForRestoredDBInstance;
+        this.dbInstance = dbInstance;
     }
 
 
     /**
      * Validate resource.
      *
-     * @param dbInstanceIdentifier the db instance identifier
      */
-    public void validateResource(String dbInstanceIdentifier) {
+    public void validateResource() {
 
-        deleteDBTestInstance(dbInstanceIdentifier);
+        deleteDBInstance(dbInstance.dbInstanceIdentifier());
     }
 
     /**
@@ -37,7 +37,7 @@ public class RDSValidate {
      *
      * @param dbInstanceIdentifier
      */
-    private void deleteDBTestInstance(String dbInstanceIdentifier) {
+    private void deleteDBInstance(String dbInstanceIdentifier) {
 
         System.out.println("in validate now, deleting..");
         DeleteDbInstanceRequest deleteRequest = DeleteDbInstanceRequest
