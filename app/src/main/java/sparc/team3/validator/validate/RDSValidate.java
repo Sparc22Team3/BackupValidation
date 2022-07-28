@@ -8,8 +8,8 @@ import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
  * This class tests and validates an RDS instance that was restored from a snapshot.
  */
 public class RDSValidate {
-    private RdsClient rdsClient;
-    private DBInstance dbInstance;
+    private final RdsClient rdsClient;
+    private final DBInstance dbInstance;
 
     /**
      * Instantiates a new Rds validate.
@@ -35,7 +35,7 @@ public class RDSValidate {
     /**
      * Delete database instance after testing and validating is complete.
      *
-     * @param dbInstanceIdentifier
+     * @param dbInstanceIdentifier the string of the rds instance id
      */
     private void deleteDBInstance(String dbInstanceIdentifier) {
 

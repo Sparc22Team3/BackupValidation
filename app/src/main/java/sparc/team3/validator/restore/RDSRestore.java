@@ -7,13 +7,11 @@ package sparc.team3.validator.restore;/*
 
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
-import software.amazon.awssdk.services.rds.model.ModifyDbInstanceRequest;
-import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
-import java.util.*;
+import java.util.List;
 
 
 /**
@@ -31,12 +29,12 @@ import java.util.*;
  */
 public class RDSRestore {
 
-    private RdsClient rdsClient;
+    private final RdsClient rdsClient;
     private String uniqueNameForRestoredDBInstance;
-    private String backupVaultName;
-    private String subnetGroupName;
-    private String securityGroupID;
-    private List<DBSnapshot> snapshots;
+    private final String backupVaultName;
+    private final String subnetGroupName;
+    private final String securityGroupID;
+    private final List<DBSnapshot> snapshots;
 
     /**
      * Instantiates a new Rds restore.
@@ -81,9 +79,8 @@ public class RDSRestore {
      * Restore database instance from snapshot.
      *
      * @return the restored instance ID as a string
-     * @throws InterruptedException the interrupted exception
      */
-    public DBInstance restoreRDSFromBackup() throws InterruptedException {
+    public DBInstance restoreRDSFromBackup() {
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
 
         String arn = snapshots.get(0).dbSnapshotArn();
@@ -114,7 +111,7 @@ public class RDSRestore {
 
     /**
      * Synchronous wait to ensure database is in available state
-     * @param dbInstanceIdentifier
+     * @param dbInstanceIdentifier the string of the database identifier
      */
     private void waitForInstanceToBeAvailable(String dbInstanceIdentifier) {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest
@@ -129,8 +126,8 @@ public class RDSRestore {
 
     /**
      * Update the security group to the custom one
-     * @param restoredInstanceID
-     * @param securityGroupID
+     * @param restoredInstanceID the string of the rds instance id
+     * @param securityGroupID the string of the security group id
      */
     private void updateSecurityGroup(String restoredInstanceID, String securityGroupID) {
         ModifyDbInstanceRequest modifyDbRequest = ModifyDbInstanceRequest
@@ -146,7 +143,7 @@ public class RDSRestore {
 
     /**
      * Reboot the database instance to ensure any change requests are complete
-     * @param dbInstanceIdentifier
+     * @param dbInstanceIdentifier the string of the rds instance id
      */
     private void rebootInstance(String dbInstanceIdentifier) {
         RebootDbInstanceRequest request = RebootDbInstanceRequest
