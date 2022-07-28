@@ -33,7 +33,7 @@ public class S3 {
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
     try{
-      InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null, null);
+      InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null);
 
       // restore s3
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
