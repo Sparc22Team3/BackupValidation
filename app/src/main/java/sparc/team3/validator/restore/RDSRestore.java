@@ -13,6 +13,7 @@ import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 
 /**
@@ -28,7 +29,7 @@ import java.util.List;
  * 9. log
  * 10. delete instance
  */
-public class RDSRestore {
+public class RDSRestore implements Callable<DBInstance> {
 
     private final RdsClient rdsClient;
     private String uniqueNameForRestoredDBInstance;
@@ -53,6 +54,11 @@ public class RDSRestore {
         this.securityGroupID = instanceSettings.getSecurityGroups().get(0).getId();
         this.snapshots = getSnapshots();
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
+    }
+
+    @Override
+    public DBInstance call() {
+        return restoreRDSFromBackup();
     }
 
     /**

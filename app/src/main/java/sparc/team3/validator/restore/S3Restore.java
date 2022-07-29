@@ -10,12 +10,13 @@ import sparc.team3.validator.util.Util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 
 /**
  * Class used to restore the most recent S3 recovery point from S3 backup vault
  */
-public class S3Restore extends AWSRestore {
+public class S3Restore extends AWSRestore implements Callable<String> {
     private String restoreBucketName;
     private final S3Client s3Client;
 
@@ -25,6 +26,11 @@ public class S3Restore extends AWSRestore {
         this.s3Client = s3Client;
     }
 
+    @Override
+    public String call() throws InterruptedException {
+        return restoreS3FromBackup();
+    }
+
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 20 minutes.
@@ -32,9 +38,9 @@ public class S3Restore extends AWSRestore {
      * @return a string of the bucket name
      * @throws InterruptedException when sleep is interrupted
      */
-    public String restoreS3FromBackup(int recoveryNumber) throws InterruptedException {
+    public String restoreS3FromBackup() throws InterruptedException {
 
-        String restoreJobId = startRestore(recoveryNumber);
+        String restoreJobId = startRestore();
         if(restoreJobId == null)
             return null;
         int sleepMinutes = 4;
