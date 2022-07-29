@@ -107,6 +107,8 @@ public class Configurator {
         // Create Settings object
         Settings settings = new Settings("ec2-user",
                 "testKeyFile",
+                "dbUser",
+                "dbPass",
                 fileList,
                 "US_EAST_1",
                 "vpc id",
