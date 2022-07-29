@@ -11,10 +11,9 @@ public class DbTestingDummyDb {
     }
 
     boolean dbRowsTest() throws SQLException, ClassNotFoundException {
-        // Class.forName("com.mysql.cj.jdbc.Driver"); //update
         //update password
-        Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/database-dummy1", "admin","PASSWORD");
-        System.out.println(connection.getMetaData());
+        Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/database-dummy1", "admin","716Qmg&B^jwg");
+       // System.out.println(connection.getMetaData());
         System.out.println(connection);
 
 
