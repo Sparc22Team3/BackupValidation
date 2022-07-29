@@ -10,13 +10,13 @@ import java.util.List;
 /**
  * Class to validate original and restored S3 buckets
  */
-public class S3Validate {
+public class S3ValidateBucket {
 
     private final S3Client s3;
     private final String originalBucket;
     private final String restoredBucket;
 
-    public S3Validate(S3Client s3, String originalBucket, String restoredBucket){
+    public S3ValidateBucket(S3Client s3, String originalBucket, String restoredBucket){
 
         this.s3 = s3;
         this.originalBucket = originalBucket;
