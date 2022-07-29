@@ -8,12 +8,15 @@ import java.util.LinkedList;
 
 /**
  * Settings for the program to run.
+ *
  * @see sparc.team3.validator.Configurator
  */
 @JsonPropertyOrder({"serverUsername", "privateKeyFile"})
 public final class Settings {
     private final String serverUsername;
     private final String privateKeyFile;
+    private final String dbUsername;
+    private final String dbPassword;
     private final LinkedList<ServerConfigFile> configFiles;
     private final String awsRegion;
     private final String vpcID;
@@ -25,7 +28,8 @@ public final class Settings {
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
-                    @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
+                    @JsonProperty("dbUsername") String dbUsername,
+                    @JsonProperty("dbPassword") String dbPassword, @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
                     @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
@@ -35,6 +39,8 @@ public final class Settings {
 
         this.serverUsername = serverUsername;
         this.privateKeyFile = privateKeyFile;
+        this.dbUsername = dbUsername;
+        this.dbPassword = dbPassword;
         this.configFiles = configFiles;
         this.awsRegion = awsRegion;
         this.vpcID = vpcID;
@@ -53,6 +59,13 @@ public final class Settings {
         return privateKeyFile;
     }
 
+    public String getDbUsername() {
+        return dbUsername;
+    }
+
+    public String getDbPassword() {
+        return dbPassword;
+    }
 
     public LinkedList<ServerConfigFile> getConfigFiles() {
         return configFiles;
@@ -87,6 +100,8 @@ public final class Settings {
         return "Settings{\n" +
                 "\tserverUsername='" + serverUsername + "'\n" +
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
+                "\tdbUsername='" + dbUsername + "'\n" +
+                "\tdbPassword='" + dbPassword + "'\n" +
                 "\tawsRegion='" + awsRegion + "'\n" +
                 "\tvpcID='" + vpcID + "'\n" +
                 "\tvpcName='" + vpcName + "'\n" +
