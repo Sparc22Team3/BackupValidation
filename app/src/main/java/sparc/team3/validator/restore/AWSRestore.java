@@ -18,6 +18,7 @@ public abstract class AWSRestore {
     RecoveryPointByBackupVault currentRecoveryPoint;
     Map<String, String> metadata;
     final Logger logger;
+    int recoveryNumber;
 
 
     public AWSRestore(BackupClient backupClient, InstanceSettings instanceSettings) {
@@ -25,16 +26,16 @@ public abstract class AWSRestore {
         this.instanceSettings = instanceSettings;
         this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
+        recoveryNumber = 0;
     }
 
     /**
      * Start the restore job for a given recovery point.
-     * @param recoveryNumber the int of the recovery point to restore
      * @return AWSRestore Job ID
      */
-    String startRestore(int recoveryNumber) {
+    synchronized String startRestore() {
         try {
-            currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
+            currentRecoveryPoint = getRecentRecoveryPoint();
         } catch (Exception e) {
             return null;
         }
@@ -87,12 +88,11 @@ public abstract class AWSRestore {
 
     /**
      * Return most recent recovery point from vault.
-     * @param recoveryNumber the number of the recovery point to get
      * @return a RecoveryPointByBackupVault
      * @throws Exception when recovery points have been exhausted
      */
 
-    RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
+    synchronized RecoveryPointByBackupVault getRecentRecoveryPoint() throws Exception{
 
         if (recoveryNumber > recoveryPoints.size()){
 
@@ -101,5 +101,13 @@ public abstract class AWSRestore {
         }
 
         return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
+    }
+
+    public synchronized void incrementRecoveryNumber(){
+        recoveryNumber++;
+    }
+
+    public synchronized int getRecoveryNumber(){
+        return recoveryNumber;
     }
 }

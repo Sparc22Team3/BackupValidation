@@ -7,24 +7,36 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
+import sparc.team3.validator.util.InstanceSettings;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 
-public class EC2ValidateInstance {
-    private final Instance instance;
+public class EC2ValidateInstance implements Callable<Boolean> {
     private final Ec2Client ec2Client;
+    private final InstanceSettings instanceSettings;
     private final Logger logger;
+    private Instance instance;
 
-    public EC2ValidateInstance(Ec2Client ec2Client, Instance instance) {
+
+    public EC2ValidateInstance(Ec2Client ec2Client, InstanceSettings instanceSettings) {
         this.ec2Client = ec2Client;
-        this.instance = instance;
+        this.instanceSettings = instanceSettings;
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
+    }
+
+    public void setEC2Instance(Instance instance){
+        this.instance = instance;
+    }
+
+    @Override
+    public Boolean call() throws IOException, InterruptedException {
+        return validateWithPing("");
     }
 
     /**
@@ -49,6 +61,8 @@ public class EC2ValidateInstance {
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build();
         HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        logger.info("EC2 Instance responded with {}", httpResponse.statusCode());
 
         return httpResponse.statusCode() == 200;
 
@@ -95,16 +109,5 @@ public class EC2ValidateInstance {
         if (attempts >= 11) {
             throw new TimeoutException("EC2 Instance Timeout");
         }
-    }
-
-    /**
-     * Terminate ec2Instance attached to client.
-     */
-    public void terminateEC2Instance() {
-        logger.info("Terminating Instance {}", instance.instanceId());
-
-        TerminateInstancesRequest terminateRequest = TerminateInstancesRequest.builder().instanceIds(instance.instanceId()).build();
-        ec2Client.terminateInstances(terminateRequest);
-
     }
 }

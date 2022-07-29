@@ -51,14 +51,12 @@ public class S3 {
       // create a S3Restore instance
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
 
-      // use the latest recovery point for restore job - hard-coded for now, no need for user specification
-      int recoveryNumber = 0;
-
       // start restore job
-      String restoredBucketName = s3Restore.restoreS3FromBackup(recoveryNumber);
+      String restoredBucketName = s3Restore.restoreS3FromBackup();
 
       // initialize sparc.team3.validator.validate.S3ValidateBucket object
-      S3ValidateBucket s3ValidateBucket = new S3ValidateBucket(s3Client, s3BucketName, restoredBucketName);
+      S3ValidateBucket s3ValidateBucket = new S3ValidateBucket(s3Client, instanceSettings);
+      s3ValidateBucket.setRestoredBucket(restoredBucketName);
 
       // checksum validation
       boolean checksumCheck = s3ValidateBucket.ChecksumValidate();

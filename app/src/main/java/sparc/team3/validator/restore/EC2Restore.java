@@ -15,16 +15,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 
 /**
  * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
  * recovered resource to pass initialization checks. 
  */
-public class EC2Restore extends AWSRestore {
+public class EC2Restore extends AWSRestore implements Callable<Instance> {
 
 
     private final Ec2Client ec2Client;
-    private Arn resourceArn;
 
     public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings) {
         super(backupClient, instanceSettings);
@@ -32,6 +32,10 @@ public class EC2Restore extends AWSRestore {
         this.ec2Client = ec2Client;
     }
 
+    @Override
+    public Instance call() throws InterruptedException {
+        return restoreEC2FromBackup();
+    }
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 10 minutes.
@@ -39,13 +43,14 @@ public class EC2Restore extends AWSRestore {
      * @return a string of the instance id
      * @throws InterruptedException when sleep is interrupted
      */
-    public Instance restoreEC2FromBackup(int recoveryNumber) throws InterruptedException {
+    public Instance restoreEC2FromBackup() throws InterruptedException {
 
-        String restoreJobId = startRestore(recoveryNumber);
+        String restoreJobId = startRestore();
         if(restoreJobId == null)
             return null;
         int sleepMinutes = 1;
         String finalStatus = null;
+        Arn resourceArn = null;
 
         logger.info("Restore EC2 job: {}", restoreJobId);
         while (finalStatus == null) {
@@ -77,7 +82,7 @@ public class EC2Restore extends AWSRestore {
             return null;
         }
 
-        return getInstance();
+        return getInstance(resourceArn);
     }
 
     /**
@@ -140,9 +145,11 @@ public class EC2Restore extends AWSRestore {
 
     /**
      * Get the Instance information about the EC2 instance that was restored
+     *
+     * @param resourceArn the arn of the instance we want to get
      * @return an Instance describing the instance that was restored
      */
-    private Instance getInstance(){
+    private Instance getInstance(Arn resourceArn){
         String id = resourceArn.resource().resource();
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
@@ -167,9 +174,5 @@ public class EC2Restore extends AWSRestore {
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
         return recoveryPoints;
-    }
-
-    public Arn getResourceArn(){
-        return resourceArn;
     }
 }

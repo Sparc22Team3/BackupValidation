@@ -48,7 +48,8 @@ public class RDS {
 
             DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 
-            RDSValidate rdsValidate = new RDSValidate(rdsClient, restoredInstance);
+            RDSValidate rdsValidate = new RDSValidate(rdsClient, instanceSettings);
+            rdsValidate.setDbInstance(restoredInstance);
             rdsValidate.validateResource();
 
             rdsClient.close();
