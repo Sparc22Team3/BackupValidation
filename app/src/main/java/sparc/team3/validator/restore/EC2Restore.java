@@ -1,7 +1,5 @@
 package sparc.team3.validator.restore;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
@@ -13,105 +11,86 @@ import software.amazon.awssdk.services.ec2.model.Reservation;
 import sparc.team3.validator.util.InstanceSettings;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 
 /**
  * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
  * recovered resource to pass initialization checks. 
  */
-public class EC2Restore {
+public class EC2Restore extends AWSRestore implements Callable<Instance> {
 
-    private final BackupClient backupClient;
+
     private final Ec2Client ec2Client;
-    private final InstanceSettings instanceSettings;
-    private int recoveryNumber; 
-    private final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
 
-    private RecoveryPointByBackupVault currentRecoveryPoint;
-    private Map<String, String> metadata; 
-    private Arn resourceArn;
-    private final Logger logger;
+    public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings) {
+        super(backupClient, instanceSettings);
 
-
-    public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings, int recoveryNumber) throws Exception{
-        logger = LoggerFactory.getLogger(EC2Restore.class);
-
-        this.backupClient = backupClient;
         this.ec2Client = ec2Client;
-        this.instanceSettings = instanceSettings;
-        this.recoveryNumber = recoveryNumber;
-        this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
-
-        this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
-        this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
-
     }
-    
+
+    @Override
+    public Instance call() throws InterruptedException {
+        return restoreEC2FromBackup();
+    }
     /**
-     * Method gets a list of backup restore points from backup vault and populates a sorted data structure. 
-     * @param backupVaultName the string name of the backup vault to retrieve recovery points from
-     * @return a TreeMap of the recovery points in the backup vault
-     * 
+     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
+     * longer than 10 minutes.
+     * Throws error if job isn't completed within allotted time.
+     * @return a string of the instance id
+     * @throws InterruptedException when sleep is interrupted
      */
-    private TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
+    public Instance restoreEC2FromBackup() throws InterruptedException {
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output =
-                new TreeMap<>(Collections.reverseOrder());
-        
-        //call and response with amazon to get list of vault backups
-        ListRecoveryPointsByBackupVaultRequest  request = 
-        ListRecoveryPointsByBackupVaultRequest.builder().
-        backupVaultName(backupVaultName).build();
-        
-        ListRecoveryPointsByBackupVaultResponse response = 
-        backupClient.listRecoveryPointsByBackupVault(request);
+        String restoreJobId = startRestore();
+        if(restoreJobId == null)
+            return null;
+        int sleepMinutes = 1;
+        String finalStatus = null;
+        Arn resourceArn = null;
 
-        for(software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault r: 
-        response.recoveryPoints()){
+        logger.info("Restore EC2 job: {}", restoreJobId);
+        while (finalStatus == null) {
+            try {
+                //get restore job information and wait until status of restore job is "completed"
+                DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
+                        .builder().restoreJobId(restoreJobId).build();
+                DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
+                String status = restoreResult.status().toString();
 
-            output.put(r.creationDate(), r); 
+                logger.info("Restore Job {}\t\tStatus: {}\t\tPercent Done: {}", restoreJobId,
+                        status, restoreResult.percentDone());
+
+                // when restore job is no longer running, break out of the loop otherwise sleep for a while
+                if (!status.equals("RUNNING") && !status.equals("PENDING")) {
+                    finalStatus = status;
+                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
+                } else {
+                    Thread.sleep(sleepMinutes * 60000);
+                }
+            } catch (BackupException e) {
+                logger.error("Problem with restore job id: {}", restoreJobId, e);
+                return null;
+            }
         }
 
-        return output; 
-    }
-
-    /**
-     * Return most recent recovery point from vault.
-     * @param recoveryNumber the number of the recovery point to get
-     * @return a RecoveryPointByBackupVault
-     * @throws Exception when recovery points have been exhausted
-     */
-
-    private RecoveryPointByBackupVault getRecentRecoveryPoint(int recoveryNumber) throws Exception{
-
-        if (recoveryNumber > recoveryPoints.size()){
-
-            throw new Exception("Recovery Points Exhausted"); 
-
+        if (!finalStatus.equals("COMPLETED")){
+            logger.error("Restore job {} did not complete.", restoreJobId);
+            return null;
         }
-        
-        return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]); 
+
+        return getInstance(resourceArn);
     }
 
     /**
-     * Start the restore job given a recovery point. 
-     * @param recoveryNumber the int of the recovery point to restore
-     * @return a string of the response of the restore job
+     * Set the metadata required for restore
+     * @return Map of the metadata
      */
-    private String startRestore(int recoveryNumber){
-        
-        StartRestoreJobRequest request = StartRestoreJobRequest.builder().
-        recoveryPointArn(currentRecoveryPoint.recoveryPointArn()).iamRoleArn(currentRecoveryPoint.iamRoleArn())
-        .metadata(metadata).build();
-        
-        StartRestoreJobResponse response = backupClient.startRestoreJob(request);
-
-        return response.restoreJobId();
-
+    Map<String, String> setMetadata(){
+        return editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
     }
 
     /**
@@ -165,52 +144,12 @@ public class EC2Restore {
     }
 
     /**
-     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
-     * longer than 10 minutes.
-     * Throws error if job isn't completed within allotted time.
-     * @return a string of the instance id
-     * @throws Exception when the backup restore times out
-     */
-    public Instance restoreEC2FromBackup() throws Exception {
-
-        String restoreJobId = startRestore(recoveryNumber);
-
-        int attempts = 0;
-        while (attempts < 11) {
-
-            try {
-                //get restore job information and wait until status of restore job is "completed"
-                DescribeRestoreJobRequest newRequest = DescribeRestoreJobRequest
-                        .builder().restoreJobId(restoreJobId).build();
-                DescribeRestoreJobResponse restoreResult = backupClient.describeRestoreJob(newRequest);
-
-                System.out.println("Restore Status:" + restoreResult.status().toString());
-
-                if (restoreResult.status().toString().equals("COMPLETED")) {
-                    resourceArn = Arn.fromString(restoreResult.createdResourceArn());
-                    break;
-                }
-            } catch (Exception e) {
-                System.err.println(e);
-                System.exit(1);
-            }
-            Thread.sleep(60000);
-            attempts++;
-        }
-
-        if (attempts >= 11) {
-            throw new Exception("Backup Restore Timeout");
-        }
-
-        return getInstance();
-
-    }
-
-    /**
      * Get the Instance information about the EC2 instance that was restored
+     *
+     * @param resourceArn the arn of the instance we want to get
      * @return an Instance describing the instance that was restored
      */
-    private Instance getInstance(){
+    private Instance getInstance(Arn resourceArn){
         String id = resourceArn.resource().resource();
 
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
@@ -234,31 +173,6 @@ public class EC2Restore {
      * @return a TreeMap of recoveryPointsByBackupVault
      */
     public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
-
         return recoveryPoints;
-    }
-
-    /**
-     * Returns current recovery number of object. 
-     * @return the int of the current recovery number
-     */
-    public int getRecoveryPointNumber(){
-        return recoveryNumber;
-    }
-
-    /**
-     * Set current recovery number of object. 
-     * @param recoveryNumber the int to set the number of the recovery point
-     * @throws Exception when there is an issue getting the recent recovery point
-     */
-    public void setRecoveryPointNumber(int recoveryNumber) throws Exception{
-        this.recoveryNumber=recoveryNumber;
-
-        this.currentRecoveryPoint = getRecentRecoveryPoint(recoveryNumber);
-        this.metadata = editRecoveryMeta(getRecoveryMetaData(currentRecoveryPoint));
-    }
-
-    public Arn getResourceArn(){
-        return resourceArn;
     }
 }

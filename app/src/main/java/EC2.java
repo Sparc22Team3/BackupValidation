@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 
 public class EC2 {
@@ -15,21 +16,22 @@ public class EC2 {
 
       Region region = Region.US_EAST_1;
       BackupClient client =  BackupClient.builder().region(region).build();
-      int recoveryAttempt = 0;
+
       Ec2Client ec2Client = Ec2Client.builder().region(region).build();
       InstanceSettings instanceSettings = new InstanceSettings("Web Server Production", "ec2sparcvault", null, null);
 
-      EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings, recoveryAttempt);
+      EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings);
 
       Instance instance = restore.restoreEC2FromBackup();
 
-      EC2ValidateInstance validateInstance = new EC2ValidateInstance(ec2Client, instance);
+      EC2ValidateInstance validateInstance = new EC2ValidateInstance(ec2Client, instanceSettings);
+      validateInstance.setEC2Instance(instance);
 
       Boolean validated = validateInstance.validateWithPing("/wiki/index.php?title=Main_Page");
 
       System.out.println("Web Server Status 200: " + validated); 
 
-      validateInstance.terminateEC2Instance();
+      Util.terminateEC2Instance(instance.instanceId(), ec2Client);
 
       //close connection
       ec2Client.close();

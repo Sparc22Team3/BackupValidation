@@ -1,51 +1,47 @@
 package sparc.team3.validator.validate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
-import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import sparc.team3.validator.util.InstanceSettings;
+
+import java.util.concurrent.Callable;
 
 /**
  * This class tests and validates an RDS instance that was restored from a snapshot.
  */
-public class RDSValidate {
+public class RDSValidate implements Callable<Boolean> {
     private final RdsClient rdsClient;
-    private final DBInstance dbInstance;
+    private final InstanceSettings instanceSettings;
+    private final Logger logger;
+    private DBInstance dbInstance;
 
     /**
      * Instantiates a new Rds validate.
      *
      * @param rdsClient     the rds client
-     * @param dbInstance    the db instance representing the RDS DB instance
      */
-    public RDSValidate(RdsClient rdsClient, DBInstance dbInstance) {
+    public RDSValidate(RdsClient rdsClient, InstanceSettings instanceSettings) {
         this.rdsClient = rdsClient;
+        this.instanceSettings = instanceSettings;
+        this.logger = LoggerFactory.getLogger(this.getClass().getName());
+    }
+
+    public void setDbInstance(DBInstance dbInstance){
         this.dbInstance = dbInstance;
     }
 
-
+    @Override
+    public Boolean call() {
+        validateResource();
+        return true;
+    }
     /**
      * Validate resource.
      *
      */
     public void validateResource() {
-
-        deleteDBInstance(dbInstance.dbInstanceIdentifier());
-    }
-
-    /**
-     * Delete database instance after testing and validating is complete.
-     *
-     * @param dbInstanceIdentifier the string of the rds instance id
-     */
-    private void deleteDBInstance(String dbInstanceIdentifier) {
-
-        System.out.println("in validate now, deleting..");
-        DeleteDbInstanceRequest deleteRequest = DeleteDbInstanceRequest
-                .builder()
-                .dbInstanceIdentifier(dbInstanceIdentifier)
-                .skipFinalSnapshot(true)
-                .build();
-
-        rdsClient.deleteDBInstance(deleteRequest);
+        logger.info("Validating restored database {}", dbInstance.dbInstanceIdentifier());
     }
 }

@@ -1,27 +1,39 @@
 package sparc.team3.validator.validate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import sparc.team3.validator.util.InstanceSettings;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 
 /**
  * Class to validate original and restored S3 buckets
  */
-public class S3Validate {
+public class S3ValidateBucket implements Callable<Boolean> {
 
     private final S3Client s3;
-    private final String originalBucket;
-    private final String restoredBucket;
+    private final InstanceSettings instanceSettings;
+    private final Logger logger;
+    private String restoredBucket;
 
-    public S3Validate(S3Client s3, String originalBucket, String restoredBucket){
-
+    public S3ValidateBucket(S3Client s3, InstanceSettings instanceSettings){
         this.s3 = s3;
-        this.originalBucket = originalBucket;
-        this.restoredBucket = restoredBucket;
+        this.instanceSettings = instanceSettings;
+        this.logger = LoggerFactory.getLogger(this.getClass().getName());
+    }
 
+    public void setRestoredBucket(String restoredBucket){
+        this.restoredBucket = restoredBucket;
+    }
+
+    @Override
+    public Boolean call() {
+        return ChecksumValidate();
     }
 
     /**
@@ -40,7 +52,7 @@ public class S3Validate {
         ListObjectsResponse res = s3.listObjects(listObjects);
         List<S3Object> objects = res.contents();
 
-        System.out.println("Preparing S3 buckets for validation...");
+        logger.info("Preparing S3 bucket {} for validation.", restoredBucket);
 
         // iterate through each object in the bucket and perform the copy action
         for (S3Object myValue : objects) {
@@ -106,7 +118,7 @@ public class S3Validate {
         // copy objects to get SHA-256 checksum values
         CopyS3Objects();
 
-        HashMap<String, String> originalObjs = GetS3Objects(originalBucket);
+        HashMap<String, String> originalObjs = GetS3Objects(instanceSettings.getProductionName());
         HashMap<String, String> restoredObjs = GetS3Objects(restoredBucket);
 
         for (String key : originalObjs.keySet()){

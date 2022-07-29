@@ -1,10 +1,11 @@
-package sparc.team3.validator.restore;/*
+package sparc.team3.validator.restore;
+/*
    Edited from: Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
    SPDX-License-Identifier: Apache-2.0
 */
 
-//package com.example.rds;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
@@ -12,6 +13,7 @@ import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 
 /**
@@ -27,7 +29,7 @@ import java.util.List;
  * 9. log
  * 10. delete instance
  */
-public class RDSRestore {
+public class RDSRestore implements Callable<DBInstance> {
 
     private final RdsClient rdsClient;
     private String uniqueNameForRestoredDBInstance;
@@ -35,6 +37,7 @@ public class RDSRestore {
     private final String subnetGroupName;
     private final String securityGroupID;
     private final List<DBSnapshot> snapshots;
+    private final Logger logger;
 
     /**
      * Instantiates a new Rds restore.
@@ -50,6 +53,12 @@ public class RDSRestore {
         this.subnetGroupName = instanceSettings.getSubnetName();
         this.securityGroupID = instanceSettings.getSecurityGroups().get(0).getId();
         this.snapshots = getSnapshots();
+        this.logger = LoggerFactory.getLogger(this.getClass().getName());
+    }
+
+    @Override
+    public DBInstance call() {
+        return restoreRDSFromBackup();
     }
 
     /**
@@ -57,7 +66,7 @@ public class RDSRestore {
      * @return List of DBSnapshots
      */
     private List<DBSnapshot> getSnapshots() {
-        List<DBSnapshot> snapshotList = null;
+        List<DBSnapshot> snapshotList;
 
         try {
             DescribeDbSnapshotsRequest request = DescribeDbSnapshotsRequest
@@ -69,8 +78,8 @@ public class RDSRestore {
             snapshotList = response.dbSnapshots();
 
         } catch (RdsException e) {
-            System.out.println(e.getLocalizedMessage());
-            System.exit(1);
+            logger.error("Problem getting list of database snapshots", e);
+            return null;
         }
         return snapshotList;
     }
@@ -81,9 +90,11 @@ public class RDSRestore {
      * @return the restored instance ID as a string
      */
     public DBInstance restoreRDSFromBackup() {
+        if(snapshots == null)
+            return null;
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
-
         String arn = snapshots.get(0).dbSnapshotArn();
+        logger.info("Attempting to restore rds snapshot: {}", arn);
 
          RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
                  .builder()
@@ -119,7 +130,7 @@ public class RDSRestore {
                 .dbInstanceIdentifier(dbInstanceIdentifier)
                 .build();
         RdsWaiter waiter = rdsClient.waiter();
-
+        logger.info("Waiting for database {} to be available", dbInstanceIdentifier);
         waiter.waitUntilDBInstanceAvailable(request);
     }
 
@@ -136,7 +147,7 @@ public class RDSRestore {
                 .vpcSecurityGroupIds(securityGroupID)
                 .applyImmediately(true)
                 .build();
-
+        logger.info("Update the security group of {} to {}", restoredInstanceID, securityGroupID);
         rdsClient.modifyDBInstance(modifyDbRequest);
         waitForInstanceToBeAvailable(restoredInstanceID);
     }
@@ -150,7 +161,7 @@ public class RDSRestore {
                 .builder()
                 .dbInstanceIdentifier(dbInstanceIdentifier)
                 .build();
-
+        logger.info("Rebooting database {}", dbInstanceIdentifier);
         rdsClient.rebootDBInstance(request);
         waitForInstanceToBeAvailable(dbInstanceIdentifier);
     }

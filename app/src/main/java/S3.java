@@ -5,7 +5,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
-import sparc.team3.validator.validate.S3Validate;
+import sparc.team3.validator.validate.S3ValidateBucket;
 
 import java.util.Scanner;
 
@@ -31,15 +31,15 @@ public class S3 {
 //    String s3BackupVaultName = "s3backupvault";
 //    String s3RestoredBucketName = "sparc-team3-s3-test2";
 //
-//    // initialize sparc.team3.validator.validate.S3Validate object
-//    S3Validate s3Validate1 = new S3Validate(s3Client, s3BucketName, s3RestoredBucketName);
+//    // initialize sparc.team3.validator.validate.S3ValidateBucket object
+//    S3ValidateBucket s3Validate1 = new S3ValidateBucket(s3Client, s3BucketName, s3RestoredBucketName);
 //
 //    // checksum validation
 //    boolean checksumCheck1 = s3Validate1.ChecksumValidate();
 //    if (checksumCheck1) {
-//      System.out.println("S3 Restore successfully validated!");
+//      System.out.println("S3 AWSRestore successfully validated!");
 //    } else {
-//      System.out.println("S3 Restore validation failed.");
+//      System.out.println("S3 AWSRestore validation failed.");
 //    }
 //
 //    System.exit(0);
@@ -51,21 +51,19 @@ public class S3 {
       // create a S3Restore instance
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
 
-      // use the latest recovery point for restore job - hard-coded for now, no need for user specification
-      int recoveryNumber = 0;
-
       // start restore job
-      String restoredBucketName = s3Restore.restoreS3FromBackup(recoveryNumber);
+      String restoredBucketName = s3Restore.restoreS3FromBackup();
 
-      // initialize sparc.team3.validator.validate.S3Validate object
-      S3Validate s3Validate = new S3Validate(s3Client, s3BucketName, restoredBucketName);
+      // initialize sparc.team3.validator.validate.S3ValidateBucket object
+      S3ValidateBucket s3ValidateBucket = new S3ValidateBucket(s3Client, instanceSettings);
+      s3ValidateBucket.setRestoredBucket(restoredBucketName);
 
       // checksum validation
-      boolean checksumCheck = s3Validate.ChecksumValidate();
+      boolean checksumCheck = s3ValidateBucket.ChecksumValidate();
       if (checksumCheck) {
-        System.out.println("S3 Restore successfully validated!");
+        System.out.println("S3 AWSRestore successfully validated!");
       } else {
-        System.out.println("S3 Restore validation failed.");
+        System.out.println("S3 AWSRestore validation failed.");
       }
 
       backupClient.close();
