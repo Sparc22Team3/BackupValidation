@@ -14,27 +14,33 @@ public class EC2 {
 
     try{
 
-      Region region = Region.US_EAST_1;
-      BackupClient client =  BackupClient.builder().region(region).build();
-      int recoveryAttempt = 0;
-      Ec2Client ec2Client = Ec2Client.builder().region(region).build();
-      InstanceSettings instanceSettings = new InstanceSettings("ec2sparcvault", null, null, null);
+      // Region region = Region.US_EAST_1;
+      // BackupClient client =  BackupClient.builder().region(region).build();
+      // int recoveryAttempt = 0;
+      // Ec2Client ec2Client = Ec2Client.builder().region(region).build();
+      // InstanceSettings instanceSettings = new InstanceSettings("ec2sparcvault", null, null, null);
 
-      EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings, recoveryAttempt);
+      // EC2Restore restore = new EC2Restore(client, ec2Client, instanceSettings, recoveryAttempt);
 
-      Instance instance = restore.restoreEC2FromBackup();
+      // Instance instance = restore.restoreEC2FromBackup();
 
-      EC2ValidateInstance validateInstance = new EC2ValidateInstance(ec2Client, instance);
+      // EC2ValidateInstance validateInstance = new EC2ValidateInstance(ec2Client, instance);
 
-      Boolean validated = validateInstance.validateWithPing("/wiki/index.php?title=Main_Page");
+      //Boolean validated = validateInstance.validateWithPing("/wiki/index.php?title=Main_Page");
 
-      System.out.println("Web Server Status 200: " + validated); 
+      // Boolean validated = true;
 
-      validateInstance.terminateEC2Instance();
+      if(true){
 
-      //close connection
-      ec2Client.close();
-      client.close();
+        EC2ValidateInstance.selenium_test();
+
+      }
+
+      // validateInstance.terminateEC2Instance();
+
+      // //close connection
+      // ec2Client.close();
+      // client.close();
       
 
    } catch(BackupException e){

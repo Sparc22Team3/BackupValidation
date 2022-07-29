@@ -3,10 +3,20 @@ package sparc.team3.validator.validate;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
+import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
+import org.openqa.selenium.chrome.ChromeOptions;
+
+import java.time.Duration;
 
 public class EC2ValidateInstance {
     private final Instance instance;
@@ -34,6 +44,38 @@ public class EC2ValidateInstance {
         HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
         return httpResponse.statusCode() == 200;
+
+    }
+
+    public static void selenium_test() throws InterruptedException{
+
+      ChromeOptions options = new ChromeOptions();
+      options.addArguments("--no-sandbox");
+      options.addArguments("--headless");
+      options.addArguments("--disable-dev-shm-usage");
+
+      ChromeDriverService service = new ChromeDriverService.Builder()
+      .usingDriverExecutable(new File("/home/sparcDev/chromedriver"))
+      .build();
+
+      System.out.println("---------Start------------------------------------------------------------------");
+
+      //System.setProperty("webdriver.chrome.driver", "/home/sparcDev/chromedriver");
+
+      System.out.println("---------Driver------------------------------------------------------------------");
+
+      WebDriver driver = new ChromeDriver(service, options); 
+
+      System.out.println("---------Ping the G------------------------------------------------------------------");
+
+      driver.get("https://google.com"); 
+
+      Thread.sleep(1000);
+
+      String title = driver.getTitle();
+
+      System.out.println("---------Title------------------------------------------------------------------");
+      System.out.println(title); 
 
     }
     
