@@ -12,7 +12,10 @@ public class DbTestingDummyDb {
 
     boolean dbRowsTest() throws SQLException, ClassNotFoundException {
         //update password
-        Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/database-dummy1", "admin","716Qmg&B^jwg");
+
+        Connection connection = DriverManager.getConnection("database-dummy1.c6r4qgx3wvjo.us-east-1.rds.amazonaws.com", "admin","716Qmg&B^jwg");
+
+        //Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/database-dummy1", "admin","716Qmg&B^jwg");
        // System.out.println(connection.getMetaData());
         System.out.println(connection);
 

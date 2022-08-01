@@ -25,7 +25,7 @@ public class App {
      */
     public static void main(String[] args) throws IOException {
 
-        try{
+    /**    try{
 
             Region region = Region.US_EAST_1;
             String uniqueNameForRestoredDBInstance = "database-test" +System.currentTimeMillis(); //put in util
@@ -46,7 +46,17 @@ public class App {
             rdsValidate.validateResource(restoredInstanceID);
 
             rdsClient.close();
+     */
 
+        try{
+
+            Region region = Region.US_EAST_1;
+            RdsClient rdsClient = RdsClient
+                    .builder()
+                    .region(region)
+                    .build();
+            DbTestingDummyDb dbTestingDummyDb = new DbTestingDummyDb(rdsClient);
+            dbTestingDummyDb.dbRowsTest();
 
         } catch(BackupException e){
 
