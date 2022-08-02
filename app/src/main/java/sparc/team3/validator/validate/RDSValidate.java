@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Settings;
 
 import java.util.concurrent.Callable;
 
@@ -13,7 +14,7 @@ import java.util.concurrent.Callable;
  */
 public class RDSValidate implements Callable<Boolean> {
     private final RdsClient rdsClient;
-    private final InstanceSettings instanceSettings;
+    private final Settings settings;
     private final Logger logger;
     private DBInstance dbInstance;
 
@@ -22,9 +23,9 @@ public class RDSValidate implements Callable<Boolean> {
      *
      * @param rdsClient     the rds client
      */
-    public RDSValidate(RdsClient rdsClient, InstanceSettings instanceSettings) {
+    public RDSValidate(RdsClient rdsClient, Settings settings) {
         this.rdsClient = rdsClient;
-        this.instanceSettings = instanceSettings;
+        this.settings = settings;
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
     }
 

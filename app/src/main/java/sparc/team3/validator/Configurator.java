@@ -103,12 +103,17 @@ public class Configurator {
         InstanceSettings ec2Settings = new InstanceSettings("ec2 instance name", "backup vault name", sgList, "subnet name");
         InstanceSettings rdsSettings = new InstanceSettings("rds instance name","backup vault name", sgList, "subnet name");
         InstanceSettings s3Settings = new InstanceSettings("s3 bucket name", "backup vault name", sgList, "subnet name");
+        LinkedList<String> databases = new LinkedList<>();
+        databases.add("Database1.Table1");
+        databases.add("Database1.Table2");
+        databases.add("Database2.Table");
 
         // Create Settings object
         Settings settings = new Settings("ec2-user",
                 "testKeyFile",
                 "dbUser",
                 "dbPass",
+                databases,
                 fileList,
                 "US_EAST_1",
                 "vpc id",

@@ -17,6 +17,7 @@ public final class Settings {
     private final String privateKeyFile;
     private final String dbUsername;
     private final String dbPassword;
+    private final LinkedList<String> databaseTables;
     private final LinkedList<ServerConfigFile> configFiles;
     private final String awsRegion;
     private final String vpcID;
@@ -29,7 +30,9 @@ public final class Settings {
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
                     @JsonProperty("dbUsername") String dbUsername,
-                    @JsonProperty("dbPassword") String dbPassword, @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
+                    @JsonProperty("dbPassword") String dbPassword,
+                    @JsonProperty("databaseTables") LinkedList<String> databaseTables,
+                    @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
                     @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
@@ -41,6 +44,7 @@ public final class Settings {
         this.privateKeyFile = privateKeyFile;
         this.dbUsername = dbUsername;
         this.dbPassword = dbPassword;
+        this.databaseTables = databaseTables;
         this.configFiles = configFiles;
         this.awsRegion = awsRegion;
         this.vpcID = vpcID;
@@ -65,6 +69,10 @@ public final class Settings {
 
     public String getDbPassword() {
         return dbPassword;
+    }
+
+    public LinkedList<String> getDatabaseTables(){
+        return databaseTables;
     }
 
     public LinkedList<ServerConfigFile> getConfigFiles() {
@@ -102,6 +110,7 @@ public final class Settings {
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tdbUsername='" + dbUsername + "'\n" +
                 "\tdbPassword='" + dbPassword + "'\n" +
+                "\tdatabases=" + databaseTables + "\n" +
                 "\tawsRegion='" + awsRegion + "'\n" +
                 "\tvpcID='" + vpcID + "'\n" +
                 "\tvpcName='" + vpcName + "'\n" +

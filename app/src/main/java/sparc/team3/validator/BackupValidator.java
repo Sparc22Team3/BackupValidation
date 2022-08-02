@@ -186,7 +186,7 @@ public class BackupValidator {
             if (rdsFuture.isDone() && rdsInstance == null) {
                 try {
                     rdsInstance = rdsFuture.get();
-                    rdsValidateDatabase = new RDSValidate(rdsClient, settings.getRdsSettings());
+                    rdsValidateDatabase = new RDSValidate(rdsClient, settings);
                     rdsValidateDatabase.setDbInstance(rdsInstance);
 
                     rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
