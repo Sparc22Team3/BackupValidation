@@ -233,6 +233,18 @@ public class BackupValidator {
     }
 
     /**
+     * Calls the configurator to output a blank config file
+     */
+    private void runNewConfig() {
+        try {
+            configurator.createBlankConfigFile();
+
+        } catch (IOException e) {
+            printException(e);
+        }
+    }
+
+    /**
      * Uses a fixed thread pool from {@link Util#executor} to run the call methods
      * to restore and validate single instances and buckets.  Once this method is done,
      * EC2, RDS, and S3 will be restored and the instance/bucket will have been checked
@@ -245,6 +257,9 @@ public class BackupValidator {
         Future<DBInstance> rdsFuture = null;
         Future<String> s3Future = null;
 
+        Future<Instance> ec2Future = Util.executor.submit(ec2Restore);
+        Future<DBInstance> rdsFuture = Util.executor.submit(rdsRestore);
+        Future<String> s3Future = Util.executor.submit(s3Restore);
         Future<Boolean> ec2ValidateFuture = null;
         Future<Boolean> rdsValidateFuture = null;
         Future<Boolean> s3ValidateFuture = null;
@@ -296,7 +311,9 @@ public class BackupValidator {
                  */
                 try {
                     ec2Instance = ec2Future.get();
+                    ec2ValidateInstance = new EC2ValidateInstance(ec2Client, settings.getEc2Settings());
                     ec2ValidateInstance.setEC2Instance(ec2Instance);
+
                     ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
                 } catch (ExecutionException e) {
                     logger.error("Restoring EC2 instance failed. Cause: {}", e.getMessage());
