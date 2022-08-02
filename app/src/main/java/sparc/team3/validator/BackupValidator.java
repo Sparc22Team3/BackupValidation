@@ -116,18 +116,18 @@ public class BackupValidator {
     }
 
     private void restore() throws Exception {
-        int ec2RecoveryAttempt = 0;
-        EC2Restore ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings(), ec2RecoveryAttempt);
+        // int ec2RecoveryAttempt = 0;
+        // EC2Restore ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings(), ec2RecoveryAttempt);
 
-        Instance ec2instance = ec2Restore.restoreEC2FromBackup();
+        // Instance ec2instance = ec2Restore.restoreEC2FromBackup();
 
-        EC2ValidateInstance ec2ValidateInstance = new EC2ValidateInstance(ec2Client, ec2instance);
+        // EC2ValidateInstance ec2ValidateInstance = new EC2ValidateInstance(ec2Client, ec2instance);
 
-        Boolean validated = ec2ValidateInstance.validateWithPing("/wiki/index.php?title=Main_Page");
+        // Boolean validated = validateInstance.validateWebFunctionality(functionMap, "/wiki/index.php?title=Main_Page");
 
-        System.out.println("Web Server Status 200: " + validated);
+        // System.out.println("Web Server Status 200: " + validated);
 
-        ec2ValidateInstance.terminateEC2Instance();
+        // ec2ValidateInstance.terminateEC2Instance();
 
     }
 

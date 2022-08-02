@@ -8,6 +8,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -17,12 +19,19 @@ import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Map.Entry;
 
 public class EC2ValidateInstance {
     private final Instance instance;
     private final Ec2Client ec2Client;
+    private WebDriver driver;
+    private final Logger logger; 
 
     public EC2ValidateInstance(Ec2Client ec2Client, Instance instance){
+        logger = LoggerFactory.getLogger(EC2ValidateInstance.class);
         this.ec2Client = ec2Client;
         this.instance = instance;
     }
@@ -32,53 +41,76 @@ public class EC2ValidateInstance {
      * @return boolean whether the instance is pingable
      * @throws Exception when there is a problem pinging the instance
      */
-    public Boolean validateWithPing(String entryPoint) throws Exception{
+    public Boolean validateWebFunctionality(Map<String, String> functionality, String entryPoint) throws Exception{
+        
         String url = instance.publicDnsName();
-
         url = "http://" + url + entryPoint;
 
-        waitForEC2Checks();
+        //waitForEC2Checks();
 
         HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build();
         HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-        return httpResponse.statusCode() == 200;
+        if (!(httpResponse.statusCode() == 200)){
 
-    }
+          logger.warn("Validation Error: Could Note Connect to Website, Status Code != 200");
 
-    public static void selenium_test() throws InterruptedException{
+          return false; 
+        }
 
+      //initialize webdriver
       ChromeOptions options = new ChromeOptions();
       options.addArguments("--no-sandbox");
       options.addArguments("--headless");
       options.addArguments("--disable-dev-shm-usage");
 
+      //update filepath to chromedriver executable
       ChromeDriverService service = new ChromeDriverService.Builder()
       .usingDriverExecutable(new File("/home/sparcDev/chromedriver"))
       .build();
 
-      System.out.println("---------Start------------------------------------------------------------------");
+      driver = new ChromeDriver(service, options); 
 
-      //System.setProperty("webdriver.chrome.driver", "/home/sparcDev/chromedriver");
+      for(Entry<String, String> entry: functionality.entrySet()){
 
-      System.out.println("---------Driver------------------------------------------------------------------");
+        if(entry.getKey().equals("Title")){
 
-      WebDriver driver = new ChromeDriver(service, options); 
+          if(!(checkTitle(url, entry.getValue()))){
 
-      System.out.println("---------Ping the G------------------------------------------------------------------");
+            logger.warn("Validation Error: Main page title does not match expected value");
+            return false;
+          }; 
+        }
+        
+      }
 
-      driver.get("https://google.com"); 
-
-      Thread.sleep(1000);
-
-      String title = driver.getTitle();
-
-      System.out.println("---------Title------------------------------------------------------------------");
-      System.out.println(title); 
+      return true; 
 
     }
-    
+
+    private Boolean checkTitle(String url, String expectedValue) throws InterruptedException{
+
+      driver.get(url);
+
+      Thread.sleep(1000); 
+
+      String title = driver.getTitle(); 
+
+      if(!Objects.equals(expectedValue, title)){
+
+        logger.warn("Validation failed: main page title does not match expected value"); 
+        return false;
+      }
+
+      System.out.print("Title page returning true-------------------------------------------------------------");
+      return true; 
+    }
+
+    private Boolean checkLoginPage(){return true;}
+
+    private Boolean checkEdit(){return true;}
+
     /**
      * Busy wait for EC2 to complete setup. 
      * @throws Exception when the instance times out.
