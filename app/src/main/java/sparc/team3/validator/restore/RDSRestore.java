@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
 
 import java.util.List;
