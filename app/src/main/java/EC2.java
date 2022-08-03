@@ -41,10 +41,14 @@ public class EC2 {
       Map<String,String> functionMap = new HashMap<String, String>(); 
 
       functionMap.put("Title","SPARC Absit Omen Lexicon");
+      functionMap.put("Link", ""); 
+      //functionMap.put("Login", ["Sparc", "DinnerParty", "/wiki/index.php?title=Special:UserLogin&returnto=Main+Page"]);
+      functionMap.put("Search", "Brinley Abbott");
 
       Boolean validated = validateInstance.validateWebFunctionality(functionMap, "/wiki/index.php?title=Main_Page");
 
-      System.out.println(validated);
+      System.out.println(""); 
+      System.out.println("System returned:" + validated);
 
       //validateInstance.terminateEC2Instance();
       
