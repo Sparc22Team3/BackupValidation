@@ -1,13 +1,13 @@
 //package com.example.myapp;
 
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.SecurityGroup;
+import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.validate.RDSValidate;
 
 import java.util.LinkedList;
@@ -38,18 +38,22 @@ public class RDS {
             SecurityGroup securityGroup = new SecurityGroup(securityGroupID, "VPC-DB-Security-Group");
             LinkedList<SecurityGroup> sgs = new LinkedList<>();
             sgs.add(securityGroup);
-            InstanceSettings instanceSettings = new InstanceSettings("database-1", rdsSparcVault, sgs, subnetGroupName);
+            //InstanceSettings instanceSettings = new InstanceSettings(
+            //        "database-1", rdsSparcVault, sgs, subnetGroupName);
+
+            Settings settings = new Settings(null, null, null, null, null,
+                    null, null, null, null, null, null, null);
             RdsClient rdsClient = RdsClient
                     .builder()
                     .region(region)
                     .build();
-            BackupClient backupClient = BackupClient.builder().region(region).build();
+
             RDSRestore rdsRestore
-                     = new RDSRestore(backupClient, rdsClient, instanceSettings);
+                     = new RDSRestore(rdsClient, settings.getRdsSettings());
 
             DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 
-            RDSValidate rdsValidate = new RDSValidate(rdsClient, instanceSettings);
+            RDSValidate rdsValidate = new RDSValidate(rdsClient, settings);
             rdsValidate.setDbInstance(restoredInstance);
             rdsValidate.validateResource();
 
