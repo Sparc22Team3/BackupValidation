@@ -16,13 +16,16 @@ import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.restore.S3Restore;
+import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputFilter;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -52,6 +55,7 @@ public class BackupValidator {
     EC2ValidateInstance ec2ValidateInstance;
     RDSValidate rdsValidateDatabase;
     S3ValidateBucket s3ValidateBucket;
+    final CLI cli;
 
     /**
      * Constructs the BackupValidator class by setting up the command line options and parser.
@@ -60,6 +64,7 @@ public class BackupValidator {
         parser = new DefaultParser();
         options = new Options();
         options();
+        cli = new CLI();
 
 
     }
@@ -93,23 +98,23 @@ public class BackupValidator {
             if (line.hasOption("config")) {
                 String file = line.getOptionValue("config");
                 if (line.hasOption("newconfig")) {
-                    ConfigBuilder configBuilder = new ConfigBuilder(file);
+                    ConfigBuilder configBuilder = new ConfigBuilder(cli, file);
                     configBuilder.runBuilder();
                 } else if (line.hasOption("modifyconfig")){
-                    ConfigEditor configEditor = new ConfigEditor(file);
+                    ConfigEditor configEditor = new ConfigEditor(cli, file);
                     configEditor.runEditor();
                 }
-                configLoader = new ConfigLoader(file);
+                configLoader = new ConfigLoader(cli, file);
             }
             else {
                 if (line.hasOption("newconfig")) {
-                    ConfigBuilder configBuilder = new ConfigBuilder();
+                    ConfigBuilder configBuilder = new ConfigBuilder(cli);
                     configBuilder.runBuilder();
                 } else if (line.hasOption("modifyconfig")){
-                    ConfigEditor configEditor = new ConfigEditor();
+                    ConfigEditor configEditor = new ConfigEditor(cli);
                     configEditor.runEditor();
                 }
-                configLoader = new ConfigLoader();
+                configLoader = new ConfigLoader(cli);
             }
             settings = configLoader.loadSettings();
 
