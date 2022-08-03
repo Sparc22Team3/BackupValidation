@@ -15,43 +15,14 @@ import java.util.LinkedList;
 /**
  * Load program settings from config file.
  */
-public class Configurator {
-    /**
-     * Path of json file with program settings
-     */
-    private Path configFile;
+public class ConfigLoader extends Config {
 
-    /**
-     * Creates the default config directory {@link Util#DEFAULT_CONFIG_DIR} (if it doesn't exist) before calling {@link #setConfigFile setConfigFile} to set configFile to the default location.
-     * @throws IOException if an I/O error occurs
-     */
-    public Configurator() throws IOException {
-        // Create the config directory for the application
-        if(!Files.exists(Util.DEFAULT_CONFIG_DIR)){
-            Files.createDirectories(Util.DEFAULT_CONFIG_DIR);
-        }
-        setConfigFile(Util.DEFAULT_CONFIG_DIR);
+
+    public ConfigLoader() throws IOException {
     }
 
-    /**
-     * Sets up the Path to the location of the config file passed in via command line before calling {@link #setConfigFile setConfigFile} to set configFile.
-     * @param configFileLocation the string location of the config file
-     */
-    public Configurator(String configFileLocation) {
-        Path configFile = Paths.get(configFileLocation);
-        setConfigFile(configFile);
-    }
-
-    /**
-     * If path is a directory, configFile is set to config.json in the directory provided.  Otherwise, sets configFile to the file provided.
-     * @param path the Path of the configFile or directory where config file is located.
-     */
-    private void setConfigFile(Path path) {
-        if (Files.isDirectory(path)) {
-            path = path.resolve(Util.DEFAULT_CONFIG_FILENAME);
-        }
-
-        this.configFile = path;
+    public ConfigLoader(String configFileLocation) {
+        super(configFileLocation);
     }
 
     /**
@@ -63,9 +34,10 @@ public class Configurator {
         if (configFile == null)
             return null;
 
-        if (!Files.exists(configFile))
-            throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
+        if (!configFileExists()) {
 
+            throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
+        }
         ObjectMapper mapper = new ObjectMapper();
 
         return mapper.readValue(configFile.toFile(), Settings.class);

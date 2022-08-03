@@ -3,14 +3,14 @@ package sparc.team3.validator.util;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import sparc.team3.validator.config.Configurator;
+import sparc.team3.validator.config.ConfigLoader;
 
 import java.util.LinkedList;
 
 /**
  * Settings for the program to run.
  *
- * @see Configurator
+ * @see ConfigLoader
  */
 @JsonPropertyOrder({"serverUsername", "privateKeyFile"})
 public final class Settings {

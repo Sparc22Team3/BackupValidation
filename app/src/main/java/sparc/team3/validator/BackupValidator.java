@@ -10,7 +10,9 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.s3.S3Client;
-import sparc.team3.validator.config.Configurator;
+import sparc.team3.validator.config.ConfigBuilder;
+import sparc.team3.validator.config.ConfigEditor;
+import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.restore.S3Restore;
@@ -21,6 +23,7 @@ import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
 import java.io.IOException;
+import java.io.ObjectInputFilter;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -30,7 +33,7 @@ import java.util.concurrent.Future;
 public class BackupValidator {
     final Options options;
     final CommandLineParser parser;
-    Configurator configurator;
+    ConfigLoader configLoader;
     Settings settings;
     Logger logger;
 
@@ -86,21 +89,36 @@ public class BackupValidator {
                 formatter.printHelp(Util.APP_DIR_NAME, options);
                 return;
             }
-            if (line.hasOption("config"))
-                configurator = new Configurator(line.getOptionValue("config"));
-            else
-                configurator = new Configurator();
 
-            if (line.hasOption("newconfig")) {
-                runNewConfig();
-                return;
+            if (line.hasOption("config")) {
+                String file = line.getOptionValue("config");
+                if (line.hasOption("newconfig")) {
+                    ConfigBuilder configBuilder = new ConfigBuilder(file);
+                    configBuilder.runBuilder();
+                } else if (line.hasOption("modifyconfig")){
+                    ConfigEditor configEditor = new ConfigEditor(file);
+                    configEditor.runEditor();
+                }
+                configLoader = new ConfigLoader(file);
             }
+            else {
+                if (line.hasOption("newconfig")) {
+                    ConfigBuilder configBuilder = new ConfigBuilder();
+                    configBuilder.runBuilder();
+                } else if (line.hasOption("modifyconfig")){
+                    ConfigEditor configEditor = new ConfigEditor();
+                    configEditor.runEditor();
+                }
+                configLoader = new ConfigLoader();
+            }
+            settings = configLoader.loadSettings();
 
-            settings = configurator.loadSettings();
+            if(settings == null)
+                return;
 
             // Spin up restored instances to get new hostnames/bucket name
 
-            Configurator.replaceHostname("ec2_test", "rds_test", "s3_test", settings);
+            ConfigLoader.replaceHostname("ec2_test", "rds_test", "s3_test", settings);
 
             logger.debug("Settings: {}", settings);
 
@@ -118,18 +136,6 @@ public class BackupValidator {
             printExceptionAndExit(e);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Calls the configurator to output a blank config file
-     */
-    private void runNewConfig() {
-        try {
-            configurator.createBlankConfigFile();
-
-        } catch (IOException e) {
-            printException(e);
         }
     }
 
@@ -291,18 +297,20 @@ public class BackupValidator {
         options.addOption(Option.builder("c")
                 .longOpt("config")
                 .hasArg().argName("file")
-                .desc("configuration settings json file or directory containing json file for running "
+                .desc("Configuration Location: configuration settings json file or directory containing json file for running "
                         + Util.APP_DISPLAY_NAME + ". If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_CONFIG_FILENAME).build()
         );
-        options.addOption(new Option("n", "newconfig", false, "create config template file at "
-                + "location provided to config or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+        options.addOption(new Option("n", "newconfig", false, "New Config File: create config file at "
+                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+        options.addOption(new Option("m", "modifyconfig", false, "Modify Config File: modify config file at "
+                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
 
-        options.addOption(new Option("d", "debug", false, "change log level from INFO to DEBUG"));
-        options.addOption(new Option("t", "trace", false, "change log level from INFO to TRACE"));
+        options.addOption(new Option("d", "debug", false, "Debug: change log level from INFO to DEBUG"));
+        options.addOption(new Option("t", "trace", false, "Trace: change log level from INFO to TRACE"));
         options.addOption(Option.builder("lf")
                 .longOpt("log-file")
                 .hasArg().argName("file")
-                .desc("change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
+                .desc("Log File: change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
 
     }
 
