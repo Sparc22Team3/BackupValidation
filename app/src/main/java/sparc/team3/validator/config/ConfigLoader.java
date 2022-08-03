@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import sparc.team3.validator.util.*;
 
+import java.io.BufferedReader;
+import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,11 +20,12 @@ import java.util.LinkedList;
 public class ConfigLoader extends Config {
 
 
-    public ConfigLoader() throws IOException {
+    public ConfigLoader(CLI cli) throws IOException {
+        super(cli);
     }
 
-    public ConfigLoader(String configFileLocation) {
-        super(configFileLocation);
+    public ConfigLoader(CLI cli, String configFileLocation) {
+        super(cli, configFileLocation);
     }
 
     /**
@@ -35,8 +38,13 @@ public class ConfigLoader extends Config {
             return null;
 
         if (!configFileExists()) {
-
-            throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
+            boolean result = cli.promptYesOrNoColor("Config file (%s) does not exist.  Would you like to build it?", CLI.ANSI_PURPLE, configFile.toString());
+            if(result){
+                ConfigBuilder configBuilder = new ConfigBuilder(cli);
+                configBuilder.runBuilder();
+            }
+            if (!configFileExists())
+                throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
         }
         ObjectMapper mapper = new ObjectMapper();
 
