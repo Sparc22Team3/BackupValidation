@@ -2,13 +2,14 @@ package sparc.team3.validator.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import sparc.team3.validator.config.Configurator;
 
 import java.util.LinkedList;
 
 /**
  * Settings for an AWS resource instance.
  *
- * @see sparc.team3.validator.Configurator
+ * @see Configurator
  */
 public final class InstanceSettings {
     private final String productionName;

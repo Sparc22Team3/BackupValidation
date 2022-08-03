@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.s3.S3Client;
+import sparc.team3.validator.config.Configurator;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.restore.S3Restore;

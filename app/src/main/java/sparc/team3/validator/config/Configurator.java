@@ -1,4 +1,4 @@
-package sparc.team3.validator;
+package sparc.team3.validator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

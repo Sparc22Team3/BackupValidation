@@ -2,6 +2,7 @@ package sparc.team3.validator;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import sparc.team3.validator.config.Configurator;
 import sparc.team3.validator.util.Settings;
 
 import java.io.IOException;
