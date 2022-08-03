@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
 import java.util.Scanner;
@@ -27,8 +28,8 @@ public class S3 {
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
     //---------- TESTING VALIDATION ------------//
-//    String s3BucketName = "sparc-s3-team3-test";
-//    String s3BackupVaultName = "s3backupvault";
+//    String s3BucketName = "sparc-s3-weather";
+//    String s3BackupVaultName = "s3sparcvault";
 //    String s3RestoredBucketName = "sparc-team3-s3-test2";
 //
 //    // initialize sparc.team3.validator.validate.S3ValidateBucket object
@@ -45,8 +46,17 @@ public class S3 {
 //    System.exit(0);
     //---------- TESTING VALIDATION ------------//
 
+
+    //---------- TESTING DELETION ------------//
+
+//    String s3RestoredBucketName = "sparc-weather-2019";
+//    Util.deleteS3Instance(s3RestoredBucketName, s3Client);
+//    System.exit(0);
+
+    //---------- TESTING DELETION ------------//
+
     try{
-      InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null);
+      InstanceSettings instanceSettings = new InstanceSettings(s3BucketName, s3BackupVaultName, null, null);
 
       // create a S3Restore instance
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
@@ -66,6 +76,8 @@ public class S3 {
         System.out.println("S3 AWSRestore validation failed.");
       }
 
+//      Util.deleteS3Instance(restoredBucketName, s3Client);
+
       backupClient.close();
       s3Client.close();
 
@@ -82,7 +94,7 @@ public class S3 {
   }
 
   // application concludes
-  System.out.println("Thank you for using our Backup Validation application. Goodbye!");
+  System.out.println("Thank you for using our Backup Validation module for S3. Goodbye!");
   scan.close();
 
   }
