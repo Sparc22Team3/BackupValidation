@@ -59,6 +59,27 @@ public class CLI {
         return promptYesOrNo(color + format, args);
     }
 
+    public synchronized int promptNumber(String format, int min, int max, Object...args) throws IOException {
+        Object[] newArgs = Arrays.copyOf(args,args.length + 2);
+        newArgs[newArgs.length - 2] = min;
+        newArgs[newArgs.length - 1] = max;
+
+        String number;
+        int result = min - 1;
+        while(result < min || result > max){
+            number = prompt(format, newArgs);
+            try {
+                result = Integer.parseInt(number);
+            } catch(NumberFormatException e){
+                result = min -1;
+                outColor("Please enter a number beween %d and $d", ANSI_RED, min, max);
+            }
+        }
+
+        return result;
+
+    }
+
     public synchronized void out(String format, Object ... args){
         System.out.print(new Formatter().format(format, args));
     }
