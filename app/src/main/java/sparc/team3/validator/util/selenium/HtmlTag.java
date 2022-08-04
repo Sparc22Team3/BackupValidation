@@ -1,111 +1,90 @@
 package sparc.team3.validator.util.selenium;
 
-public class HtmlTag{
-    String tag;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.Objects;
+
+public class HtmlTag implements Comparable<HtmlTag> {
+    String tagID;
     String value;
     String entrypoint;
 
-    public HtmlTag(String tag, String value, String entrypoint) {
-        this.tag = tag;
+    public HtmlTag() {
+    }
+
+    public HtmlTag(String tagID, String value, String entrypoint) {
+        this.tagID = tagID;
         this.value = value;
         this.entrypoint = entrypoint;
     }
 
-    public static HtmlTagBuilder builder() {
-        return new HtmlTagBuilder();
+    public String getTagID() {
+        return this.tagID;
     }
 
-    public String getTag() {
-        return this.tag;
+    public void setTagID(String tagID) {
+        this.tagID = tagID;
     }
 
     public String getValue() {
         return this.value;
     }
 
-    public String getEntrypoint() {
-        return this.entrypoint;
-    }
-
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
-
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public String getEntrypoint() {
+        return this.entrypoint;
     }
 
     public void setEntrypoint(String entrypoint) {
         this.entrypoint = entrypoint;
     }
 
-    public boolean equals(final Object o) {
-        if (o == this) return true;
-        if (!(o instanceof HtmlTag)) return false;
-        final HtmlTag other = (HtmlTag) o;
-        if (!other.canEqual((Object) this)) return false;
-        final Object this$tag = this.getTag();
-        final Object other$tag = other.getTag();
-        if (this$tag == null ? other$tag != null : !this$tag.equals(other$tag)) return false;
-        final Object this$value = this.getValue();
-        final Object other$value = other.getValue();
-        if (this$value == null ? other$value != null : !this$value.equals(other$value)) return false;
-        final Object this$entrypoint = this.getEntrypoint();
-        final Object other$entrypoint = other.getEntrypoint();
-        if (this$entrypoint == null ? other$entrypoint != null : !this$entrypoint.equals(other$entrypoint))
-            return false;
-        return true;
+    @Override
+    public int compareTo(HtmlTag o) {
+        if (tagID.compareTo(o.tagID) == 0) {
+            if (value.compareTo(o.value) == 0) {
+                return entrypoint.compareTo(o.entrypoint);
+            }
+            return value.compareTo(o.value);
+        }
+        return tagID.compareTo(o.tagID);
     }
 
-    protected boolean canEqual(final Object other) {
-        return other instanceof HtmlTag;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        HtmlTag htmlTag = (HtmlTag) o;
+
+        if (!Objects.equals(tagID, htmlTag.tagID)) return false;
+        if (!Objects.equals(value, htmlTag.value)) return false;
+        return Objects.equals(entrypoint, htmlTag.entrypoint);
     }
 
+    @Override
     public int hashCode() {
-        final int PRIME = 59;
-        int result = 1;
-        final Object $tag = this.getTag();
-        result = result * PRIME + ($tag == null ? 43 : $tag.hashCode());
-        final Object $value = this.getValue();
-        result = result * PRIME + ($value == null ? 43 : $value.hashCode());
-        final Object $entrypoint = this.getEntrypoint();
-        result = result * PRIME + ($entrypoint == null ? 43 : $entrypoint.hashCode());
+        int result = tagID != null ? tagID.hashCode() : 0;
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        result = 31 * result + (entrypoint != null ? entrypoint.hashCode() : 0);
         return result;
     }
 
+    @Override
     public String toString() {
-        return "HtmlTag(tag=" + this.getTag() + ", value=" + this.getValue() + ", entrypoint=" + this.getEntrypoint() + ")";
+        return "HtmlTag{" +
+                "tagID='" + tagID + '\'' +
+                ", value='" + value + '\'' +
+                ", entrypoint='" + entrypoint + '\'' +
+                ", complete=" + isComplete() +
+                '}';
     }
 
-    public static class HtmlTagBuilder {
-        private String tag;
-        private String value;
-        private String entrypoint;
-
-        HtmlTagBuilder() {
-        }
-
-        public HtmlTagBuilder tag(String tag) {
-            this.tag = tag;
-            return this;
-        }
-
-        public HtmlTagBuilder value(String value) {
-            this.value = value;
-            return this;
-        }
-
-        public HtmlTagBuilder entrypoint(String entrypoint) {
-            this.entrypoint = entrypoint;
-            return this;
-        }
-
-        public HtmlTag build() {
-            return new HtmlTag(tag, value, entrypoint);
-        }
-
-        public String toString() {
-            return "HtmlTag.HtmlTagBuilder(tag=" + this.tag + ", value=" + this.value + ", entrypoint=" + this.entrypoint + ")";
-        }
+    @JsonIgnore
+    public boolean isComplete() {
+        return tagID != null && value != null && entrypoint != null;
     }
 }

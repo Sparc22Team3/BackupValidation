@@ -1,11 +1,18 @@
 package sparc.team3.validator.util.selenium;
 
-public class Login{
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.Objects;
+
+public class Login implements Comparable<Login> {
     String username;
     String password;
     String usernameFieldID;
     String passwordFieldID;
     String entrypoint;
+
+    public Login() {
+    }
 
     public Login(String username, String password, String usernameFieldID, String passwordFieldID, String entrypoint) {
         this.username = username;
@@ -15,141 +22,104 @@ public class Login{
         this.entrypoint = entrypoint;
     }
 
-    public static LoginBuilder builder() {
-        return new LoginBuilder();
-    }
-
     public String getUsername() {
         return this.username;
-    }
-
-    public String getPassword() {
-        return this.password;
-    }
-
-    public String getUsernameFieldID() {
-        return this.usernameFieldID;
-    }
-
-    public String getPasswordFieldID() {
-        return this.passwordFieldID;
-    }
-
-    public String getEntrypoint() {
-        return this.entrypoint;
     }
 
     public void setUsername(String username) {
         this.username = username;
     }
 
+    public String getPassword() {
+        return this.password;
+    }
+
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getUsernameFieldID() {
+        return this.usernameFieldID;
     }
 
     public void setUsernameFieldID(String usernameFieldID) {
         this.usernameFieldID = usernameFieldID;
     }
 
+    public String getPasswordFieldID() {
+        return this.passwordFieldID;
+    }
+
     public void setPasswordFieldID(String passwordFieldID) {
         this.passwordFieldID = passwordFieldID;
+    }
+
+    public String getEntrypoint() {
+        return this.entrypoint;
     }
 
     public void setEntrypoint(String entrypoint) {
         this.entrypoint = entrypoint;
     }
 
-    public boolean equals(final Object o) {
-        if (o == this) return true;
-        if (!(o instanceof Login)) return false;
-        final Login other = (Login) o;
-        if (!other.canEqual((Object) this)) return false;
-        final Object this$username = this.getUsername();
-        final Object other$username = other.getUsername();
-        if (this$username == null ? other$username != null : !this$username.equals(other$username)) return false;
-        final Object this$password = this.getPassword();
-        final Object other$password = other.getPassword();
-        if (this$password == null ? other$password != null : !this$password.equals(other$password)) return false;
-        final Object this$usernameFieldID = this.getUsernameFieldID();
-        final Object other$usernameFieldID = other.getUsernameFieldID();
-        if (this$usernameFieldID == null ? other$usernameFieldID != null : !this$usernameFieldID.equals(other$usernameFieldID))
-            return false;
-        final Object this$passwordFieldID = this.getPasswordFieldID();
-        final Object other$passwordFieldID = other.getPasswordFieldID();
-        if (this$passwordFieldID == null ? other$passwordFieldID != null : !this$passwordFieldID.equals(other$passwordFieldID))
-            return false;
-        final Object this$entrypoint = this.getEntrypoint();
-        final Object other$entrypoint = other.getEntrypoint();
-        if (this$entrypoint == null ? other$entrypoint != null : !this$entrypoint.equals(other$entrypoint))
-            return false;
-        return true;
+    @Override
+    public int compareTo(Login o) {
+        if (username.compareTo(o.username) == 0) {
+            if (password.compareTo(o.password) == 0) {
+                if (entrypoint.compareTo(o.entrypoint) == 0) {
+                    if (usernameFieldID.compareTo(o.usernameFieldID) == 0) {
+                        return passwordFieldID.compareTo(o.passwordFieldID);
+                    }
+                    return usernameFieldID.compareTo(o.usernameFieldID);
+                }
+                return entrypoint.compareTo(o.entrypoint);
+            }
+            return password.compareTo(o.password);
+        }
+        return username.compareTo(o.password);
     }
 
-    protected boolean canEqual(final Object other) {
-        return other instanceof Login;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Login login = (Login) o;
+
+        if (!Objects.equals(username, login.username)) return false;
+        if (!Objects.equals(password, login.password)) return false;
+        if (!Objects.equals(usernameFieldID, login.usernameFieldID))
+            return false;
+        if (!Objects.equals(passwordFieldID, login.passwordFieldID))
+            return false;
+        return Objects.equals(entrypoint, login.entrypoint);
     }
 
+    @Override
     public int hashCode() {
-        final int PRIME = 59;
-        int result = 1;
-        final Object $username = this.getUsername();
-        result = result * PRIME + ($username == null ? 43 : $username.hashCode());
-        final Object $password = this.getPassword();
-        result = result * PRIME + ($password == null ? 43 : $password.hashCode());
-        final Object $usernameFieldID = this.getUsernameFieldID();
-        result = result * PRIME + ($usernameFieldID == null ? 43 : $usernameFieldID.hashCode());
-        final Object $passwordFieldID = this.getPasswordFieldID();
-        result = result * PRIME + ($passwordFieldID == null ? 43 : $passwordFieldID.hashCode());
-        final Object $entrypoint = this.getEntrypoint();
-        result = result * PRIME + ($entrypoint == null ? 43 : $entrypoint.hashCode());
+        int result = username != null ? username.hashCode() : 0;
+        result = 31 * result + (password != null ? password.hashCode() : 0);
+        result = 31 * result + (usernameFieldID != null ? usernameFieldID.hashCode() : 0);
+        result = 31 * result + (passwordFieldID != null ? passwordFieldID.hashCode() : 0);
+        result = 31 * result + (entrypoint != null ? entrypoint.hashCode() : 0);
         return result;
     }
 
+    @Override
     public String toString() {
-        return "Login(username=" + this.getUsername() + ", password=" + this.getPassword() + ", usernameFieldID=" + this.getUsernameFieldID() + ", passwordFieldID=" + this.getPasswordFieldID() + ", entrypoint=" + this.getEntrypoint() + ")";
+        return "Login{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", usernameFieldID='" + usernameFieldID + '\'' +
+                ", passwordFieldID='" + passwordFieldID + '\'' +
+                ", entrypoint='" + entrypoint + '\'' +
+                ", complete=" + isComplete() +
+                '}';
     }
 
-    public static class LoginBuilder {
-        private String username;
-        private String password;
-        private String usernameFieldID;
-        private String passwordFieldID;
-        private String entrypoint;
-
-        LoginBuilder() {
-        }
-
-        public LoginBuilder username(String username) {
-            this.username = username;
-            return this;
-        }
-
-        public LoginBuilder password(String password) {
-            this.password = password;
-            return this;
-        }
-
-        public LoginBuilder usernameFieldID(String usernameFieldID) {
-            this.usernameFieldID = usernameFieldID;
-            return this;
-        }
-
-        public LoginBuilder passwordFieldID(String passwordFieldID) {
-            this.passwordFieldID = passwordFieldID;
-            return this;
-        }
-
-        public LoginBuilder entrypoint(String entrypoint) {
-            this.entrypoint = entrypoint;
-            return this;
-        }
-
-        public Login build() {
-            return new Login(username, password, usernameFieldID, passwordFieldID, entrypoint);
-        }
-
-        public String toString() {
-            return "Login.LoginBuilder(username=" + this.username + ", password=" + this.password + ", usernameFieldID=" + this.usernameFieldID + ", passwordFieldID=" + this.passwordFieldID + ", entrypoint=" + this.entrypoint + ")";
-        }
+    @JsonIgnore
+    public boolean isComplete() {
+        return username != null && password != null && usernameFieldID != null &&
+                passwordFieldID != null && entrypoint != null;
     }
 }

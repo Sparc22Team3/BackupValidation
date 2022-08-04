@@ -20,32 +20,33 @@ public class SeleniumSettings {
         this.logins = logins;
         this.searchTerms = searchTerms;
     }
+
     public Map<String, String> getTitles() {
         return this.titles;
-    }
-
-    public Set<HtmlTag> getTags() {
-        return this.tags;
-    }
-
-    public Set<Login> getLogins() {
-        return this.logins;
-    }
-
-    public Set<SearchTerm> getSearchTerms() {
-        return this.searchTerms;
     }
 
     public void setTitles(Map<String, String> titles) {
         this.titles = titles;
     }
 
+    public Set<HtmlTag> getTags() {
+        return this.tags;
+    }
+
     public void setTags(Set<HtmlTag> tags) {
         this.tags = tags;
     }
 
+    public Set<Login> getLogins() {
+        return this.logins;
+    }
+
     public void setLogins(Set<Login> logins) {
         this.logins = logins;
+    }
+
+    public Set<SearchTerm> getSearchTerms() {
+        return this.searchTerms;
     }
 
     public void setSearchTerms(Set<SearchTerm> searchTerms) {
