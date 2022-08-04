@@ -123,16 +123,21 @@ public class SQL {
             else { logger.info("The production and restored databases have the same number of tables.");};
 
             // Run CHECK TABLES on all tables of restored database
-            PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " +tableName+ ";");
-            ResultSet rsRestoredCHECKTable = pstRestoredCHECKTable.executeQuery();
-            ResultSetMetaData m = rsRestoredCHECKTable.getMetaData();
-            rsRestoredCHECKTable.next();
-            String checkMsg = rsRestoredCHECKTable.getString(m.getColumnName(4));
-            List<ResultSet> notOkTables = new ArrayList<>();
-            if (!checkMsg.equals("OK")) {
-                notOkTables.add(rsRestoredCHECKTable); }
-            for (ResultSet r : notOkTables) {logger.info("Tables with issues : " + r.getString(1));}
-            if (notOkTables.isEmpty()) {logger.info("All tables checked OK.");}
+            List<ResultSet> corruptedDbList = new ArrayList<>();
+            while (rsRestoredTables.next()) {
+                // Loop through all tables to query CHECK TABLE on each one
+                PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " +rsRestoredTables.getString(1)+ ";");
+                ResultSet rsRestoredCHECKTable = pstRestoredCHECKTable.executeQuery();
+                ResultSetMetaData m = rsRestoredCHECKTable.getMetaData();
+                rsRestoredCHECKTable.next();
+                String checkMsg = rsRestoredCHECKTable.getString(m.getColumnName(4));
+                // If Msg_text column returns anything other thank "OK", add to corruptedDbList
+                if (!checkMsg.equals("OK")) {
+                    corruptedDbList.add(rsRestoredCHECKTable); }
+            }
+            // Log results
+            logger.info("There are {} corrupted tables in the database.", corruptedDbList.size());
+            for (ResultSet r : corruptedDbList) {logger.info("Corrupted table: : " + r.getString(1));}
 
 
             DatabaseMetaData metaDataProd = conProd.getMetaData();
