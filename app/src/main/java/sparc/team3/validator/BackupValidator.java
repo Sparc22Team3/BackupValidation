@@ -12,6 +12,8 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.s3.S3Client;
 import sparc.team3.validator.config.ConfigEditor;
 import sparc.team3.validator.config.ConfigLoader;
+import sparc.team3.validator.config.SeleniumEditor;
+import sparc.team3.validator.config.SeleniumLoader;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.restore.S3Restore;
@@ -74,10 +76,20 @@ public class BackupValidator {
                 .desc("Configuration Location: configuration settings json file or directory containing json file for running "
                         + Util.APP_DISPLAY_NAME + ". If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_CONFIG_FILENAME).build()
         );
+        options.addOption(Option.builder("s")
+                .longOpt("selenium")
+                .hasArg().argName("file")
+                .desc(" Selenium Configuration Location: selenium settings json file or directory containing json file for running " +
+                        "selenium. If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_SELENIUM_FILENAME).build()
+        );
         options.addOption(new Option("n", "newconfig", false, "New Config File: create config file at "
-                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+                + "location provided to '--config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
         options.addOption(new Option("m", "modifyconfig", false, "Modify Config File: modify config file at "
-                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+                + "location provided to '--config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+        options.addOption(new Option("ns", "newselenium", false, "New Selenium File: create selenium config file at "
+                + "location provided to '--selenium' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if selenium is not specified"));
+        options.addOption(new Option("ms", "modifyselenium", false, "Modify Selenium File: modify selenium file at "
+                + "location provided to '--selenium' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if selenium is not specified"));
 
         options.addOption(new Option("d", "debug", false, "Debug: change log level from INFO to DEBUG"));
         options.addOption(new Option("t", "trace", false, "Trace: change log level from INFO to TRACE"));
@@ -124,18 +136,25 @@ public class BackupValidator {
                 return;
             }
 
-            String file = line.getOptionValue("config", Util.DEFAULT_CONFIG.toString());
-
+            String configFile = line.getOptionValue("config", Util.DEFAULT_CONFIG.toString());
+            ConfigEditor configEditor = new ConfigEditor(cli, configFile);
             if (line.hasOption("newconfig")) {
-                ConfigEditor configEditor = new ConfigEditor(cli, file);
                 configEditor.runBuilder();
                 return;
             } else if (line.hasOption("modifyconfig")) {
-                ConfigEditor configEditor = new ConfigEditor(cli, file);
                 configEditor.runEditor();
                 return;
             }
-            configLoader = new ConfigLoader(cli, file);
+
+            String seleniumFile = line.getOptionValue("selenium", Util.DEFAULT_SELENIUM.toString());
+            SeleniumEditor seleniumEditor = new SeleniumEditor(cli, seleniumFile);
+            if(line.hasOption("newselenium")){
+                seleniumEditor.runBuilder();
+            } else if (line.hasOption("modifyselenium")) {
+                seleniumEditor.runEditor();
+            }
+            configLoader = new ConfigLoader(cli, configFile);
+            SeleniumLoader seleniumLoader = new SeleniumLoader(cli, seleniumFile);
 
             settings = configLoader.loadSettings();
 
