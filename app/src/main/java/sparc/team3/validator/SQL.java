@@ -120,7 +120,19 @@ public class SQL {
                 logger.info("The production and restored databases have a different number of tables.");
                 return false;
             }
+            else { logger.info("The production and restored databases have the same number of tables.");};
 
+            // Run CHECK TABLES on all tables of restored database
+            PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " +tableName+ ";");
+            ResultSet rsRestoredCHECKTable = pstRestoredCHECKTable.executeQuery();
+            ResultSetMetaData m = rsRestoredCHECKTable.getMetaData();
+            rsRestoredCHECKTable.next();
+            String checkMsg = rsRestoredCHECKTable.getString(m.getColumnName(4));
+            List<ResultSet> notOkTables = new ArrayList<>();
+            if (!checkMsg.equals("OK")) {
+                notOkTables.add(rsRestoredCHECKTable); }
+            for (ResultSet r : notOkTables) {logger.info("Tables with issues : " + r.getString(1));}
+            if (notOkTables.isEmpty()) {logger.info("All tables checked OK.");}
 
 
             DatabaseMetaData metaDataProd = conProd.getMetaData();
@@ -156,7 +168,7 @@ public class SQL {
             ResultSetMetaData rsRestoredMetaData = rsRestored.getMetaData();
 
             if (rsProdMetaData.getColumnCount() > rsRestoredMetaData.getColumnCount()) {
-                logger.info("Not all rows present in restored database table");
+                logger.info("Not all columns present in restored database table");
             }
 
             // Compare the objects returned in each row
