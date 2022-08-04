@@ -17,7 +17,7 @@ public class SeleniumEditor extends Selenium{
     Set<SearchTerm> searchTermSet;
     Set<Login> loginSet;
 
-    final String titleColor = CLI.ANSI_PURPLE;
+    final String titleColor = CLI.ANSI_CYAN;
     final String htmlTagColor = CLI.ANSI_PURPLE;
     final String loginColor = CLI.ANSI_GREEN;
     final String searchTermColor = CLI.ANSI_BLUE;
@@ -65,33 +65,48 @@ public class SeleniumEditor extends Selenium{
     }
 
     private void editor() throws IOException {
-        boolean cont = cli.promptYesOrNoColor("Would you like to edit the titles?", titleColor);
+
+        boolean cont = cli.promptYesOrNoColor("\nWould you like to edit any of the titles?", titleColor);
+
         while(cont){
             printTitles(false);
             buildTitleEntry();
             cont = cli.promptYesOrNoColor("Continue editing titles?", CLI.ANSI_YELLOW);
         }
 
-        if(cli.promptYesOrNoColor("Would you like to edit the HTML tags?", htmlTagColor)) {
+        cont = cli.promptYesOrNoColor("\nWould you like to remove any of the titles?", titleColor);
+
+        while(cont){
+            printTitles(false);
+            titleMap.remove(cli.prompt("Entrypoint of title to remove?"));
+            cont = cli.promptYesOrNoColor("Continue removing titles?", CLI.ANSI_YELLOW);
+        }
+
+        if(cli.promptYesOrNoColor("\nWould you like to edit or remove any of the HTML tags?", htmlTagColor)) {
             while(true){
                 printHtmlTags(true);
-                int selection = cli.promptNumber("Please select the number of the tag to edit (0 to go back):", 0, htmlTagSet.size());
+                int selection = cli.promptNumber("Please select the number of the tag to edit or remove (0 to go back):", 0, htmlTagSet.size());
                 if(selection == 0)
                     break;
                 // Compensate for 0 being back
                 selection--;
+
                 ArrayList<HtmlTag> htmlTags = new ArrayList<>(htmlTagSet);
                 HtmlTag tag = htmlTags.get(selection);
                 htmlTagSet.remove(tag);
+
+                if(cli.promptYesOrNoColor("Remove the html tag? (Yes to remove, No to edit)", CLI.ANSI_YELLOW))
+                    continue;
+
                 tag = buildHtmlTag(true, tag);
                 htmlTagSet.add(tag);
             }
         }
 
-        if(cli.promptYesOrNoColor("Would you like to edit the logins?", loginColor)) {
+        if(cli.promptYesOrNoColor("\nWould you like to edit or remove any of the logins?", loginColor)) {
             while(true){
                 printLogins(true);
-                int selection = cli.promptNumber("Please select the number of the login to edit (0 to go back):", 0, htmlTagSet.size());
+                int selection = cli.promptNumber("Please select the number of the login to edit or remove (0 to go back):", 0, htmlTagSet.size());
                 if(selection == 0)
                     break;
 
@@ -100,15 +115,18 @@ public class SeleniumEditor extends Selenium{
                 ArrayList<Login> logins = new ArrayList<>(loginSet);
                 Login login = logins.get(selection);
                 loginSet.remove(login);
+
+                if(cli.promptYesOrNoColor("Remove the login? (Yes to remove, No to edit)", CLI.ANSI_YELLOW))
+                    continue;
                 login = buildLogin(true, login);
                 loginSet.add(login);
             }
         }
 
-        if(cli.promptYesOrNoColor("Would you like to edit the search terms?", searchTermColor)) {
+        if(cli.promptYesOrNoColor("\nWould you like to edit or remove any of the search terms?", searchTermColor)) {
             while(true){
                 printSearchTerms(true);
-                int selection = cli.promptNumber("Please select the number of the search term to edit (0 to go back):", 0, htmlTagSet.size());
+                int selection = cli.promptNumber("Please select the number of the search term to edit or remove (0 to go back):", 0, htmlTagSet.size());
                 if(selection == 0)
                     break;
 
@@ -117,6 +135,9 @@ public class SeleniumEditor extends Selenium{
                 ArrayList<SearchTerm> searchTerms = new ArrayList<>(searchTermSet);
                 SearchTerm searchTerm = searchTerms.get(selection);
                 searchTermSet.remove(searchTerm);
+
+                if(cli.promptYesOrNoColor("Remove the search term? (Yes to remove, No to edit)", CLI.ANSI_YELLOW))
+                    continue;
                 searchTerm = buildSearchTerm(true, searchTerm);
                 searchTermSet.add(searchTerm);
             }
@@ -132,7 +153,7 @@ public class SeleniumEditor extends Selenium{
         htmlTagSet = seleniumSettings.getTags();
         loginSet = seleniumSettings.getLogins();
         searchTermSet = seleniumSettings.getSearchTerms();
-        editor();
+        runBuilder();
     }
 
     void saveSettings() throws IOException {
@@ -264,12 +285,12 @@ public class SeleniumEditor extends Selenium{
     }
 
     void printSets(){
-        cli.outColor("############### Current Selenium Settings ###############\n", CLI.ANSI_YELLOW);
+        cli.outColor("\n############### Current Selenium Settings ###############\n", CLI.ANSI_YELLOW);
         printTitles(false);
         printHtmlTags(false);
         printLogins(false);
         printSearchTerms(false);
-        cli.outColor("#########################################################", CLI.ANSI_YELLOW);
+        cli.outColor("#########################################################\n\n", CLI.ANSI_YELLOW);
     }
 
     void printTitles(boolean showCount){
@@ -315,8 +336,8 @@ public class SeleniumEditor extends Selenium{
     void printSearchTerms(boolean showCount){
         int i = 1;
         cli.outColor("Search Terms\n", searchTermColor);
-        String num = showCount ? i + ": " : "";
         for(SearchTerm term: searchTermSet){
+            String num = showCount ? i + ": " : "";
             cli.out("\t" + num + "Search Term:\n" +
                     "\t\tTerm: '%s'\n" +
                     "\t\tSearch Text Field's ID: '%s'\n" +
