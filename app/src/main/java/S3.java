@@ -28,7 +28,7 @@ public class S3 {
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
     //---------- TESTING VALIDATION ------------//
-//    String s3BucketName = "sparc-s3-weather";
+//    String s3BucketName = "sparc-team3-s3bucket";
 //    String s3BackupVaultName = "s3sparcvault";
 //    String s3RestoredBucketName = "sparc-team3-s3-test2";
 //
@@ -49,7 +49,7 @@ public class S3 {
 
     //---------- TESTING DELETION ------------//
 
-//    String s3RestoredBucketName = "sparc-weather-2019";
+//    String s3RestoredBucketName = "bucket1659647953070";
 //    Util.deleteS3Instance(s3RestoredBucketName, s3Client);
 //    System.exit(0);
 
@@ -76,7 +76,7 @@ public class S3 {
         System.out.println("S3 AWSRestore validation failed.");
       }
 
-//      Util.deleteS3Instance(restoredBucketName, s3Client);
+      Util.deleteS3Instance(restoredBucketName, s3Client);
 
       backupClient.close();
       s3Client.close();
