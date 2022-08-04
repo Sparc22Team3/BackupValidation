@@ -5,6 +5,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.Util;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
 import java.util.Scanner;
@@ -17,7 +18,7 @@ public class S3 {
     // ask user to provide S3 bucket name and S3 backup vault name
     Scanner scan = new Scanner(System.in);
     System.out.print("Enter S3 Bucket Name: ");
-    String s3BucketName = scan.next();
+    String s3ProductionBucketName = scan.next();
     System.out.print("Enter S3 Backup Vault Name: ");
     String s3BackupVaultName = scan.next();
 
@@ -26,27 +27,8 @@ public class S3 {
     S3Client s3Client = S3Client.builder().region(region).build();
     BackupClient backupClient =  BackupClient.builder().region(region).build();
 
-    //---------- TESTING VALIDATION ------------//
-//    String s3BucketName = "sparc-s3-team3-test";
-//    String s3BackupVaultName = "s3backupvault";
-//    String s3RestoredBucketName = "sparc-team3-s3-test2";
-//
-//    // initialize sparc.team3.validator.validate.S3ValidateBucket object
-//    S3ValidateBucket s3Validate1 = new S3ValidateBucket(s3Client, s3BucketName, s3RestoredBucketName);
-//
-//    // checksum validation
-//    boolean checksumCheck1 = s3Validate1.ChecksumValidate();
-//    if (checksumCheck1) {
-//      System.out.println("S3 AWSRestore successfully validated!");
-//    } else {
-//      System.out.println("S3 AWSRestore validation failed.");
-//    }
-//
-//    System.exit(0);
-    //---------- TESTING VALIDATION ------------//
-
     try{
-      InstanceSettings instanceSettings = new InstanceSettings("sparc-team3-s3bucket", s3BackupVaultName, null, null);
+      InstanceSettings instanceSettings = new InstanceSettings(s3ProductionBucketName, s3BackupVaultName, null, null);
 
       // create a S3Restore instance
       S3Restore s3Restore = new S3Restore(backupClient, s3Client, instanceSettings);
@@ -65,6 +47,9 @@ public class S3 {
       } else {
         System.out.println("S3 AWSRestore validation failed.");
       }
+
+      // delete restored instance of S3 bucket
+      Util.deleteS3Instance(restoredBucketName, s3Client);
 
       backupClient.close();
       s3Client.close();
