@@ -20,6 +20,7 @@ import sparc.team3.validator.restore.S3Restore;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
+import sparc.team3.validator.util.selenium.SeleniumSettings;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
@@ -155,6 +156,7 @@ public class BackupValidator {
             }
             configLoader = new ConfigLoader(cli, configFile);
             SeleniumLoader seleniumLoader = new SeleniumLoader(cli, seleniumFile);
+            SeleniumSettings seleniumSettings = seleniumLoader.loadSettings();
 
             settings = configLoader.loadSettings();
 
