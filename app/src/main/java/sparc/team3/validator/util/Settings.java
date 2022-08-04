@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import sparc.team3.validator.config.ConfigLoader;
 
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * Settings for the program to run.
@@ -18,7 +18,8 @@ public final class Settings {
     private final String privateKeyFile;
     private final String dbUsername;
     private final String dbPassword;
-    private final LinkedList<ServerConfigFile> configFiles;
+    private final Set<String> databaseTables;
+    private final List<ServerConfigFile> configFiles;
     private final String awsRegion;
     private final String vpcID;
     private final String vpcName;
@@ -30,7 +31,9 @@ public final class Settings {
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
                     @JsonProperty("dbUsername") String dbUsername,
-                    @JsonProperty("dbPassword") String dbPassword, @JsonProperty("configFiles") LinkedList<ServerConfigFile> configFiles,
+                    @JsonProperty("dbPassword") String dbPassword,
+                    @JsonProperty("databaseTables") Set<String> databaseTables,
+                    @JsonProperty("configFiles") List<ServerConfigFile> configFiles,
                     @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
@@ -42,6 +45,7 @@ public final class Settings {
         this.privateKeyFile = privateKeyFile;
         this.dbUsername = dbUsername;
         this.dbPassword = dbPassword;
+        this.databaseTables = databaseTables;
         this.configFiles = configFiles;
         this.awsRegion = awsRegion;
         this.vpcID = vpcID;
@@ -68,7 +72,11 @@ public final class Settings {
         return dbPassword;
     }
 
-    public LinkedList<ServerConfigFile> getConfigFiles() {
+    public Set<String> getDatabaseTables() {
+        return databaseTables;
+    }
+
+    public List<ServerConfigFile> getConfigFiles() {
         return configFiles;
     }
 
@@ -85,15 +93,52 @@ public final class Settings {
     }
 
     public InstanceSettings getEc2Settings() {
+        if (ec2Settings == null)
+            return new InstanceSettings(null, null, null, null);
         return ec2Settings;
     }
 
     public InstanceSettings getRdsSettings() {
+        if (ec2Settings == null)
+            return new InstanceSettings(null, null, null, null);
         return rdsSettings;
     }
 
     public InstanceSettings getS3Settings() {
+        if (ec2Settings == null)
+            return new InstanceSettings(null, null, null, null);
         return s3Settings;
+    }
+
+    public SettingsBuilders toBuilders() {
+        SettingsBuilder settingsBuilder = SettingsBuilder.builder().serverUsername(serverUsername).privateKeyFile(privateKeyFile)
+                .dbUsername(dbUsername).dbPassword(dbPassword).awsRegion(awsRegion).vpcID(vpcID).vpcName(vpcName);
+
+        Map<String, ServerConfigFile.ServerConfigFileBuilder> configFileBuilders = new HashMap<>();
+        if (configFiles != null) {
+            for (ServerConfigFile configFile : configFiles)
+                configFileBuilders.put(configFile.getFullFilePath(), configFile.toBuilder());
+        }
+
+        InstanceSettings.InstanceSettingsBuilder ec2SettingsBuilder;
+        if (ec2Settings != null)
+            ec2SettingsBuilder = ec2Settings.toBuilder();
+        else
+            ec2SettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
+
+        InstanceSettings.InstanceSettingsBuilder rdsSettingsBuilder;
+        if (rdsSettings != null)
+            rdsSettingsBuilder = rdsSettings.toBuilder();
+        else
+            rdsSettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
+
+        InstanceSettings.InstanceSettingsBuilder s3SettingsBuilder;
+        if (s3Settings != null)
+            s3SettingsBuilder = s3Settings.toBuilder();
+        else
+            s3SettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
+
+        return new SettingsBuilders(settingsBuilder, ec2SettingsBuilder, rdsSettingsBuilder, s3SettingsBuilder, configFileBuilders);
     }
 
     @Override
@@ -103,6 +148,7 @@ public final class Settings {
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tdbUsername='" + dbUsername + "'\n" +
                 "\tdbPassword='" + dbPassword + "'\n" +
+                "\tdatabaseTables=" + databaseTables + "\n" +
                 "\tawsRegion='" + awsRegion + "'\n" +
                 "\tvpcID='" + vpcID + "'\n" +
                 "\tvpcName='" + vpcName + "'\n" +
@@ -113,13 +159,52 @@ public final class Settings {
                 '}';
     }
 
-    public static class SettingsBuilder{
+    public static class SettingsBuilders {
+        final SettingsBuilder settingsBuilder;
+        final InstanceSettings.InstanceSettingsBuilder ec2SettingsBuilder;
+        final InstanceSettings.InstanceSettingsBuilder rdsSettingsBuilder;
+        final InstanceSettings.InstanceSettingsBuilder s3SettingsBuilder;
+        final Map<String, ServerConfigFile.ServerConfigFileBuilder> configFileBuilders;
+
+        public SettingsBuilders(SettingsBuilder settingsBuilder, InstanceSettings.InstanceSettingsBuilder ec2SettingsBuilder,
+                                InstanceSettings.InstanceSettingsBuilder rdsSettingsBuilder, InstanceSettings.InstanceSettingsBuilder s3SettingsBuilder,
+                                Map<String, ServerConfigFile.ServerConfigFileBuilder> configFileBuilders) {
+            this.settingsBuilder = settingsBuilder;
+            this.ec2SettingsBuilder = ec2SettingsBuilder;
+            this.rdsSettingsBuilder = rdsSettingsBuilder;
+            this.s3SettingsBuilder = s3SettingsBuilder;
+            this.configFileBuilders = configFileBuilders;
+        }
+
+        public SettingsBuilder getSettingsBuilder() {
+            return settingsBuilder;
+        }
+
+        public InstanceSettings.InstanceSettingsBuilder getEc2SettingsBuilder() {
+            return ec2SettingsBuilder;
+        }
+
+        public InstanceSettings.InstanceSettingsBuilder getRdsSettingsBuilder() {
+            return rdsSettingsBuilder;
+        }
+
+        public InstanceSettings.InstanceSettingsBuilder getS3SettingsBuilder() {
+            return s3SettingsBuilder;
+        }
+
+        public Map<String, ServerConfigFile.ServerConfigFileBuilder> getConfigFileBuilders() {
+            return configFileBuilders;
+        }
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public static class SettingsBuilder {
         private String serverUsername;
         private String privateKeyFile;
         private String dbUsername;
         private String dbPassword;
-        private LinkedList<String> databaseTables;
-        private LinkedList<ServerConfigFile> configFiles;
+        private Set<String> databaseTables;
+        private Set<ServerConfigFile> configFiles;
         private String awsRegion;
         private String vpcID;
         private String vpcName;
@@ -130,95 +215,117 @@ public final class Settings {
         private SettingsBuilder() {
         }
 
-        public SettingsBuilder serverUsername(String serverUsername){
+        public static SettingsBuilder builder() {
+            return new SettingsBuilder();
+        }
+
+        public SettingsBuilder serverUsername(String serverUsername) {
             this.serverUsername = serverUsername;
             return this;
         }
 
-        public SettingsBuilder privateKeyFile(String privateKeyFile){
+        public SettingsBuilder privateKeyFile(String privateKeyFile) {
             this.privateKeyFile = privateKeyFile;
             return this;
         }
 
-        public SettingsBuilder dbUsername(String dbUsername){
+        public SettingsBuilder dbUsername(String dbUsername) {
             this.dbUsername = dbUsername;
             return this;
         }
 
-        public SettingsBuilder dbPassword(String dbPassword){
+        public SettingsBuilder dbPassword(String dbPassword) {
             this.dbPassword = dbPassword;
             return this;
         }
 
-        public SettingsBuilder databaseTable(String table){
-            if(databaseTables == null)
-                databaseTables = new LinkedList<>();
+        public SettingsBuilder databaseTable(String table) {
+            if (databaseTables == null)
+                databaseTables = new HashSet<>();
             databaseTables.add(table);
             return this;
         }
 
-        public SettingsBuilder awsRegion(String awsRegion){
+        public SettingsBuilder removeDatabaseTable(String table) {
+            if (databaseTables == null) {
+                databaseTables = new HashSet<>();
+            }
+            databaseTables.remove(table);
+            return this;
+        }
+
+        public SettingsBuilder clearDatabaseTables() {
+            if (databaseTables == null) {
+                databaseTables = new HashSet<>();
+            }
+            databaseTables.clear();
+            return this;
+        }
+
+        public SettingsBuilder awsRegion(String awsRegion) {
             this.awsRegion = awsRegion;
             return this;
         }
 
-        public SettingsBuilder vpcID(String vpcID){
+        public SettingsBuilder vpcID(String vpcID) {
             this.vpcID = vpcID;
             return this;
         }
 
-        public SettingsBuilder vpcName(String vpcName){
+        public SettingsBuilder vpcName(String vpcName) {
             this.vpcName = vpcName;
             return this;
         }
 
-        public SettingsBuilder configFile(ServerConfigFile file){
-            if(configFiles == null)
-                configFiles = new LinkedList<>();
+        public SettingsBuilder configFile(ServerConfigFile file) {
+            if (configFiles == null)
+                configFiles = new HashSet<>();
             this.configFiles.add(file);
             return this;
         }
 
-        public SettingsBuilder clearConfigFiles(){
-            if(configFiles != null)
+        public SettingsBuilder clearConfigFiles() {
+            if (configFiles != null)
                 configFiles.clear();
             return this;
         }
 
-        public SettingsBuilder ec2InstanceSettings(InstanceSettings settings){
+        public SettingsBuilder ec2InstanceSettings(InstanceSettings settings) {
             this.ec2Settings = settings;
             return this;
         }
 
-        public SettingsBuilder rdsInstanceSettings(InstanceSettings settings){
+        public SettingsBuilder rdsInstanceSettings(InstanceSettings settings) {
             this.rdsSettings = settings;
             return this;
         }
 
-        public SettingsBuilder s3InstanceSettings(InstanceSettings settings){
+        public SettingsBuilder s3InstanceSettings(InstanceSettings settings) {
             this.s3Settings = settings;
             return this;
         }
 
+        public Settings build() {
+            List<ServerConfigFile> configFilesCopy = null;
+            if (configFiles != null)
+                configFilesCopy = List.copyOf(configFiles);
+            Set<String> databaseTablesCopy = null;
+            if (databaseTables != null)
+                databaseTablesCopy = Set.copyOf(databaseTables);
 
-        public Settings build(){
             return new Settings(serverUsername,
-                                privateKeyFile,
-                                dbUsername,
-                                dbPassword,
-                                configFiles,
-                                awsRegion,
-                                vpcID,
-                                vpcName,
-                                ec2Settings,
-                                rdsSettings,
-                                s3Settings
-                    );
-        }
-
-
-        public static SettingsBuilder builder() {
-            return new SettingsBuilder();
+                    privateKeyFile,
+                    dbUsername,
+                    dbPassword,
+                    databaseTablesCopy,
+                    configFilesCopy,
+                    awsRegion,
+                    vpcID,
+                    vpcName,
+                    ec2Settings,
+                    rdsSettings,
+                    s3Settings
+            );
         }
 
         public String getServerUsername() {
@@ -237,11 +344,11 @@ public final class Settings {
             return dbPassword;
         }
 
-        public LinkedList<String> getDatabaseTables(){
+        public Set<String> getDatabaseTables() {
             return databaseTables;
         }
 
-        public LinkedList<ServerConfigFile> getConfigFiles() {
+        public Set<ServerConfigFile> getConfigFiles() {
             return configFiles;
         }
 
@@ -269,37 +376,28 @@ public final class Settings {
             return s3Settings;
         }
 
-        public String serverConnectionSettingsToString(){
-            return CLI.ANSI_CYAN + "Server Connection Settings:\n" + CLI.ANSI_RESET +
-                    "\tServer username:" + serverUsername + "\n" +
-                    "\tPrivate key file:" + privateKeyFile + "\n";
-        }
-
-        public String databaseSettingsToString(){
-            return CLI.ANSI_GREEN + "Database Settings:\n"  + CLI.ANSI_RESET+
-                    "\tDB Username:" + dbUsername + "\n" +
-                    "\tDB Password:" + dbPassword + "\n" +
-                    "\tDB Tables:" + databaseTables + "\n";
-        }
-
-        public String generalAwsSettingsToString(){
-            return CLI.ANSI_BLUE + "General AWS Settings:\n" + CLI.ANSI_RESET +
-                    "\tAWS Region: " + awsRegion + "\n" +
-                    "\tVPC ID: " + vpcID + "\n" +
-                    "\tVPC Name: " + vpcName + "\n";
-        }
-
-        public String toString(){
-            return  serverConnectionSettingsToString() + databaseSettingsToString() +
-                    CLI.ANSI_RED + "Server Config Files:\n"  + CLI.ANSI_RESET +
+        public String toString() {
+            return serverConnectionSettingsToString() +
+                    CLI.ANSI_BLUE + "Server Config Files:\n" + CLI.ANSI_RESET +
                     configFiles + "\n" +
-                    generalAwsSettingsToString() +
-                    CLI.ANSI_CYAN + "\tEC2 Settings:\n"  + CLI.ANSI_RESET +
+                    CLI.ANSI_CYAN + "EC2 Settings:\n" + CLI.ANSI_RESET +
                     ec2Settings +
-                    CLI.ANSI_GREEN + "\tRDS Settings:\n"  + CLI.ANSI_RESET +
+                    CLI.ANSI_BLUE + "RDS Settings:\n" + CLI.ANSI_RESET +
                     rdsSettings +
-                    CLI.ANSI_RED + "\tS3 Settings:\n"  + CLI.ANSI_RESET +
+                    CLI.ANSI_PURPLE + "S3 Settings:\n" + CLI.ANSI_RESET +
                     s3Settings;
+        }
+
+        public String serverConnectionSettingsToString() {
+            return CLI.ANSI_CYAN + "Server Connection Settings:\n" + CLI.ANSI_RESET +
+                    "\tServer username: '" + serverUsername + "'\n" +
+                    "\tPrivate key file: '" + privateKeyFile + "'\n" +
+                    "\tDB Username: '" + dbUsername + "'\n" +
+                    "\tDB Password: '" + dbPassword + "'\n" +
+                    "\tDB Tables: '" + databaseTables + "'\n" +
+                    "\tAWS Region: '" + awsRegion + "'\n" +
+                    "\tVPC ID: '" + vpcID + "'\n" +
+                    "\tVPC Name: '" + vpcName + "'\n";
         }
     }
 }

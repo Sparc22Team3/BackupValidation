@@ -1,18 +1,12 @@
 package sparc.team3.validator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import sparc.team3.validator.util.*;
+import sparc.team3.validator.util.CLI;
+import sparc.team3.validator.util.ServerConfigFile;
+import sparc.team3.validator.util.Settings;
 
-import java.io.BufferedReader;
-import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
 
 /**
  * Load program settings from config file.
@@ -29,81 +23,11 @@ public class ConfigLoader extends Config {
     }
 
     /**
-     * Reads in the settings from the config file and returns a Settings object with the program settings.
-     * @return the Settings object with program settings for this instance of the program
-     * @throws IOException if an I/O error occurs
-     */
-    public Settings loadSettings() throws IOException {
-        if (configFile == null)
-            return null;
-
-        if (!configFileExists()) {
-            boolean result = cli.promptYesOrNoColor("Config file (%s) does not exist.  Would you like to build it?", CLI.ANSI_PURPLE, configFile.toString());
-            if(result){
-                ConfigBuilder configBuilder = new ConfigBuilder(cli);
-                configBuilder.runBuilder();
-            }
-            if (!configFileExists())
-                throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
-        }
-        ObjectMapper mapper = new ObjectMapper();
-
-        return mapper.readValue(configFile.toFile(), Settings.class);
-    }
-
-    /**
-     * Populates a {@link Settings} object with dummy values, serializes the object to json, and creates the {@link #configFile}.
-     * @throws IOException if an I/O error occurs
-     */
-    public void createBlankConfigFile() throws IOException {
-        if(Files.exists(configFile)){
-            String filename = "backup." + configFile.getFileName().toString();
-            Path backup = configFile.resolveSibling(filename);
-            Files.move(configFile, backup);
-        }
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-
-        // Create settings map
-        HashMap<String, String> map = new HashMap<>();
-        map.put("setting", "[ec2|rds]_hostname");
-        // Create ConfigFile
-        ServerConfigFile cf1 = new ServerConfigFile("ConfigFile1", "PathOnServer", map);
-        ServerConfigFile cf2 = new ServerConfigFile("ConfigFile2", "PathOnServer", map);
-        // Create list of ConfigFiles
-        LinkedList<ServerConfigFile> fileList = new LinkedList<>();
-        fileList.add(cf1);
-        fileList.add(cf2);
-        SecurityGroup sg1 = new SecurityGroup("security group 1 id ", "security group 1 name");
-        SecurityGroup sg2 = new SecurityGroup("security group 2 id ", "security group 2 name");
-        LinkedList<SecurityGroup> sgList = new LinkedList<>();
-        sgList.add(sg1);
-        sgList.add(sg2);
-        InstanceSettings ec2Settings = new InstanceSettings("ec2 instance name", "backup vault name", sgList, "subnet name");
-        InstanceSettings rdsSettings = new InstanceSettings("rds instance name","backup vault name", sgList, "subnet name");
-        InstanceSettings s3Settings = new InstanceSettings("s3 bucket name", "backup vault name", sgList, "subnet name");
-
-        // Create Settings object
-        Settings settings = new Settings("ec2-user",
-                "testKeyFile",
-                "dbUser",
-                "dbPass",
-                fileList,
-                "US_EAST_1",
-                "vpc id",
-                "vpc name",
-                ec2Settings,
-                rdsSettings,
-                s3Settings);
-        mapper.writeValue(configFile.toFile(), settings);
-    }
-
-    /**
      * Replaces placeholders for instance hostnames/names in the {@link ServerConfigFile ServerConfigFiles} in Settings with the values passed in.
-     * @param ec2 the string of the restored ec2 instance's hostname to replace the ec2 placeholder with
-     * @param rds the string of the restored rds instance's hostname to replace the rds placeholder with
-     * @param s3 the string of the restored s3 bucket's name to replace the s3 placeholder with
+     *
+     * @param ec2      the string of the restored ec2 instance's hostname to replace the ec2 placeholder with
+     * @param rds      the string of the restored rds instance's hostname to replace the rds placeholder with
+     * @param s3       the string of the restored s3 bucket's name to replace the s3 placeholder with
      * @param settings the settings object for the program
      */
     public static void replaceHostname(String ec2, String rds, String s3, Settings settings) {
@@ -122,6 +46,30 @@ public class ConfigLoader extends Config {
                 return placeholder;
             });
         }
+    }
+
+    /**
+     * Reads in the settings from the config file and returns a Settings object with the program settings.
+     *
+     * @return the Settings object with program settings for this instance of the program
+     * @throws IOException if an I/O error occurs
+     */
+    public Settings loadSettings() throws IOException {
+        if (configFile == null)
+            return null;
+
+        if (!configFileExists()) {
+            boolean result = cli.promptYesOrNoColor("Config file (%s) does not exist.  Would you like to build it?", CLI.ANSI_PURPLE, configFile.toString());
+            if (result) {
+                ConfigEditor configEditor = new ConfigEditor(cli);
+                configEditor.runBuilder();
+            }
+            if (!configFileExists())
+                throw new FileNotFoundException(configFile.toString() + " does not exist. Unable to load settings");
+        }
+        ObjectMapper mapper = new ObjectMapper();
+
+        return mapper.readValue(configFile.toFile(), Settings.class);
     }
 
 }

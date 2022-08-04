@@ -10,7 +10,6 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.s3.S3Client;
-import sparc.team3.validator.config.ConfigBuilder;
 import sparc.team3.validator.config.ConfigEditor;
 import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.restore.EC2Restore;
@@ -23,10 +22,7 @@ import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectInputFilter;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -36,26 +32,23 @@ import java.util.concurrent.Future;
 public class BackupValidator {
     final Options options;
     final CommandLineParser parser;
+    final CLI cli;
     ConfigLoader configLoader;
     Settings settings;
     Logger logger;
-
     BackupClient backupClient;
     Ec2Client ec2Client;
     S3Client s3Client;
     RdsClient rdsClient;
-
     EC2Restore ec2Restore;
     S3Restore s3Restore;
     RDSRestore rdsRestore;
-
     Instance ec2Instance;
     String restoredBucketName;
     DBInstance rdsInstance;
     EC2ValidateInstance ec2ValidateInstance;
     RDSValidate rdsValidateDatabase;
     S3ValidateBucket s3ValidateBucket;
-    final CLI cli;
 
     /**
      * Constructs the BackupValidator class by setting up the command line options and parser.
@@ -67,6 +60,42 @@ public class BackupValidator {
         cli = new CLI();
 
 
+    }
+
+    /**
+     * Creates and adds options for the command line
+     */
+    private void options() {
+        //options.addOption(new Option());
+        options.addOption(new Option("h", "help", false, "print this message"));
+        options.addOption(Option.builder("c")
+                .longOpt("config")
+                .hasArg().argName("file")
+                .desc("Configuration Location: configuration settings json file or directory containing json file for running "
+                        + Util.APP_DISPLAY_NAME + ". If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_CONFIG_FILENAME).build()
+        );
+        options.addOption(new Option("n", "newconfig", false, "New Config File: create config file at "
+                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+        options.addOption(new Option("m", "modifyconfig", false, "Modify Config File: modify config file at "
+                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
+
+        options.addOption(new Option("d", "debug", false, "Debug: change log level from INFO to DEBUG"));
+        options.addOption(new Option("t", "trace", false, "Trace: change log level from INFO to TRACE"));
+        options.addOption(Option.builder("lf")
+                .longOpt("log-file")
+                .hasArg().argName("file")
+                .desc("Log File: change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
+
+    }
+
+    /**
+     * Entry point for BackupValidator
+     *
+     * @param args the string array from the command line
+     */
+    public static void main(String[] args) {
+        BackupValidator backupValidator = new BackupValidator();
+        backupValidator.run(args);
     }
 
     /**
@@ -97,28 +126,32 @@ public class BackupValidator {
 
             if (line.hasOption("config")) {
                 String file = line.getOptionValue("config");
+
                 if (line.hasOption("newconfig")) {
-                    ConfigBuilder configBuilder = new ConfigBuilder(cli, file);
-                    configBuilder.runBuilder();
-                } else if (line.hasOption("modifyconfig")){
+                    ConfigEditor configEditor = new ConfigEditor(cli, file);
+                    configEditor.runBuilder();
+                    return;
+                } else if (line.hasOption("modifyconfig")) {
                     ConfigEditor configEditor = new ConfigEditor(cli, file);
                     configEditor.runEditor();
+                    return;
                 }
                 configLoader = new ConfigLoader(cli, file);
-            }
-            else {
+            } else {
                 if (line.hasOption("newconfig")) {
-                    ConfigBuilder configBuilder = new ConfigBuilder(cli);
-                    configBuilder.runBuilder();
-                } else if (line.hasOption("modifyconfig")){
+                    ConfigEditor configEditor = new ConfigEditor(cli);
+                    configEditor.runBuilder();
+                    return;
+                } else if (line.hasOption("modifyconfig")) {
                     ConfigEditor configEditor = new ConfigEditor(cli);
                     configEditor.runEditor();
+                    return;
                 }
                 configLoader = new ConfigLoader(cli);
             }
             settings = configLoader.loadSettings();
 
-            if(settings == null)
+            if (settings == null)
                 return;
 
             // Spin up restored instances to get new hostnames/bucket name
@@ -150,7 +183,7 @@ public class BackupValidator {
      * EC2, RDS, and S3 will be restored and the instance/bucket will have been checked
      * to see if the instance is working.
      *
-     * @throws InterruptedException
+     * @throws InterruptedException when another thread interrupts this one
      */
     private void restoreAndValidate() throws InterruptedException {
         ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings());
@@ -294,41 +327,6 @@ public class BackupValidator {
     }
 
     /**
-     * Creates and adds options for the command line
-     */
-    private void options() {
-        //options.addOption(new Option());
-        options.addOption(new Option("h", "help", false, "print this message"));
-        options.addOption(Option.builder("c")
-                .longOpt("config")
-                .hasArg().argName("file")
-                .desc("Configuration Location: configuration settings json file or directory containing json file for running "
-                        + Util.APP_DISPLAY_NAME + ". If no config file is specified, program will look in " + Util.DEFAULT_CONFIG_DIR + " for " + Util.DEFAULT_CONFIG_FILENAME).build()
-        );
-        options.addOption(new Option("n", "newconfig", false, "New Config File: create config file at "
-                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
-        options.addOption(new Option("m", "modifyconfig", false, "Modify Config File: modify config file at "
-                + "location provided to '-config' or at default location in " + Util.DEFAULT_CONFIG_DIR + " if config is not specified"));
-
-        options.addOption(new Option("d", "debug", false, "Debug: change log level from INFO to DEBUG"));
-        options.addOption(new Option("t", "trace", false, "Trace: change log level from INFO to TRACE"));
-        options.addOption(Option.builder("lf")
-                .longOpt("log-file")
-                .hasArg().argName("file")
-                .desc("Log File: change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
-
-    }
-
-    /**
-     * Formats and prints an exception message.
-     *
-     * @param e the exception to print message from
-     */
-    public static void printException(Exception e) {
-        System.err.format("%s: %s\n", e.getClass().getSimpleName(), e.getMessage());
-    }
-
-    /**
      * Formats and prints an exception message before exiting the program.
      *
      * @param e the exception to print message from
@@ -339,12 +337,11 @@ public class BackupValidator {
     }
 
     /**
-     * Entry point for BackupValidator
+     * Formats and prints an exception message.
      *
-     * @param args the string array from the command line
+     * @param e the exception to print message from
      */
-    public static void main(String[] args) {
-        BackupValidator backupValidator = new BackupValidator();
-        backupValidator.run(args);
+    public static void printException(Exception e) {
+        System.err.format("%s: %s\n", e.getClass().getSimpleName(), e.getMessage());
     }
 }
