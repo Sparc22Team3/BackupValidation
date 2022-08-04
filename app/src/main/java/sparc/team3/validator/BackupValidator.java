@@ -124,31 +124,19 @@ public class BackupValidator {
                 return;
             }
 
-            if (line.hasOption("config")) {
-                String file = line.getOptionValue("config");
+            String file = line.getOptionValue("config", Util.DEFAULT_CONFIG.toString());
 
-                if (line.hasOption("newconfig")) {
-                    ConfigEditor configEditor = new ConfigEditor(cli, file);
-                    configEditor.runBuilder();
-                    return;
-                } else if (line.hasOption("modifyconfig")) {
-                    ConfigEditor configEditor = new ConfigEditor(cli, file);
-                    configEditor.runEditor();
-                    return;
-                }
-                configLoader = new ConfigLoader(cli, file);
-            } else {
-                if (line.hasOption("newconfig")) {
-                    ConfigEditor configEditor = new ConfigEditor(cli);
-                    configEditor.runBuilder();
-                    return;
-                } else if (line.hasOption("modifyconfig")) {
-                    ConfigEditor configEditor = new ConfigEditor(cli);
-                    configEditor.runEditor();
-                    return;
-                }
-                configLoader = new ConfigLoader(cli);
+            if (line.hasOption("newconfig")) {
+                ConfigEditor configEditor = new ConfigEditor(cli, file);
+                configEditor.runBuilder();
+                return;
+            } else if (line.hasOption("modifyconfig")) {
+                ConfigEditor configEditor = new ConfigEditor(cli, file);
+                configEditor.runEditor();
+                return;
             }
+            configLoader = new ConfigLoader(cli, file);
+
             settings = configLoader.loadSettings();
 
             if (settings == null)

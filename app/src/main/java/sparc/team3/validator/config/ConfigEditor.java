@@ -19,10 +19,6 @@ public class ConfigEditor extends Config {
     InstanceSettings.InstanceSettingsBuilder s3SettingsBuilder;
     Map<String, ServerConfigFile.ServerConfigFileBuilder> configFileBuilders;
 
-    public ConfigEditor(CLI cli) throws IOException {
-        super(cli);
-    }
-
     public ConfigEditor(CLI cli, String configFileLocation) {
         super(cli, configFileLocation);
     }
