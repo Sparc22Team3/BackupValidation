@@ -37,7 +37,6 @@ public class Util {
 
     public static final ExecutorService executor = Executors.newFixedThreadPool(10);
     private static final Logger logger = LoggerFactory.getLogger(Util.class);
-
     /**
      * Terminate ec2Instance attached to client.
      */

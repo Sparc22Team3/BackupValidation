@@ -2,17 +2,21 @@ package sparc.team3.validator;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import sparc.team3.validator.config.ConfigLoader;
+import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.*;
 
 public class SQL {
 
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
 
-        Configurator configurator = new Configurator();
-        Settings settings = configurator.loadSettings();
+        ConfigLoader configLoader = new ConfigLoader(new CLI());
+        Settings settings = configLoader.loadSettings();
         String url = "jdbc:mariadb://database-1.c6r4qgx3wvjo.us-east-1.rds.amazonaws.com";
 
         if(!System.getProperty("user.name").startsWith("ec2")){
