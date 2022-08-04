@@ -84,16 +84,19 @@ public class SQL {
         String tableName = " ";
         dbName = "Wiki";
         //tableName = "wiki_recentchanges"; //primaryKey = "rc_id";
-        tableName = "wiki_revision"; //primaryKey = "rev_id";
+        //tableName = "wiki_revision"; //primaryKey = "rev_id";
         //tableName = "wiki_text"; //primaryKey = "old_id";
         //tableName = "wiki_updatelog"; //primaryKey = "ul_key";
+        tableName = "wiki_redirect";
         String primaryKey = "rev_id";
 
-        String query = "SELECT * FROM " +dbName +"." +tableName+"\n" +
-                "  ORDER BY " +primaryKey+ " DESC;";
+        String query = "SELECT * FROM " +dbName +"." +tableName+";";
+        //String query = "SELECT * FROM " +dbName +"." +tableName+"\n" +
+        //        "  ORDER BY " +primaryKey+ " DESC;";
 
-        // Check that all tables are present in restored
-        // Run check table
+
+
+
         // get back column names and datatypes and all else in the metadata --> called schema or structure for all the info that isn't data --> how they are all set up
         try (Connection conProd = dsProd.getConnection();
              Connection conRestored = dsRestored.getConnection();
@@ -116,13 +119,16 @@ public class SQL {
             ResultSetMetaData rsRestoredMetaData1 = rsRestoredTables.getMetaData();
 
             // Check if number of tables is the same.
-            if (rsProdMetaData1.getColumnCount() != rsRestoredMetaData1.getColumnCount()) {
-                logger.info("The production and restored databases have a different number of tables.");
-                return false;
-            }
+            int numTablesProd = 0;
+            int numTablesRestored = 0;
+            while (rsProdTables.next()) {numTablesProd++;}
+            while (rsRestoredTables.next()) {numTablesRestored++;}
+            // Log results
+            if (numTablesProd != numTablesRestored) {logger.info("The production and restored databases have a different number of tables.");}
             else { logger.info("The production and restored databases have the same number of tables.");};
 
             // Run CHECK TABLES on all tables of restored database
+            rsRestoredTables.first();
             List<ResultSet> corruptedDbList = new ArrayList<>();
             while (rsRestoredTables.next()) {
                 // Loop through all tables to query CHECK TABLE on each one
@@ -143,7 +149,7 @@ public class SQL {
             DatabaseMetaData metaDataProd = conProd.getMetaData();
             DatabaseMetaData metaDataRestore = conRestored.getMetaData();
 
-            String[] typesProd = {"TABLE"};
+        /**    String[] typesProd = {"TABLE"};
             String[] typesRestored = {"TABLE"};
             //Retrieving the columns in the database
             ResultSet tablesProd = metaDataProd.getTables(null, null, "%", typesProd);
@@ -158,7 +164,7 @@ public class SQL {
                 } else {numTablesMatching++;}
             }
             logger.info("All {} tables are in both databases.", numTablesMatching);
-
+*/
 
             // Prepared Statements
             PreparedStatement pstProd = conProd.prepareStatement(query);
