@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.util.Util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,7 +16,7 @@ public class SQL {
 
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
 
-        ConfigLoader configLoader = new ConfigLoader(new CLI());
+        ConfigLoader configLoader = new ConfigLoader(new CLI(), Util.DEFAULT_CONFIG.toString());
         Settings settings = configLoader.loadSettings();
         String url = "jdbc:mariadb://database-1.c6r4qgx3wvjo.us-east-1.rds.amazonaws.com";
 

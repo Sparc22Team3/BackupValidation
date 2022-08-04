@@ -13,11 +13,6 @@ import java.io.IOException;
  */
 public class ConfigLoader extends Config {
 
-
-    public ConfigLoader(CLI cli) throws IOException {
-        super(cli);
-    }
-
     public ConfigLoader(CLI cli, String configFileLocation) {
         super(cli, configFileLocation);
     }
@@ -61,7 +56,7 @@ public class ConfigLoader extends Config {
         if (!configFileExists()) {
             boolean result = cli.promptYesOrNoColor("Config file (%s) does not exist.  Would you like to build it?", CLI.ANSI_PURPLE, configFile.toString());
             if (result) {
-                ConfigEditor configEditor = new ConfigEditor(cli);
+                ConfigEditor configEditor = new ConfigEditor(cli, configFile.toString());
                 configEditor.runBuilder();
             }
             if (!configFileExists())

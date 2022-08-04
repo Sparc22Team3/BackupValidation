@@ -33,6 +33,10 @@ public class Util {
      */
     public static final String DEFAULT_CONFIG_FILENAME = "config.json";
 
+    public static final Path DEFAULT_CONFIG = DEFAULT_CONFIG_DIR.resolve(DEFAULT_CONFIG_FILENAME);
+
+    public static final String DEFAULT_SELENIUM_FILENAME = "selenium.json";
+    public static final Path DEFAULT_SELENIUM = DEFAULT_CONFIG_DIR.resolve(DEFAULT_SELENIUM_FILENAME);
     public static final String UNIQUE_RESTORE_NAME_BASE = "restore-test-";
 
     public static final ExecutorService executor = Executors.newFixedThreadPool(10);

@@ -18,19 +18,6 @@ abstract class Config {
     Path configFile;
     final Logger logger;
     final CLI cli;
-    /**
-     * Creates the default config directory {@link Util#DEFAULT_CONFIG_DIR} (if it doesn't exist) before calling {@link #setConfigFile setConfigFile} to set configFile to the default location.
-     * @throws IOException if an I/O error occurs
-     */
-    Config(CLI cli) throws IOException {
-        // Create the config directory for the application
-        if(!Files.exists(Util.DEFAULT_CONFIG_DIR)){
-            Files.createDirectories(Util.DEFAULT_CONFIG_DIR);
-        }
-        setConfigFile(Util.DEFAULT_CONFIG_DIR);
-        this.logger = LoggerFactory.getLogger(this.getClass().getName());
-        this.cli = cli;
-    }
 
     /**
      * Sets up the Path to the location of the config file passed in via command line before calling {@link #setConfigFile setConfigFile} to set configFile.
