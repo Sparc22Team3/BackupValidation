@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Util;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,19 +16,6 @@ abstract class Selenium {
     Path seleniumFile;
     final Logger logger;
     final CLI cli;
-    /**
-     * Creates the default config directory {@link Util#DEFAULT_CONFIG_DIR} (if it doesn't exist) before calling {@link #setSeleniumFile setSeleniumFile} to set selenium file to the default location.
-     * @throws IOException if an I/O error occurs
-     */
-    Selenium(CLI cli) throws IOException {
-        // Create the config directory for the application
-        if(!Files.exists(Util.DEFAULT_CONFIG_DIR)){
-            Files.createDirectories(Util.DEFAULT_CONFIG_DIR);
-        }
-        setSeleniumFile(Util.DEFAULT_CONFIG_DIR);
-        this.logger = LoggerFactory.getLogger(this.getClass().getName());
-        this.cli = cli;
-    }
 
     /**
      * Sets up the Path to the location of the config file passed in via command line before calling {@link #setSeleniumFile setConfigFile} to set configFile.

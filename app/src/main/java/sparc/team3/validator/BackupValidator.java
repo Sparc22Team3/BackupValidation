@@ -38,6 +38,7 @@ public class BackupValidator {
     final CLI cli;
     ConfigLoader configLoader;
     Settings settings;
+    SeleniumSettings seleniumSettings;
     Logger logger;
     BackupClient backupClient;
     Ec2Client ec2Client;
@@ -151,12 +152,14 @@ public class BackupValidator {
             SeleniumEditor seleniumEditor = new SeleniumEditor(cli, seleniumFile);
             if(line.hasOption("newselenium")){
                 seleniumEditor.runBuilder();
+                return;
             } else if (line.hasOption("modifyselenium")) {
                 seleniumEditor.runEditor();
+                return;
             }
             configLoader = new ConfigLoader(cli, configFile);
             SeleniumLoader seleniumLoader = new SeleniumLoader(cli, seleniumFile);
-            SeleniumSettings seleniumSettings = seleniumLoader.loadSettings();
+            seleniumSettings = seleniumLoader.loadSettings();
 
             settings = configLoader.loadSettings();
 

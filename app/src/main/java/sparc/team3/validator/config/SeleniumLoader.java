@@ -8,8 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class SeleniumLoader extends Selenium{
-    public SeleniumLoader(CLI cli, String configFileLocation) {
-        super(cli, configFileLocation);
+    public SeleniumLoader(CLI cli, String seleniumFileLocation) {
+        super(cli, seleniumFileLocation);
     }
 
     /**
