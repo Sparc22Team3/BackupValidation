@@ -33,6 +33,7 @@ public class Util {
      */
     public static final String DEFAULT_CONFIG_FILENAME = "config.json";
 
+    public static final String DEFAULT_SELENIUM_FILENAME = "config.json";
     public static final String UNIQUE_RESTORE_NAME_BASE = "restore-test-";
 
     public static final ExecutorService executor = Executors.newFixedThreadPool(10);
