@@ -121,6 +121,7 @@ public class S3ValidateBucket implements Callable<Boolean> {
         HashMap<String, String> originalObjs = GetS3Objects(instanceSettings.getProductionName());
         HashMap<String, String> restoredObjs = GetS3Objects(restoredBucket);
 
+        logger.info("Validating S3 bucket {}", restoredBucket);
         for (String key : originalObjs.keySet()){
             if (restoredObjs.containsKey(key)){
                 // compare checksum value of the obj

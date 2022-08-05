@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,5 +46,9 @@ abstract class Config {
      */
     boolean configFileExists(){
         return Files.exists(configFile);
+    }
+
+    public Path getActualConfigDir(){
+        return configFile.getParent();
     }
 }

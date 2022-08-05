@@ -79,23 +79,24 @@ public class Util {
      * @param bucketName the string of the restored S3 bucket
      * @param s3Client to be used to initiate the bucket deletion
      */
-    public static void deleteS3Instance(String bucketName, S3Client s3Client) {
+    public static void deleteS3Instance(String bucketName, S3Client s3Client) throws InterruptedException {
 
-        System.out.println("Beginning deletion process for S3 Bucket: " + bucketName);
+        logger.info("Emptying S3 Bucket: {}", bucketName);
 
         // initialize variables
-        ListObjectVersionsRequest listVerions = ListObjectVersionsRequest.builder().bucket(bucketName).build();
+        ListObjectVersionsRequest listVersions = ListObjectVersionsRequest.builder().bucket(bucketName).build();
         ListObjectVersionsResponse response;
         List<ObjectIdentifier> objectsToBeDeleted = new ArrayList<>();
         ObjectIdentifier objectId;
         String key;
         String versionId;
+        int errors = 0;
 
         // step 1: delete all existing objects (including ones with delete markers)
 
         // 1a: get all ObjectVersions
         do {
-            response = s3Client.listObjectVersions(listVerions);
+            response = s3Client.listObjectVersions(listVersions);
 
             // 1b: check to see if there are any objects with delete markers
             if (!response.deleteMarkers().isEmpty()) {
@@ -141,8 +142,11 @@ public class Util {
                 DeleteObjectsRequest multiObjDeleteRequest = DeleteObjectsRequest.builder().bucket(bucketName).delete(del).build();
                 s3Client.deleteObjects(multiObjDeleteRequest);
             } catch (S3Exception e) {
-                System.err.println(e.awsErrorDetails().errorMessage());
-                System.exit(1);
+                logger.error("Error deleting objects in {}", bucketName, e);
+                errors++;
+                if(errors > 5)
+                    System.exit(1);
+                Thread.sleep(30000);
             }
 
             // isTruncated() will return false if all results are returned
@@ -156,10 +160,10 @@ public class Util {
                     .build();
             s3Client.deleteBucket(deleteBucketRequest);
         } catch (S3Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+            logger.error("Error deleting {}", bucketName, e);
             System.exit(1);
         }
 
-        System.out.println("S3 Bucket: " + bucketName + " is deleted.");
+        logger.info("S3 Bucket {} has been deleted", bucketName);
     }
 }
