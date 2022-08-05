@@ -36,6 +36,9 @@ public class S3 {
       // start restore job
       String restoredBucketName = s3Restore.restoreS3FromBackup();
 
+      // copy bucket policy from production bucket to restored bucket
+      Util.copyS3Policy(s3ProductionBucketName, restoredBucketName, s3Client);
+
       // initialize sparc.team3.validator.validate.S3ValidateBucket object
       S3ValidateBucket s3ValidateBucket = new S3ValidateBucket(s3Client, instanceSettings);
       s3ValidateBucket.setRestoredBucket(restoredBucketName);
