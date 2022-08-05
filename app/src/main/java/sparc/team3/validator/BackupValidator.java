@@ -1,14 +1,21 @@
 package sparc.team3.validator;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.s3.S3Client;
 import sparc.team3.validator.config.ConfigEditor;
 import sparc.team3.validator.config.ConfigLoader;
@@ -26,6 +33,10 @@ import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -38,6 +49,7 @@ public class BackupValidator {
     final CLI cli;
     ConfigLoader configLoader;
     Settings settings;
+    Path saveLocation;
     SeleniumSettings seleniumSettings;
     Logger logger;
     BackupClient backupClient;
@@ -99,6 +111,9 @@ public class BackupValidator {
                 .longOpt("log-file")
                 .hasArg().argName("file")
                 .desc("Log File: change log file from default BackupValidator log file in " + System.getProperty("user.dir")).build());
+
+        options.addOption(new Option("xr", "donotrestore", false, "Do not restore.  Will use saved instance information to get previously restored instances"));
+        options.addOption(new Option("xt", "donotterminate", false, "Do not terminate.  Will save instance information of restored instances to be used later."));
 
     }
 
@@ -165,10 +180,8 @@ public class BackupValidator {
 
             if (settings == null)
                 return;
-
-            // Spin up restored instances to get new hostnames/bucket name
-
-            ConfigLoader.replaceHostname("ec2_test", "rds_test", "s3_test", settings);
+            saveLocation = configLoader.getActualConfigDir();
+            saveLocation = saveLocation.resolve("save.json");
 
             logger.debug("Settings: {}", settings);
 
@@ -178,9 +191,12 @@ public class BackupValidator {
             s3Client = S3Client.builder().region(region).build();
             rdsClient = RdsClient.builder().region(region).build();
 
-            restoreAndValidate();
+            boolean restore = !line.hasOption("donotrestore");
+            boolean terminate = !line.hasOption("donotterminate");
+
+            restoreAndValidate(restore);
             validateSystem();
-            cleanUp();
+            cleanUp(terminate);
 
         } catch (ParseException | IOException e) {
             printExceptionAndExit(e);
@@ -197,17 +213,18 @@ public class BackupValidator {
      *
      * @throws InterruptedException when another thread interrupts this one
      */
-    private void restoreAndValidate() throws InterruptedException {
-        ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings());
-        s3Restore = new S3Restore(backupClient, s3Client, settings.getS3Settings());
-        rdsRestore = new RDSRestore(rdsClient, settings.getRdsSettings());
+    private void restoreAndValidate(boolean restore) throws InterruptedException, IOException {
+        Future<Instance> ec2Future = null;
+        Future<DBInstance> rdsFuture = null;
+        Future<String> s3Future = null;
 
-        Future<Instance> ec2Future = Util.executor.submit(ec2Restore);
-        Future<DBInstance> rdsFuture = Util.executor.submit(rdsRestore);
-        Future<String> s3Future = Util.executor.submit(s3Restore);
         Future<Boolean> ec2ValidateFuture = null;
         Future<Boolean> rdsValidateFuture = null;
         Future<Boolean> s3ValidateFuture = null;
+
+        ec2ValidateInstance = new EC2ValidateInstance(ec2Client, settings.getEc2Settings());
+        rdsValidateDatabase = new RDSValidate(rdsClient, settings.getRdsSettings());
+        s3ValidateBucket = new S3ValidateBucket(s3Client, settings.getS3Settings());
 
         boolean ec2Checked = false;
         boolean rdsChecked = false;
@@ -217,22 +234,44 @@ public class BackupValidator {
         boolean rdsPassed = false;
         boolean s3Passed = false;
 
+        // If we are restoring start the restore threads and then enter the loop below to wait for them to complete
+        if(restore) {
+            ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings());
+            s3Restore = new S3Restore(backupClient, s3Client, settings.getS3Settings());
+            rdsRestore = new RDSRestore(rdsClient, settings.getRdsSettings());
+
+            ec2Future = Util.executor.submit(ec2Restore);
+            rdsFuture = Util.executor.submit(rdsRestore);
+            s3Future = Util.executor.submit(s3Restore);
+        }
+        // If we are not restoring, load the previous instances and start validating, then enter loop waiting for them to complete
+        else {
+            loadInstances();
+
+            ec2ValidateInstance.setEC2Instance(ec2Instance);
+            ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
+
+            rdsValidateDatabase.setDbInstance(rdsInstance);
+            rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
+
+            s3ValidateBucket.setRestoredBucket(restoredBucketName);
+            s3ValidateFuture = Util.executor.submit(s3ValidateBucket);
+        }
+
         // Stay in the loop until all three have been checked.
         while (!ec2Checked || !rdsChecked || !s3Checked) {
             /* Wait until the restore is done before attempting instance validation
              * Check if return value from future is set or not.  If it is,
              * this block has already been run on this result
              */
-            if (ec2Future.isDone() && ec2Instance == null) {
+            if (ec2Future != null && ec2Future.isDone() && ec2Instance == null) {
                 /* If an error occurs in the thread, future.get will throw an
                  * ExecutionException wrapped around the exception that was
                  * thrown in the thread
                  */
                 try {
                     ec2Instance = ec2Future.get();
-                    ec2ValidateInstance = new EC2ValidateInstance(ec2Client, settings.getEc2Settings());
                     ec2ValidateInstance.setEC2Instance(ec2Instance);
-
                     ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
                 } catch (ExecutionException e) {
                     logger.error("Restoring EC2 instance failed", e);
@@ -240,12 +279,10 @@ public class BackupValidator {
                 }
             }
 
-            if (rdsFuture.isDone() && rdsInstance == null) {
+            if (rdsFuture != null && rdsFuture.isDone() && rdsInstance == null) {
                 try {
                     rdsInstance = rdsFuture.get();
-                    rdsValidateDatabase = new RDSValidate(rdsClient, settings.getRdsSettings());
                     rdsValidateDatabase.setDbInstance(rdsInstance);
-
                     rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
                 } catch (ExecutionException e) {
                     logger.error("Restoring RDS instance failed.", e);
@@ -253,12 +290,10 @@ public class BackupValidator {
                 }
             }
 
-            if (s3Future.isDone() && restoredBucketName == null) {
+            if (s3Future != null && s3Future.isDone() && restoredBucketName == null) {
                 try {
                     restoredBucketName = s3Future.get();
-                    s3ValidateBucket = new S3ValidateBucket(s3Client, settings.getS3Settings());
                     s3ValidateBucket.setRestoredBucket(restoredBucketName);
-
                     s3ValidateFuture = Util.executor.submit(s3ValidateBucket);
                 } catch (ExecutionException e) {
                     logger.error("Restoring S3 bucket failed.", e);
@@ -323,14 +358,24 @@ public class BackupValidator {
      * not just the individual pieces.
      */
     private void validateSystem() {
+        // Spin up restored instances to get new hostnames/bucket name
+        ConfigLoader.replaceHostname(ec2Instance.publicDnsName(), rdsInstance.endpoint().address(), restoredBucketName, settings);
         logger.info("Do a System Check Here.");
     }
 
-    private void cleanUp() {
-        if (ec2Instance != null)
-            Util.terminateEC2Instance(ec2Instance.instanceId(), ec2Client);
-        if (rdsInstance != null)
-            Util.deleteDBInstance(rdsInstance.dbInstanceIdentifier(), rdsClient);
+    private void cleanUp(boolean terminate) throws IOException, InterruptedException {
+        if(terminate) {
+            if (ec2Instance != null)
+                Util.terminateEC2Instance(ec2Instance.instanceId(), ec2Client);
+            if (rdsInstance != null)
+                Util.deleteDBInstance(rdsInstance.dbInstanceIdentifier(), rdsClient);
+            if (restoredBucketName != null)
+                Util.deleteS3Instance(restoredBucketName, s3Client);
+            if(Files.exists(saveLocation))
+                Files.delete(saveLocation);
+        } else {
+            saveInstances();
+        }
         backupClient.close();
         ec2Client.close();
         s3Client.close();
@@ -355,5 +400,55 @@ public class BackupValidator {
      */
     public static void printException(Exception e) {
         System.err.format("%s: %s\n", e.getClass().getSimpleName(), e.getMessage());
+    }
+
+    private void saveInstances() throws IOException {
+        Map<String, String> saveResourcesMap = new HashMap<>();
+        saveResourcesMap.put("EC2", ec2Instance.instanceId());
+        saveResourcesMap.put("RDS", rdsInstance.dbInstanceIdentifier());
+        saveResourcesMap.put("S3", restoredBucketName);
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.writeValue(saveLocation.toFile(), saveResourcesMap);
+    }
+
+    private void loadInstances() throws IOException {
+        TypeReference<HashMap<String, String>> typeReference = new TypeReference<HashMap<String, String>>(){};
+
+        if(!Files.exists(saveLocation))
+            logger.error("Save file 'save.json' does not exist in {} to load.  Please load a config file from the same " +
+                    "location as your save file or run {} without the 'donotrestore' option",
+                    saveLocation.getParent(), Util.APP_DISPLAY_NAME);
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, String> loadedResourcesMap = mapper.readValue(saveLocation.toFile(), typeReference);
+
+        // Set S3 restored bucket name
+        restoredBucketName = loadedResourcesMap.get("S3");
+        if(restoredBucketName.isEmpty())
+            throw new IOException("Missing restored bucket name in save file.");
+
+        String ec2InstanceID = loadedResourcesMap.get("EC2");
+
+        if(ec2InstanceID == null || ec2InstanceID.isEmpty())
+            throw new IOException("Missing restored EC2 instance-id in save file.");
+
+        String dbIdentifier = loadedResourcesMap.get("RDS");
+
+        if(dbIdentifier == null || dbIdentifier.isEmpty())
+            throw new IOException("Missing restored DB identifier in save file.");
+
+        // Use the saved EC2 instance-id to get the Instance back from AWS
+        DescribeInstancesRequest.Builder describeInstancesRequest  = DescribeInstancesRequest.builder().instanceIds(ec2InstanceID);
+        DescribeInstancesResponse describeInstancesResponse = ec2Client.describeInstances(describeInstancesRequest.build());
+        ec2Instance = describeInstancesResponse.reservations().get(0).instances().get(0);
+
+        // Use the saved DB instance identifier to get the
+        DescribeDbInstancesRequest.Builder describeDbInstancesRequest = DescribeDbInstancesRequest.builder().dbInstanceIdentifier(dbIdentifier);
+        DescribeDbInstancesResponse describeDbInstances = rdsClient.describeDBInstances(describeDbInstancesRequest.build());
+        rdsInstance = describeDbInstances.dbInstances().get(0);
+
     }
 }
