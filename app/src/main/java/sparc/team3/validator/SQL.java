@@ -26,10 +26,10 @@ public class SQL {
      * Choose specific db to test further or loop and automatically check all databases????
      * Check if all tables are present in database(s)
      * CHECK TABLES for corruption (all tables of all dbs or just all tables of chosen db?)
-     * Check if all columns are present in on chosen restored table (or in all tables of chosen database or in all tables of all databases??)
+     * Check if all columns are present in all tables of chosen database (or in all tables of all databases??)
      *      column checking ==> number of columns, names of columns, data types of columns
      * Check if all rows are the same
-     *      don't have a definition of that yet ==> getObject returns column value as an object, so would need to do so individually for each col of each row
+     *      getObject returns cell value as an object, so need to do so individually for each col of each row
      */
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
         if(isValid()) {
@@ -245,7 +245,7 @@ public class SQL {
 
                 // Check that ResultSets return from each query
                 if (rsProdRows == null || rsRestoredRows == null) {
-                    logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName] [DatabaseTable]\".");
+                    logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
                     return false;
                 }
 
@@ -253,37 +253,41 @@ public class SQL {
                 ResultSetMetaData metaDataProdRows = rsProdRows.getMetaData();
                 ResultSetMetaData metaDataRestoredRows = rsRestoredRows.getMetaData();
 
-                // Check if columns are the same.
+                // Check if columns are the same (ie. schema (column number), column name, and column data type.
                 //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
-                Map<String, String> mapProdColumnNamesToDatatype = new HashMap();
+                Map<String, List> mapProdSchemaToColumnNameAndDatatype = new HashMap();
+                List<String> listProdColumnNamesAndDatatypes = new ArrayList<>();
                 int columnCount = metaDataProdRows.getColumnCount();
                 int columnNum = 1;
                 while (rsProdRows.next() && columnNum <= columnCount) {
-                    mapProdColumnNamesToDatatype.put(metaDataProdRows.getColumnName(columnNum), metaDataProdRows.getColumnTypeName(columnNum));
+                    listProdColumnNamesAndDatatypes.add(metaDataProdRows.getColumnName(columnNum));
+                    listProdColumnNamesAndDatatypes.add(metaDataProdRows.getColumnTypeName(columnNum));
+                    mapProdSchemaToColumnNameAndDatatype.put(metaDataProdRows.getSchemaName(columnNum), listProdColumnNamesAndDatatypes);
                     columnNum++;
                 }
                 rsProdRows.first();
 
-                Map<String, String> mapRestoredColumnNamesToDatatype = new HashMap<>();
+                Map<String, List> mapRestoredSchemaToColumnNameAndDatatype = new HashMap();
+                List<String> listRestoredColumnNamesAndDatatypes = new ArrayList<>();
                 columnCount = metaDataRestoredRows.getColumnCount();
                 columnNum = 1;
                 while (rsRestoredRows.next() && columnNum <= columnCount) {
-                    mapRestoredColumnNamesToDatatype.put(metaDataRestoredRows.getColumnName(columnNum), metaDataRestoredRows.getColumnTypeName(columnNum));
+                    listRestoredColumnNamesAndDatatypes.add(metaDataRestoredRows.getColumnName(columnNum));
+                    listRestoredColumnNamesAndDatatypes.add(metaDataRestoredRows.getColumnTypeName(columnNum));
+                    mapRestoredSchemaToColumnNameAndDatatype.put(metaDataRestoredRows.getSchemaName(columnNum), listRestoredColumnNamesAndDatatypes);
                     columnNum++;
                 }
                 rsRestoredRows.first();
 
                 List<String> listTablesWithBadColumns = new ArrayList<>();
-                if (!mapProdColumnNamesToDatatype.equals(mapRestoredColumnNamesToDatatype)) {
-                    //System.out.println(mapProdColumnNamesToDatatype.keySet());
+                if (!mapProdSchemaToColumnNameAndDatatype.equals(mapRestoredSchemaToColumnNameAndDatatype)) {
                     listTablesWithBadColumns.add(tableName);
-                    //System.out.println("Table " +tableName+ "has corrupted columns ");
                 }
-                // Log table names with bad columns (ie. column names to datatypes don't match that of the production database)
+                // Log table names with bad columns (ie. schema (column number) to [columnName, datatype] don't match that of the production database)
                 for (String table : listTablesWithBadColumns) {logger.warn("Table {} has corrupted column(s)", table);}
 
                 // Check if the rows are the same
-
+                //while (rsProdRows.next()) {System.out.println("prod rows: " + rsProdRows.getObject(2));}
 
             }
 
@@ -322,248 +326,4 @@ public class SQL {
         dsRestored.close();
         return true;
     }
-
-
-    /**
-     * // Get primary key name and datatype
-     *             // How to not hard-code primary key datatype?? don't hard-code db or table (wiki and wiki_recentchanges) ???????
-     *             // Plus data type differences ie. Integer Unsigned (SQL) vs int (java)
-     *
-     *             DatabaseMetaData metaData = conProd.getMetaData();
-     *             ResultSet primaryKeys = metaData.getPrimaryKeys(dbName, null, tableName);
-     *             primaryKeys.next();
-     *
-     *             // get all primary key id
-     *             String primaryKeyId = primaryKeys.getString("COLUMN_NAME"); // returns rc_id for ex
-     *
-     *             // Get primary key data type --> but still how to assign it dynamically?
-     *             int c = rsProdMetaData.getColumnCount();
-     *             String dataType = "";
-     *             for (int i = 1; i <= c; i++) {
-     *                 if (rsProdMetaData.getColumnName(i).equals(primaryKeyId)) {
-     *                     dataType = rsProdMetaData.getColumnTypeName(i);
-     *                     break;
-     *                 }
-     *             }
-     *             System.out.println("primary KeyId name: " + primaryKeyId);
-     *             dataType = dataType.toLowerCase();
-     *             System.out.println("primary KeyId type: " + dataType);
-     *             //if (dataType.contains("int") || dataType.contains("dec") || dataType.contains("num") || dataType.contains("flo") || dataType.contains("dou") || dataType.contains("bit")) {
-     *                 //int rdRestoredStartId = rsRestored.getInt(primaryKeyId);
-     *                // int rsProdStartId = rsProd.getInt(primaryKeyId);
-     *                // System.out.println("restoredStartId: " + rdRestoredStartId + "; rsProdStartId: " + rsProdStartId);
-     *             //}
-     *             //else {
-     *             //    System.out.println("FJDSLKFJDSLFJDSKL:FJDSLFJDSLK:");
-     *             //    logger.debug("Primary key is not numeric: cannot get primary key data type");
-     *              //   return false;
-     *             //}
-     */
-    /**    DatabaseMetaData metaDataProd = conProd.getMetaData();
-     DatabaseMetaData metaDataRestore = conRestored.getMetaData();
-
-     String[] typesProd = {"TABLE"};
-     String[] typesRestored = {"TABLE"};
-     //Retrieving the columns in the database
-     ResultSet tablesProd = metaDataProd.getTables(null, null, "%", typesProd);
-     ResultSet tablesRestored = metaDataProd.getTables(null, null, "%", typesRestored);
-     int numTablesMatching = 0;
-     while (tablesProd.next() && tablesRestored.next()) {
-     final Object rsProdTableObj = tablesProd.getObject(1);
-     final Object rsRestoredTableObj = tablesRestored.getObject(1);
-     if (!rsProdTableObj.equals(rsRestoredTableObj)) {
-     logger.info("Table(s) missing.");
-     return false;
-     } else {numTablesMatching++;}
-     }
-     logger.info("All {} tables are in both databases.", numTablesMatching);
-     */
-
-// for putting all dbs into set if necessary for ordering situation from result sets
-    /**    Set<ResultSet> treeSetProdAllDbs = new TreeSet<>();
-     while(rsProdAllDbs.next()) {
-     treeSetProdAllDbs.add(rsProdAllDbs);
-     //System.out.println(":: " + rsProdAll.getString(1));
-     }
-     rsProdAllDbs.first();
-
-     Set<ResultSet> treeSetRestoredAllDbs = new TreeSet<>();
-     while(rsRestoredAllDbs.next()) {
-     treeSetRestoredAllDbs.add(rsRestoredAllDbs);
-     System.out.println(":: " +rsRestoredAllDbs.getString(1));
-     }
-     rsRestoredAllDbs.first();
-
-     // Compare lists of databases (looping on the tree sets b/c ordering of ResultSets not guaranteed)
-     Iterator<ResultSet> iterProdAllDbs = treeSetProdAllDbs.iterator();
-     Iterator<ResultSet> iterRestoredAllDbs = treeSetRestoredAllDbs.iterator();
-     List<ResultSet> listDbsNotInRestored = new ArrayList<>();
-     while(iterRestoredAllDbs.hasNext() && iterProdAllDbs.hasNext()) {
-     String prodDbName = iterProdAllDbs.next().getString(1);
-     String restoredDbName = iterRestoredAllDbs.next().getString(1);
-     if (prodDbName.equals(restoredDbName)) {
-     System.out.println("yes: " +restoredDbName);
-     }
-     }
-     List<ResultSet> listProdAllDbs = new ArrayList<>(treeSetProdAllDbs);
-     dbName = listProdAllDbs.get(0).getString(1);*/
-
-    // Sanity check on number of rows of each ==> delete
-    /***         int prodRows = 0;
-     int restoredRows = 0;
-     while (rsProd.next()) {prodRows++;}
-     while (rsRestored.next()) {restoredRows++;}
-     System.out.println("num prod rows: " + prodRows + "; num restored rows: " + restoredRows);
-     */
-/**
-    // Number of rows should be the same for prod-restored relative validity check
-    // I don't think this check is necessary because of only looping on restored number of columns
-            if ((rsProd.isLast() != rsRestored.isLast())) {
-        logger.info("Validity: Prod and Restored do NOT have the same number of columns");
-    }
-            logger.info("Validity: Prod and Restored have the same number of columns");
- */
-
-    /**
-     //Loop until production database primary id equals that of the (older) restored database
-     // Restore row position to first row
-     rsRestored.previous();
-     rsProd.previous();
-
-     while (rsProd.next() != rsRestored.next()) {
-     rsProd.next();
-     }
-     //int numColumns = rsProdMetaData.getColumnCount() - rsProd.getInt(1);
-     int numColumnsRestored = rsRestoredMetaData.getColumnCount();
-     System.out.println("numColumns restored db = " + numColumnsRestored);
-     int numColumnsProd = rsProdMetaData.getColumnCount();
-     System.out.println("numColumns prod db = " + numColumnsProd);
-
-     int column = 1;
-     int numColumnsNotValid = 0;
-
-     while (rsProd.next() && rsRestored.next() && column <= numColumnsRestored) {
-     final Object rsProdObj = rsProd.getObject(column);
-     final Object rsRestoredObj = rsRestored.getObject(column);
-     if (!rsProdObj.equals(rsRestoredObj)) {
-     numColumnsNotValid++;
-     logger.info("Validity: Prod and Restored are NOT equal in column {}", column);
-     }
-     logger.info("Validity: Prod and Restored are equal in column {}", column);
-
-     // Number of rows should be the same for prod-restored relative validity check
-     if ((rsProd.isLast() != rsRestored.isLast())) {
-     logger.info("Validity: Prod and Restored do NOT have the same number of columns at column: {}", column);
-     }
-     logger.info("Validity: Prod and Restored have the same number of columns at column: {}", column);
-     column++;
-     }
-     System.out.println("numColumnsNotValid = " + numColumnsNotValid);
-     */
-
-
-    /**    String nameProd = rsProd.getString("given_name");
-     String nameRestored = rsRestored.getString("given_name");
-     int ageProd = rsProd.getInt("age");
-     int ageRestored = rsRestored.getInt("age");
-     logger.info("Prod: {} {}\tRestored: {} {}", nameProd, ageProd, nameRestored, ageRestored);
-     nameToAgeMap.put(nameProd, ageProd);
-     */
-    //}
-    //for (Map.Entry<String, Integer> entry : nameToAgeMap.entrySet()) {System.out.println(entry);}
-/**
- *
- * playing / learning
- *
- *
-
- //get list of tables to test others
- PreparedStatement db = conProd.prepareStatement("SHOW TABLES");
- ResultSet r0 = db.executeQuery();) {
- while (r0.next()) {System.out.println(r0.getString(1));}
-
-
- String query = "SHOW DATABASES";
- try (Connection con = ds.getConnection();
- PreparedStatement pst = con.prepareStatement( query );
- //diff methods for diff datatypes; specifiy by get int and get column that i want
- ResultSet rs = pst.executeQuery();) {
- //ResultSetMetaData rsMetaData = rs.getMetaData(); //method to get columns
-
- // use particular database ;; just grabs the first one "Wiki"
- rs.next();
- String dbName = rs.getString(1).toString();
- String queryForDatabase = "Use " +dbName;
- PreparedStatement db = con.prepareStatement(queryForDatabase);
- ResultSet rDb = db.executeQuery();
- ResultSetMetaData rsDbMetaData = rDb.getMetaData();
-
- // get list of all that db's tables and store in a list
- String queryForTables = "SHOW TABLES";
- PreparedStatement pstTables = con.prepareStatement(queryForTables);
- ResultSet rsTables = pstTables.executeQuery();
- ResultSetMetaData rsTablesMetaData = rsTables.getMetaData();
-
- String query = "SELECT * FROM Wiki.wiki_cargo_Characters where age> ?";
- // Set Parameters
- //pstProd.setInt(1, 100);
- //pstRestored.setInt(1, 100);
-
- List<String> tableNames = new ArrayList<>();
- //System.out.println("-----Tables in Wiki Db-----");
- while (rsTables.next()) {
- //System.out.println(rsTables.getString((1)));
- tableNames.add(rsTables.getString(1));
- //////////
- System.out.println(rsTables.getString("table_names.tables_in_wiki"));
- }
- //for (String s : tableNames) { System.out.println(s); }
-
- // use particular table and get column names with data types (data types coming soon) of that table
- String tableName = tableNames.get(5);
- System.out.println("table name : " + tableName);
-
- String queryTableColumns = "SHOW COLUMNS\n" +
- "  FROM "+tableName+"\n" +
- "  FROM "+dbName+";";
- PreparedStatement pstTableColumns = con.prepareStatement(queryTableColumns);
- ResultSet rsTableColumns = pstTableColumns.executeQuery();
- ResultSetMetaData rsTableColumnsMetaData = rsTableColumns.getMetaData();
-
- //List<String> columnNames = new ArrayList<>();
- Map<String, String> columnNameToDataType = new TreeMap<>();
- System.out.println("-----Columns in wiki_cargo__Characters table-----");
- //System.out.println("num columns: " +rsTableColumnsMetaData.getColumnCount()); //6 why? only the first 2 seem to matter for this
- while (rsTableColumns.next()) { //rows
- System.out.println(rsTableColumns.getString("columns.type"));
- columnNameToDataType.put(rsTableColumns.getString(1), rsTableColumns.getString(2));
- //columnNames.add(rsTableColumns.getString(1));
- // in table order:
- //System.out.println("column1 : " +rsTableColumns.getString(1));
- //System.out.println("column2 : " +rsTableColumns.getString(2));
- }
- //for (String s : columnNames) { System.out.println(s);
- for (Map.Entry<String, String> entry : columnNameToDataType.entrySet()) {System.out.println(entry);}
-
- String sql = "SELECT * FROM wiki_cargo__Characters";
- PreparedStatement p = con.prepareStatement(sql);
- ResultSet r = p.executeQuery();
- int count = 0;
- while(r.next()) {
- String name = r.getString("given_name");
- int age = r.getInt("age");
- System.out.println("hello : " +name + ", aged " + age);
- count++;
- }
- System.out.println("count: " + count);
- */
-
-    // get data types?
-    /** String queryColumnDataTypes = "SELECT COLUMN_NAME,DATA_TYPE\n" +
-     "  FROM INFORMATION_SCHEMA.COLUMNS\n" +
-     "  WHERE TABLE_SCHEMA = Database()\n" +
-     "  AND TABLE_NAME = "+tableName+"\n" +
-     "  AND COLUMN_NAME LIKE 'age';";
-     PreparedStatement pstColumnsDataTypes = con.prepareStatement(queryColumnDataTypes);
-     ResultSet rsColumnsDataTypes = pstColumnsDataTypes.executeQuery();*/
 }
