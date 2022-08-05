@@ -84,6 +84,7 @@ public class SQL {
         HikariDataSource dsRestored = new HikariDataSource(configRestored);
 
         // Select the database to use --> do we want this to automatically check all databases or be customize-able to only check specific dbs?
+        // Query orders the result set (by primary id) descending !!
         String dbName = "Wiki";
         //String tableName = "";
         //tableName = "wiki_recentchanges"; //primaryKey = "rc_id";
@@ -106,6 +107,12 @@ public class SQL {
 
             ResultSet rsProdAllDbs = pstProdAllDbs.executeQuery();
             ResultSet rsRestoredAllDbs = pstRestoredAllDbs.executeQuery();
+
+            // Check that ResultSets return from each query
+            if (rsProdAllDbs == null || rsRestoredAllDbs == null) {
+                logger.warn("Alert: NULL Result Set from \"SHOW DATABASES\".");
+                return false;
+            }
 
             ResultSetMetaData metaDataProdAllDbs = rsProdAllDbs.getMetaData();
             ResultSetMetaData metaDataRestoredAllDbs = rsRestoredAllDbs.getMetaData();
@@ -132,7 +139,6 @@ public class SQL {
 
 
             // Query for all tables of a specific database
-                // Choose database to check or loop on all ??
             rsProdAllDbs.first();
             rsRestoredAllDbs.first();
             dbName = rsRestoredAllDbs.getString(1);
@@ -144,11 +150,23 @@ public class SQL {
             ResultSet rsProdUseDb = pstProdDb.executeQuery();
             ResultSet rsRestoredUseDb = pstRestoredDb.executeQuery();
 
+            // Check that ResultSets return from each query
+            if (rsProdUseDb == null || rsRestoredUseDb == null) {
+                logger.warn("Alert: NULL Result Set from \"USE [DatabaseName]\".");
+                return false;
+            }
+
             PreparedStatement pstProdTables = conProd.prepareStatement("SHOW TABLES;");
             PreparedStatement pstRestoredTables = conRestored.prepareStatement("SHOW TABLES;");
 
             ResultSet rsProdTables = pstProdTables.executeQuery();
             ResultSet rsRestoredTables = pstRestoredTables.executeQuery();
+
+            // Check that ResultSets return from each query
+            if (rsProdTables == null || rsRestoredTables == null) {
+                logger.warn("Alert: NULL Result Set from \"SHOW TABLES\".");
+                return false;
+            }
 
             ResultSetMetaData metaDataProdTables = rsProdTables.getMetaData();
             ResultSetMetaData metaDataRestoredTables = rsRestoredTables.getMetaData();
@@ -187,8 +205,17 @@ public class SQL {
             while (rsRestoredTables.next()) {
                 // Loop through all tables to query CHECK TABLE on each one
                 PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " +rsRestoredTables.getString(1)+ ";");
+
                 ResultSet rsRestoredCHECKTable = pstRestoredCHECKTable.executeQuery();
+
                 ResultSetMetaData m = rsRestoredCHECKTable.getMetaData();
+
+                // Check that ResultSet returns from each query
+                if (rsRestoredCHECKTable == null) {
+                    logger.warn("Alert: NULL Result Set from \"CHECK TABLE [TableName]\".");
+                    return false;
+                }
+
                 rsRestoredCHECKTable.next();
                 String checkMsg = rsRestoredCHECKTable.getString(m.getColumnName(4));
                 // If Msg_text column returns anything other thank "OK", add to corruptedDbList
@@ -201,9 +228,11 @@ public class SQL {
             for (ResultSet r : corruptedDbList) {logger.info("Corrupted table: : " + r.getString(1));}
 
 
-            // Check if all columns present and if all rows match of all tables of restored database
-            // Loop through all tables to query and validate each
-            for (String tableName : listRestoredTables) {
+            // Check all columns and all rows of all tables of restored database
+            // Loop through all tables to query and validate each (only those present in the restored database)
+            Iterator<String> iter = listRestoredTables.iterator();
+            while (iter.hasNext()) {
+                String tableName = iter.next();
                 String query = "SELECT * FROM " +dbName +"." +tableName+";";
 
                 // Prepared Statements
@@ -214,128 +243,53 @@ public class SQL {
                 ResultSet rsProdRows = pstProd.executeQuery();
                 ResultSet rsRestoredRows = pstRestored.executeQuery();
 
+                // Check that ResultSets return from each query
+                if (rsProdRows == null || rsRestoredRows == null) {
+                    logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName] [DatabaseTable]\".");
+                    return false;
+                }
+
                 // Get Meta Data
                 ResultSetMetaData metaDataProdRows = rsProdRows.getMetaData();
                 ResultSetMetaData metaDataRestoredRows = rsRestoredRows.getMetaData();
 
                 // Check if columns are the same.
-                Map<String, String> mapProdColumnNamesToDatatype = new TreeMap();
-                Map<String, String> mapRestoredColumnNamesToDatatype = new TreeMap<>();
+                //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
+                Map<String, String> mapProdColumnNamesToDatatype = new HashMap();
                 int columnCount = metaDataProdRows.getColumnCount();
                 int columnNum = 1;
                 while (rsProdRows.next() && columnNum <= columnCount) {
-                    mapProdColumnNamesToDatatype.put(metaDataProdRows.getColumnName(1), metaDataProdRows.getColumnTypeName(1));
+                    mapProdColumnNamesToDatatype.put(metaDataProdRows.getColumnName(columnNum), metaDataProdRows.getColumnTypeName(columnNum));
                     columnNum++;
                 }
-                System.out.println(">------------<");
-                System.out.println(mapProdColumnNamesToDatatype);
-                rsProdTables.first();
-                while (rsRestoredTables.next()) {
-                    listRestoredTables.add(rsRestoredTables.getString(1));
+                rsProdRows.first();
+
+                Map<String, String> mapRestoredColumnNamesToDatatype = new HashMap<>();
+                columnCount = metaDataRestoredRows.getColumnCount();
+                columnNum = 1;
+                while (rsRestoredRows.next() && columnNum <= columnCount) {
+                    mapRestoredColumnNamesToDatatype.put(metaDataRestoredRows.getColumnName(columnNum), metaDataRestoredRows.getColumnTypeName(columnNum));
+                    columnNum++;
                 }
-                rsRestoredTables.first();
-                if (listProdTables.equals(listRestoredTables) == true) {
-                    logger.info("Both databases have the same number of tables ({} tables).", listProdTables.size());
+                rsRestoredRows.first();
+
+                List<String> listTablesWithBadColumns = new ArrayList<>();
+                if (!mapProdColumnNamesToDatatype.equals(mapRestoredColumnNamesToDatatype)) {
+                    //System.out.println(mapProdColumnNamesToDatatype.keySet());
+                    listTablesWithBadColumns.add(tableName);
+                    //System.out.println("Table " +tableName+ "has corrupted columns ");
                 }
-                else {
-                    logger.info("The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", listProdTables.size(), listRestoredTables.size());
-                    // Get names of tables missing from restored database
-                    List<String> listMissingTables = new ArrayList<>();
-                    for (int counter = 0; counter < listProdTables.size(); counter++) {
-                        if (!listRestoredTables.contains(listProdTables.get(counter))) {
-                            listMissingTables.add(listProdTables.get(counter));
-                        }
-                    }
-                    // Log missing table names
-                    logger.info("The following table(s) are missing from the restored database:");
-                    for (String s : listMissingTables) {logger.info("\t --> {}", s);}
-                }
+                // Log table names with bad columns (ie. column names to datatypes don't match that of the production database)
+                for (String table : listTablesWithBadColumns) {logger.warn("Table {} has corrupted column(s)", table);}
+
+                // Check if the rows are the same
 
 
             }
-            /*String query = "SELECT * FROM " +dbName +"." +tableName+";";
 
-            // Prepared Statements
-            PreparedStatement pstProd = conProd.prepareStatement(query);
-            PreparedStatement pstRestored = conRestored.prepareStatement(query);
 
-            // Execute SQL query
-            ResultSet rsProd = pstProd.executeQuery();
-            ResultSet rsRestored = pstRestored.executeQuery();
-
-            // Get Meta Data
-            ResultSetMetaData rsProdMetaData = rsProd.getMetaData();
-            ResultSetMetaData rsRestoredMetaData = rsRestored.getMetaData();
-
-            // Check metadata
-
-            // Check number of all columns
-            int prodColumnCount = rsProdMetaData.getColumnCount();
-            int restoredColumnCount = rsRestoredMetaData.getColumnCount();
-            System.out.println("prodColumnCount: " + prodColumnCount);
-            System.out.println("restoredColumnCount: " + restoredColumnCount);
-
-            //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
-            if (prodColumnCount > restoredColumnCount) {
-                logger.info("Not all columns present in restored database table.");
-            } else {logger.info("The databases have the same number of columns.");}
-
-            // Of those columns in restored database, do the names match that of the names in the production database
-            int columnCount = 1;
-            while (rsProd.next() && rsRestored.next() && prodColumnCount <= columnCount) {
-                System.out.println("chking prod: " +rsProdMetaData.getColumnName(1));
-                System.out.println("chking restored: " +rsRestoredMetaData.getColumnName(1));
-            }
-
-            // Compare the objects returned in each column of each row
-            // Query orders the result set (by primary id) descending
-            // Check that we have a ResultSet from each database
-            if (rsProd == null || rsRestored == null) {
-                logger.info("Alert: We have a NULL database.");
-                return false;
-            }
-
-            // Get primary key name and datatype
-            // How to not hard-code primary key datatype?? don't hard-code db or table (wiki and wiki_recentchanges) ???????
-            // Plus data type differences ie. Integer Unsigned (SQL) vs int (java)
-
-            DatabaseMetaData metaData = conProd.getMetaData();
-            ResultSet primaryKeys = metaData.getPrimaryKeys(dbName, null, tableName);
-            primaryKeys.next();
-
-            // get all primary key id
-            String primaryKeyId = primaryKeys.getString("COLUMN_NAME"); // returns rc_id for ex
-
-            // Get primary key data type --> but still how to assign it dynamically?
-            int c = rsProdMetaData.getColumnCount();
-            String dataType = "";
-            for (int i = 1; i <= c; i++) {
-                if (rsProdMetaData.getColumnName(i).equals(primaryKeyId)) {
-                    dataType = rsProdMetaData.getColumnTypeName(i);
-                    break;
-                }
-            }
-            System.out.println("primary KeyId name: " + primaryKeyId);
-            dataType = dataType.toLowerCase();
-            System.out.println("primary KeyId type: " + dataType);
-            //if (dataType.contains("int") || dataType.contains("dec") || dataType.contains("num") || dataType.contains("flo") || dataType.contains("dou") || dataType.contains("bit")) {
-                //int rdRestoredStartId = rsRestored.getInt(primaryKeyId);
-               // int rsProdStartId = rsProd.getInt(primaryKeyId);
-               // System.out.println("restoredStartId: " + rdRestoredStartId + "; rsProdStartId: " + rsProdStartId);
-            //}
-            //else {
-            //    System.out.println("FJDSLKFJDSLFJDSKL:FJDSLFJDSLK:");
-            //    logger.debug("Primary key is not numeric: cannot get primary key data type");
-             //   return false;
-            //}
-
-            // Check that the next row exists before looping
-            if (!rsRestored.next() || !rsProd.next()) {
-                logger.info("Alert: No row in database.");
-                return false;
-            }
-
-            // Compare table rows. Report whether or not they all match.
+            /**
+ // Compare table rows. Report whether or not they all match.
             // This only checks on those present in the restored database. Restored database doesn't include changes made since restore.
             rsProd.first();
             rsRestored.first();
@@ -370,6 +324,41 @@ public class SQL {
     }
 
 
+    /**
+     * // Get primary key name and datatype
+     *             // How to not hard-code primary key datatype?? don't hard-code db or table (wiki and wiki_recentchanges) ???????
+     *             // Plus data type differences ie. Integer Unsigned (SQL) vs int (java)
+     *
+     *             DatabaseMetaData metaData = conProd.getMetaData();
+     *             ResultSet primaryKeys = metaData.getPrimaryKeys(dbName, null, tableName);
+     *             primaryKeys.next();
+     *
+     *             // get all primary key id
+     *             String primaryKeyId = primaryKeys.getString("COLUMN_NAME"); // returns rc_id for ex
+     *
+     *             // Get primary key data type --> but still how to assign it dynamically?
+     *             int c = rsProdMetaData.getColumnCount();
+     *             String dataType = "";
+     *             for (int i = 1; i <= c; i++) {
+     *                 if (rsProdMetaData.getColumnName(i).equals(primaryKeyId)) {
+     *                     dataType = rsProdMetaData.getColumnTypeName(i);
+     *                     break;
+     *                 }
+     *             }
+     *             System.out.println("primary KeyId name: " + primaryKeyId);
+     *             dataType = dataType.toLowerCase();
+     *             System.out.println("primary KeyId type: " + dataType);
+     *             //if (dataType.contains("int") || dataType.contains("dec") || dataType.contains("num") || dataType.contains("flo") || dataType.contains("dou") || dataType.contains("bit")) {
+     *                 //int rdRestoredStartId = rsRestored.getInt(primaryKeyId);
+     *                // int rsProdStartId = rsProd.getInt(primaryKeyId);
+     *                // System.out.println("restoredStartId: " + rdRestoredStartId + "; rsProdStartId: " + rsProdStartId);
+     *             //}
+     *             //else {
+     *             //    System.out.println("FJDSLKFJDSLFJDSKL:FJDSLFJDSLK:");
+     *             //    logger.debug("Primary key is not numeric: cannot get primary key data type");
+     *              //   return false;
+     *             //}
+     */
     /**    DatabaseMetaData metaDataProd = conProd.getMetaData();
      DatabaseMetaData metaDataRestore = conRestored.getMetaData();
 
