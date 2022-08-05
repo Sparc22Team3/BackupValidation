@@ -166,36 +166,4 @@ public class Util {
 
         logger.info("S3 Bucket {} has been deleted", bucketName);
     }
-
-    /**
-     * Retrieves the policy assigned to the original s3 bucket (production bucket), and switches out the resource name
-     * in the policy, and then adding the policy to the restored s3 bucket.
-     * The policy is set for s3 objects to have public access.
-     * @param s3ProductionBucketName of the original s3 bucket
-     * @param s3RestoredBucketName of the restored s3 bucket
-     * @param s3Client to perform the policy operations
-     */
-    public static void copyS3Policy(String s3ProductionBucketName, String s3RestoredBucketName, S3Client s3Client){
-
-        GetBucketPolicyRequest getPolicyReq = GetBucketPolicyRequest.builder().bucket(s3ProductionBucketName).build();
-
-        try {
-            // get policy from production bucket
-            logger.info("Retrieving policy from bucket: " + s3ProductionBucketName);
-            GetBucketPolicyResponse getPolicyRsp = s3Client.getBucketPolicy(getPolicyReq);
-            String policyText = getPolicyRsp.policy();
-
-            // replace ARN (bucket name) to that of the restored bucket
-            String replacementPolicy = policyText.replace(s3ProductionBucketName, s3RestoredBucketName);
-
-            // put replacementPolicy to restored bucket
-            logger.info("Putting policy to bucket: " + s3RestoredBucketName);
-            PutBucketPolicyRequest putPolicyReq = PutBucketPolicyRequest.builder().bucket(s3RestoredBucketName).policy(replacementPolicy).build();
-            s3Client.putBucketPolicy(putPolicyReq);
-
-        } catch (S3Exception e) {
-            logger.error("Error in copying policy from {} to {}", s3ProductionBucketName, s3RestoredBucketName, e);
-            System.exit(1);
-        }
-    }
 }

@@ -5,6 +5,10 @@ import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobRequest;
 import software.amazon.awssdk.services.backup.model.DescribeRestoreJobResponse;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketPolicyResponse;
+import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
@@ -34,6 +38,7 @@ public class S3Restore extends AWSRestore implements Callable<String> {
     /**
      * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
      * longer than 20 minutes.
+     * If restore job is successful, copy bucket policy from production bucket to restored bucket.
      * Throws error if job isn't completed within allotted time.
      * @return a string of the bucket name
      * @throws InterruptedException when sleep is interrupted
@@ -75,6 +80,9 @@ public class S3Restore extends AWSRestore implements Callable<String> {
             return null;
         }
 
+        // copy bucket policy from production bucket to restored bucket
+        copyS3Policy();
+
         return restoreBucketName;
     }
 
@@ -96,7 +104,7 @@ public class S3Restore extends AWSRestore implements Callable<String> {
         // Boolean to indicate whether to encrypt the restored data
         output.put("Encrypted", "true");
 
-        //? CreationToken: An idempotency token
+        // CreationToken: An idempotency token
         output.put("CreationToken", "");
 
         // EncryptionType: The type of encryption to encrypt your restored objects. Options are original (same encryption as the original object), SSE-S3, or SSE-KMS).
@@ -105,4 +113,33 @@ public class S3Restore extends AWSRestore implements Callable<String> {
         return output;
     }
 
+    /**
+     * Retrieves the policy assigned to the original s3 bucket (production bucket), and switches out the resource name
+     * in the policy, and then adding the policy to the restored s3 bucket.
+     * The policy is set for s3 objects to have public access.
+     */
+    private void copyS3Policy(){
+
+        String s3ProductionBucketName = instanceSettings.getProductionName();
+        GetBucketPolicyRequest getPolicyReq = GetBucketPolicyRequest.builder().bucket(s3ProductionBucketName).build();
+
+        try {
+            // get policy from production bucket
+            logger.info("Retrieving policy from bucket: " + s3ProductionBucketName);
+            GetBucketPolicyResponse getPolicyRsp = s3Client.getBucketPolicy(getPolicyReq);
+            String policyText = getPolicyRsp.policy();
+
+            // replace ARN (bucket name) to that of the restored bucket
+            String replacementPolicy = policyText.replace(s3ProductionBucketName, restoreBucketName);
+
+            // put replacementPolicy to restored bucket
+            logger.info("Putting policy to bucket: " + restoreBucketName);
+            PutBucketPolicyRequest putPolicyReq = PutBucketPolicyRequest.builder().bucket(restoreBucketName).policy(replacementPolicy).build();
+            s3Client.putBucketPolicy(putPolicyReq);
+
+        } catch (S3Exception e) {
+            logger.error("Error in copying policy from {} to {}", s3ProductionBucketName, restoreBucketName, e);
+            System.exit(1);
+        }
+    }
 }
