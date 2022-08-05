@@ -83,19 +83,8 @@ public class SQL {
         HikariDataSource dsProd = new HikariDataSource(configProd);
         HikariDataSource dsRestored = new HikariDataSource(configRestored);
 
-        // Select the database to use --> do we want this to automatically check all databases or be customize-able to only check specific dbs?
-        // Query orders the result set (by primary id) descending !!
-        String dbName = "Wiki";
-        //String tableName = "";
-        //tableName = "wiki_recentchanges"; //primaryKey = "rc_id";
-        //tableName = "wiki_revision"; //primaryKey = "rev_id";
-        //tableName = "wiki_text"; //primaryKey = "old_id";
-        //tableName = "wiki_updatelog"; //primaryKey = "ul_key";
-        //tableName = "wiki_redirect";
 
-
-
-        // get back column names and datatypes and all else in the metadata --> called schema or structure for all the info that isn't data --> how they are all set up
+        // Connect to database
         try (Connection conProd = dsProd.getConnection();
              Connection conRestored = dsRestored.getConnection();
         ) {
@@ -118,7 +107,6 @@ public class SQL {
             ResultSetMetaData metaDataRestoredAllDbs = rsRestoredAllDbs.getMetaData();
 
             // Would like to loop on the tree sets b/c ordering of ResultSets not guaranteed ;;; I'll look into whether or not the order is not natural but is consistent and then it wouldn't matter
-            // Code saved below in note if need to re-work it to use it
 
             String rsProdDbName = "";
             String rsRestoredDbName = "";
@@ -139,6 +127,8 @@ public class SQL {
 
 
             // Query for all tables of a specific database
+            // Select the database to use --> do we want this to automatically check all databases or be customize-able to only check specific dbs?
+            String dbName = "Wiki";
             rsProdAllDbs.first();
             rsRestoredAllDbs.first();
             dbName = rsRestoredAllDbs.getString(1);
