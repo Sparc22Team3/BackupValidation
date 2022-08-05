@@ -51,12 +51,12 @@ public class EC2ValidateInstance {
   public Boolean validateWebFunctionality(Map<String, String> functionality, String entryPoint) throws Exception {
 
     // Check if we can access the EC2 webserver given an entry point.
-    if (!(validateWithPing(entryPoint))) {
+    // if (!(validateWithPing(entryPoint))) {
 
-      logger.warn("Validation Error: Could Note Connect to Website, Status Code != 200");
+    //   logger.warn("Validation Error: Could Note Connect to Website, Status Code != 200");
 
-      return false;
-    }
+    //   return false;
+    // }
 
     // initialize webdriver
     ChromeOptions options = new ChromeOptions();
@@ -68,6 +68,7 @@ public class EC2ValidateInstance {
     ChromeDriverService service = new ChromeDriverService.Builder()
         .usingDriverExecutable(new File("/home/sparcDev/chromedriver"))
         .build();
+
     driver = new ChromeDriver(service, options);
 
     // recompute url
@@ -125,6 +126,18 @@ public class EC2ValidateInstance {
   /**
    * Check main page title against user defined value.
    * 
+   * YOU HAVE THE PROD AVAILABLE
+   * 
+   * Type (mediaWiki, title: value, map tags by id/expected values, login username/pw (input boxes/id button), 
+   * search terms:search id, entrypoint for every test)
+   * 
+   * Will get values from config - web app validator class
+   * Method call, logic to decide which tests to run. Thread exector.
+   * Check for image/images. (id/make sure image loaded - event triggered if doesn't load)
+   * 
+   * S3 url (base of url is correct s3 url) -> pulling from correct bucket/object
+   * 
+   * Restore/Same settings (original bucket was public its public?)
    * @param url
    * @param expectedValue
    * @return
@@ -183,6 +196,9 @@ public class EC2ValidateInstance {
    * Requires the database to be connected in order to verify the login. May need
    * to coordinate with RDS connection.
    * 
+   * //Have instance be production/check validation script if works. 
+   * 
+   * 
    * @param url
    * @param driver
    * @return
@@ -200,7 +216,15 @@ public class EC2ValidateInstance {
     String username = "Sparc";
     String password = "DinnerCrime";
 
-    // "Should these be in json config?"
+    // "Should these be in json config?" Media wiki will have same id/not all webpages
+    // Get us into relm of plan/generic/anything that can be generic
+    // Title always will be title tag from the head. 
+    //Make abstract class that has stuff that can be completely generic
+    //Head section Title/
+    //Provide map of id elements and expected value of main page.
+    //Abstract validatior/media wiki validator class
+    //Pass method as a peremator (class from strings/use media wiki end)
+    //Check login.
     WebElement userInput = driver.findElement(By.id("wpName1"));
     WebElement passInput = driver.findElement(By.id("wpPassword1"));
     WebElement login = driver.findElement(By.name("wploginattempt"));
@@ -212,6 +236,7 @@ public class EC2ValidateInstance {
     // check if the main page contains the user name.
     WebElement element = driver.findElement(By.xpath("//*[contains(text(), '" + username + "')]"));
 
+    //Did page change/user name should somewhere
     logger.info(element.getText());
 
     // Will fail without connection to database.
@@ -224,6 +249,8 @@ public class EC2ValidateInstance {
 
   /**
    * Checks search functionality given a user defined term.
+   * 
+   * S
    * 
    * @return
    */
