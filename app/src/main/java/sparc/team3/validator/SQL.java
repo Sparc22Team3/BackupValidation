@@ -1,5 +1,6 @@
 package sparc.team3.validator;
 
+import com.sun.source.tree.Tree;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
@@ -20,11 +21,15 @@ import java.util.*;
 public class SQL {
 
     /**
-     * get db
-     * use prepared statement
-     * get tables
-     * get column names
-     * validate data from here, whatever that means
+     * --> Add null checks to all checks
+     * Check if all databases are present in restored
+     * Choose specific db to test further or loop and automatically check all databases????
+     * Check if all tables are present in database(s)
+     * CHECK TABLES for corruption (all tables of all dbs or just all tables of chosen db?)
+     * Check if all columns are present in on chosen restored table (or in all tables of chosen database or in all tables of all databases??)
+     *      column checking ==> number of columns, names of columns, data types of columns
+     * Check if all rows are the same
+     *      don't have a definition of that yet ==> getObject returns column value as an object, so would need to do so individually for each col of each row
      */
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
         if(isValid()) {
@@ -78,22 +83,14 @@ public class SQL {
         HikariDataSource dsProd = new HikariDataSource(configProd);
         HikariDataSource dsRestored = new HikariDataSource(configRestored);
 
-        // Select the database to use
-            // Still hard-coding primary key id
-        String dbName = " ";
-        String tableName = " ";
-        dbName = "Wiki";
+        // Select the database to use --> do we want this to automatically check all databases or be customize-able to only check specific dbs?
+        String dbName = "Wiki";
+        String tableName = "";
         //tableName = "wiki_recentchanges"; //primaryKey = "rc_id";
         //tableName = "wiki_revision"; //primaryKey = "rev_id";
         //tableName = "wiki_text"; //primaryKey = "old_id";
         //tableName = "wiki_updatelog"; //primaryKey = "ul_key";
         tableName = "wiki_redirect";
-        String primaryKey = "rev_id";
-
-        String query = "SELECT * FROM " +dbName +"." +tableName+";";
-        //String query = "SELECT * FROM " +dbName +"." +tableName+"\n" +
-        //        "  ORDER BY " +primaryKey+ " DESC;";
-
 
 
 
@@ -102,12 +99,50 @@ public class SQL {
              Connection conRestored = dsRestored.getConnection();
         ) {
 
+            // Check if all databases are present in the restored database
+            // Put all Databases in list ---> doing this or specifying db above?
+            PreparedStatement pstProdAllDbs = conProd.prepareStatement("SHOW DATABASES;");
+            PreparedStatement pstRestoredAllDbs = conProd.prepareStatement("SHOW DATABASES;");
+
+            ResultSet rsProdAllDbs = pstProdAllDbs.executeQuery();
+            ResultSet rsRestoredAllDbs = pstRestoredAllDbs.executeQuery();
+
+            ResultSetMetaData metaDataProdAllDbs = rsProdAllDbs.getMetaData();
+            ResultSetMetaData metaDataRestoredAllDbs = rsRestoredAllDbs.getMetaData();
+
+            // Would like to loop on the tree sets b/c ordering of ResultSets not guaranteed ;;; I'll look into whether or not the order is not natural but is consistent and then it wouldn't matter
+            // Code saved below in note if need to re-work it to use it
+
+            String rsProdDbName = "";
+            String rsRestoredDbName = "";
+            List<String> listDbsNotInRestored = new ArrayList<>();
+            while (rsProdAllDbs.next() && rsRestoredAllDbs.next()) {
+                rsProdDbName = rsProdAllDbs.getString(1);
+                rsRestoredDbName = rsRestoredAllDbs.getString(1);
+                if (!rsProdDbName.equals(rsRestoredDbName)) {
+                    listDbsNotInRestored.add(rsRestoredDbName);
+                }
+            }
+            if (listDbsNotInRestored.isEmpty()) {logger.info("All databases are present in restored.");}
+            else {
+                for (String s : listDbsNotInRestored) {
+                    logger.info("{} database is not present.", s);
+                }
+            }
+
+
+            // Query for all tables of a specific database
+                // Choose database to check or loop on all ??
+            rsProdAllDbs.first();
+            rsRestoredAllDbs.first();
+            dbName = rsRestoredAllDbs.getString(1);
+
             // Check to see if all tables are present in restored database
             PreparedStatement pstProdDb = conProd.prepareStatement("USE " +dbName+ ";");
             PreparedStatement pstRestoredDb = conRestored.prepareStatement("USE " +dbName+ ";");
 
-            ResultSet rsProd1 = pstProdDb.executeQuery();
-            ResultSet rsRestored1 = pstRestoredDb.executeQuery();
+            ResultSet rsProdUseDb = pstProdDb.executeQuery();
+            ResultSet rsRestoredUseDb = pstRestoredDb.executeQuery();
 
             PreparedStatement pstProdTables = conProd.prepareStatement("SHOW TABLES;");
             PreparedStatement pstRestoredTables = conRestored.prepareStatement("SHOW TABLES;");
@@ -115,17 +150,37 @@ public class SQL {
             ResultSet rsProdTables = pstProdTables.executeQuery();
             ResultSet rsRestoredTables = pstRestoredTables.executeQuery();
 
-            ResultSetMetaData rsProdMetaData1 = rsProdTables.getMetaData();
-            ResultSetMetaData rsRestoredMetaData1 = rsRestoredTables.getMetaData();
+            ResultSetMetaData metaDataProdTables = rsProdTables.getMetaData();
+            ResultSetMetaData metaDataRestoredTables = rsRestoredTables.getMetaData();
 
             // Check if number of tables is the same.
-            int numTablesProd = 0;
-            int numTablesRestored = 0;
-            while (rsProdTables.next()) {numTablesProd++;}
-            while (rsRestoredTables.next()) {numTablesRestored++;}
-            // Log results
-            if (numTablesProd != numTablesRestored) {logger.info("The production and restored databases have a different number of tables.");}
-            else { logger.info("The production and restored databases have the same number of tables.");};
+            List<String> listProdTables = new ArrayList<>();
+            List<String> listRestoredTables = new ArrayList<>();
+            while (rsProdTables.next()) {
+                listProdTables.add(rsProdTables.getString(1));
+            }
+            rsProdTables.first();
+            while (rsRestoredTables.next()) {
+                listRestoredTables.add(rsRestoredTables.getString(1));
+            }
+            rsRestoredTables.first();
+            if (listProdTables.equals(listRestoredTables) == true) {
+                logger.info("Both databases have the same number of tables ({} tables).", listProdTables.size());
+            }
+            else {
+                logger.info("The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", listProdTables.size(), listRestoredTables.size());
+                // Get names of tables missing from restored database
+                List<String> listMissingTables = new ArrayList<>();
+                for (int counter = 0; counter < listProdTables.size(); counter++) {
+                    if (!listRestoredTables.contains(listProdTables.get(counter))) {
+                        listMissingTables.add(listProdTables.get(counter));
+                    }
+                }
+                // Log missing table names
+                logger.info("The following table(s) are missing from the restored database:");
+                for (String s : listMissingTables) {logger.info("\t --> {}", s);}
+            }
+
 
             // Run CHECK TABLES on all tables of restored database
             rsRestoredTables.first();
@@ -146,25 +201,8 @@ public class SQL {
             for (ResultSet r : corruptedDbList) {logger.info("Corrupted table: : " + r.getString(1));}
 
 
-            DatabaseMetaData metaDataProd = conProd.getMetaData();
-            DatabaseMetaData metaDataRestore = conRestored.getMetaData();
-
-        /**    String[] typesProd = {"TABLE"};
-            String[] typesRestored = {"TABLE"};
-            //Retrieving the columns in the database
-            ResultSet tablesProd = metaDataProd.getTables(null, null, "%", typesProd);
-            ResultSet tablesRestored = metaDataProd.getTables(null, null, "%", typesRestored);
-            int numTablesMatching = 0;
-            while (tablesProd.next() && tablesRestored.next()) {
-                final Object rsProdTableObj = tablesProd.getObject(1);
-                final Object rsRestoredTableObj = tablesRestored.getObject(1);
-                if (!rsProdTableObj.equals(rsRestoredTableObj)) {
-                    logger.info("Table(s) missing.");
-                    return false;
-                } else {numTablesMatching++;}
-            }
-            logger.info("All {} tables are in both databases.", numTablesMatching);
-*/
+            // Check if all columns present and if all rows match
+            String query = "SELECT * FROM " +dbName +"." +tableName+";";
 
             // Prepared Statements
             PreparedStatement pstProd = conProd.prepareStatement(query);
@@ -178,11 +216,27 @@ public class SQL {
             ResultSetMetaData rsProdMetaData = rsProd.getMetaData();
             ResultSetMetaData rsRestoredMetaData = rsRestored.getMetaData();
 
-            if (rsProdMetaData.getColumnCount() > rsRestoredMetaData.getColumnCount()) {
-                logger.info("Not all columns present in restored database table");
+            // Check metadata
+
+            // Check number of all columns
+            int prodColumnCount = rsProdMetaData.getColumnCount();
+            int restoredColumnCount = rsRestoredMetaData.getColumnCount();
+            System.out.println("prodColumnCount: " + prodColumnCount);
+            System.out.println("restoredColumnCount: " + restoredColumnCount);
+
+            //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
+            if (prodColumnCount > restoredColumnCount) {
+                logger.info("Not all columns present in restored database table.");
+            } else {logger.info("The databases have the same number of columns.");}
+
+            // Of those columns in restored database, do the names match that of the names in the production database
+            int columnCount = 1;
+            while (rsProd.next() && rsRestored.next() && prodColumnCount <= columnCount) {
+                System.out.println("chking prod: " +rsProdMetaData.getColumnName(1));
+                System.out.println("chking restored: " +rsRestoredMetaData.getColumnName(1));
             }
 
-            // Compare the objects returned in each row
+            // Compare the objects returned in each column of each row
             // Query orders the result set (by primary id) descending
             // Check that we have a ResultSet from each database
             if (rsProd == null || rsRestored == null) {
@@ -210,9 +264,9 @@ public class SQL {
                     break;
                 }
             }
-            System.out.println("primary KyeId: " + primaryKeyId);
+            System.out.println("primary KeyId name: " + primaryKeyId);
             dataType = dataType.toLowerCase();
-            System.out.println("lower case: " + dataType);
+            System.out.println("primary KeyId type: " + dataType);
             //if (dataType.contains("int") || dataType.contains("dec") || dataType.contains("num") || dataType.contains("flo") || dataType.contains("dou") || dataType.contains("bit")) {
                 //int rdRestoredStartId = rsRestored.getInt(primaryKeyId);
                // int rsProdStartId = rsProd.getInt(primaryKeyId);
@@ -231,12 +285,16 @@ public class SQL {
             }
 
             // Compare table rows. Report whether or not they all match.
+            // This only checks on those present in the restored database. Restored database doesn't include changes made since restore.
+            rsProd.first();
+            rsRestored.first();
             int column = 1;
             int numColumnsRestored = rsRestoredMetaData.getColumnCount();
             int numColumnsNotValid = 0;
             while (rsProd.next() && rsRestored.next() && column <= numColumnsRestored) {
-                final Object rsProdObj = rsProd.getObject(column);
+                final Object rsProdObj = rsProd.getObject(column); //NOPE. This just returns the value of the column for this row.
                 final Object rsRestoredObj = rsRestored.getObject(column);
+
                 if (!rsProdObj.equals(rsRestoredObj)) {
                     numColumnsNotValid++;
                     logger.info("Validity: Prod and Restored are NOT equal in column {}", column);
@@ -260,17 +318,55 @@ public class SQL {
         return true;
     }
 
-/*
-Sort descending
-if there are results from both
-    get first result from restored
-    loop production results until id matches restored
-    check the first results
 
-    loop through rest of results from both
+    /**    DatabaseMetaData metaDataProd = conProd.getMetaData();
+     DatabaseMetaData metaDataRestore = conRestored.getMetaData();
 
+     String[] typesProd = {"TABLE"};
+     String[] typesRestored = {"TABLE"};
+     //Retrieving the columns in the database
+     ResultSet tablesProd = metaDataProd.getTables(null, null, "%", typesProd);
+     ResultSet tablesRestored = metaDataProd.getTables(null, null, "%", typesRestored);
+     int numTablesMatching = 0;
+     while (tablesProd.next() && tablesRestored.next()) {
+     final Object rsProdTableObj = tablesProd.getObject(1);
+     final Object rsRestoredTableObj = tablesRestored.getObject(1);
+     if (!rsProdTableObj.equals(rsRestoredTableObj)) {
+     logger.info("Table(s) missing.");
+     return false;
+     } else {numTablesMatching++;}
+     }
+     logger.info("All {} tables are in both databases.", numTablesMatching);
+     */
 
- */
+// for putting all dbs into set if necessary for ordering situation from result sets
+    /**    Set<ResultSet> treeSetProdAllDbs = new TreeSet<>();
+     while(rsProdAllDbs.next()) {
+     treeSetProdAllDbs.add(rsProdAllDbs);
+     //System.out.println(":: " + rsProdAll.getString(1));
+     }
+     rsProdAllDbs.first();
+
+     Set<ResultSet> treeSetRestoredAllDbs = new TreeSet<>();
+     while(rsRestoredAllDbs.next()) {
+     treeSetRestoredAllDbs.add(rsRestoredAllDbs);
+     System.out.println(":: " +rsRestoredAllDbs.getString(1));
+     }
+     rsRestoredAllDbs.first();
+
+     // Compare lists of databases (looping on the tree sets b/c ordering of ResultSets not guaranteed)
+     Iterator<ResultSet> iterProdAllDbs = treeSetProdAllDbs.iterator();
+     Iterator<ResultSet> iterRestoredAllDbs = treeSetRestoredAllDbs.iterator();
+     List<ResultSet> listDbsNotInRestored = new ArrayList<>();
+     while(iterRestoredAllDbs.hasNext() && iterProdAllDbs.hasNext()) {
+     String prodDbName = iterProdAllDbs.next().getString(1);
+     String restoredDbName = iterRestoredAllDbs.next().getString(1);
+     if (prodDbName.equals(restoredDbName)) {
+     System.out.println("yes: " +restoredDbName);
+     }
+     }
+     List<ResultSet> listProdAllDbs = new ArrayList<>(treeSetProdAllDbs);
+     dbName = listProdAllDbs.get(0).getString(1);*/
 
     // Sanity check on number of rows of each ==> delete
     /***         int prodRows = 0;
