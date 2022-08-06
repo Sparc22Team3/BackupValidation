@@ -10,11 +10,9 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Reservation;
 import sparc.team3.validator.util.InstanceSettings;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 /**
@@ -27,13 +25,12 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
     private final Ec2Client ec2Client;
 
     public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings) {
-        super(backupClient, instanceSettings);
-
+        super(backupClient, instanceSettings, "EC2");
         this.ec2Client = ec2Client;
     }
 
     @Override
-    public Instance call() throws InterruptedException {
+    public Instance call() throws InterruptedException, RecoveryPointsExhaustedException {
         return restoreEC2FromBackup();
     }
     /**
@@ -43,7 +40,7 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
      * @return a string of the instance id
      * @throws InterruptedException when sleep is interrupted
      */
-    public Instance restoreEC2FromBackup() throws InterruptedException {
+    public Instance restoreEC2FromBackup() throws InterruptedException, RecoveryPointsExhaustedException {
 
         String restoreJobId = startRestore();
         if(restoreJobId == null)
@@ -166,13 +163,5 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
             logger.warn("More than 1 instance was returned");
 
         return instance;
-    }
-    
-    /**
-     * Returns recovery points in sorted order. 
-     * @return a TreeMap of recoveryPointsByBackupVault
-     */
-    public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
-        return recoveryPoints;
     }
 }

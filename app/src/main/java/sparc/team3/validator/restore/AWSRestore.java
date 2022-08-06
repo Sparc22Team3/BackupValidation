@@ -7,38 +7,39 @@ import software.amazon.awssdk.services.backup.model.*;
 import sparc.team3.validator.util.InstanceSettings;
 
 import java.time.Instant;
-import java.util.Collections;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.TreeSet;
 
 public abstract class AWSRestore {
     final BackupClient backupClient;
     final InstanceSettings instanceSettings;
-    final TreeMap<Instant, RecoveryPointByBackupVault> recoveryPoints;
+    final TreeSet<RecoveryPointByBackupVault> recoveryPoints;
     RecoveryPointByBackupVault currentRecoveryPoint;
     Map<String, String> metadata;
     final Logger logger;
-    int recoveryNumber;
+    final String resourceType;
+    Iterator<RecoveryPointByBackupVault> recoveryPointSetIterator;
 
 
-    public AWSRestore(BackupClient backupClient, InstanceSettings instanceSettings) {
+    public AWSRestore(BackupClient backupClient, InstanceSettings instanceSettings, String resourceType) {
         this.backupClient = backupClient;
         this.instanceSettings = instanceSettings;
+        this.resourceType = resourceType;
         this.recoveryPoints = getRecoveryPoints(instanceSettings.getBackupVault());
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
-        recoveryNumber = 0;
     }
 
     /**
      * Start the restore job for a given recovery point.
      * @return AWSRestore Job ID
      */
-    synchronized String startRestore() {
-        try {
-            currentRecoveryPoint = getRecentRecoveryPoint();
-        } catch (Exception e) {
-            return null;
-        }
+    synchronized String startRestore() throws RecoveryPointsExhaustedException {
+
+        currentRecoveryPoint = getNextRecoveryPoint();
+
         metadata = setMetadata();
         logger.info("Attempting to restore recovery point: {}", currentRecoveryPoint.recoveryPointArn());
 
@@ -64,50 +65,62 @@ public abstract class AWSRestore {
      * @return a TreeMap of the recovery points in the backup vault
      *
      */
-    TreeMap<Instant, RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
+    TreeSet<RecoveryPointByBackupVault> getRecoveryPoints(String backupVaultName){
 
-        TreeMap<Instant, RecoveryPointByBackupVault> output =
-                new TreeMap<>(Collections.reverseOrder());
+        if(recoveryPoints != null)
+            return recoveryPoints;
+
+        TreeSet<RecoveryPointByBackupVault> recoveryPointsTreeSet = new TreeSet<>( new RecoveryPointDateComparator());
+
+        Instant nowMinusDay = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        nowMinusDay = nowMinusDay.minus(1, ChronoUnit.DAYS);
 
         //call and response with amazon to get list of vault backups
         ListRecoveryPointsByBackupVaultRequest request =
                 ListRecoveryPointsByBackupVaultRequest.builder().
-                        backupVaultName(backupVaultName).build();
+                        backupVaultName(backupVaultName).byResourceType(resourceType).byCreatedAfter(nowMinusDay).build();
 
         ListRecoveryPointsByBackupVaultResponse response =
                 backupClient.listRecoveryPointsByBackupVault(request);
 
-        for(RecoveryPointByBackupVault r:
-                response.recoveryPoints()){
+        recoveryPointsTreeSet.addAll(response.recoveryPoints());
 
-            output.put(r.creationDate(), r);
-        }
+        recoveryPointSetIterator = recoveryPointsTreeSet.iterator();
 
-        return output;
+        return recoveryPointsTreeSet;
     }
 
     /**
      * Return most recent recovery point from vault.
      * @return a RecoveryPointByBackupVault
-     * @throws Exception when recovery points have been exhausted
+     * @throws RecoveryPointsExhaustedException when recovery points have been exhausted
      */
 
-    synchronized RecoveryPointByBackupVault getRecentRecoveryPoint() throws Exception{
+    synchronized RecoveryPointByBackupVault getNextRecoveryPoint() throws RecoveryPointsExhaustedException{
 
-        if (recoveryNumber > recoveryPoints.size()){
-
-            throw new Exception("Recovery Points Exhausted");
-
+        if (!recoveryPointSetIterator.hasNext()){
+            throw new RecoveryPointsExhaustedException("Recovery Points Exhausted");
         }
 
-        return recoveryPoints.get(recoveryPoints.keySet().toArray()[recoveryNumber]);
+        return recoveryPointSetIterator.next();
     }
 
-    public synchronized void incrementRecoveryNumber(){
-        recoveryNumber++;
+    static class RecoveryPointDateComparator implements Comparator<RecoveryPointByBackupVault> {
+        @Override
+        public int compare(RecoveryPointByBackupVault o1, RecoveryPointByBackupVault o2) {
+            int result = o2.creationDate().compareTo(o1.creationDate());
+
+            if(result == 0)
+                result = o2.recoveryPointArn().compareTo(o1.recoveryPointArn());
+
+            return result;
+        }
     }
 
-    public synchronized int getRecoveryNumber(){
-        return recoveryNumber;
+    public static class RecoveryPointsExhaustedException extends Exception{
+
+        public RecoveryPointsExhaustedException(String message) {
+            super(message);
+        }
     }
 }
