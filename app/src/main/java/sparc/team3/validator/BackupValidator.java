@@ -260,6 +260,8 @@ public class BackupValidator {
 
         // Stay in the loop until all three have been checked.
         while (!ec2Checked || !rdsChecked || !s3Checked) {
+            // Only run the loop once every minute.  None of our tasks are particularly quick.
+            Thread.sleep(60000);
             /* Wait until the restore is done before attempting instance validation
              * Check if return value from future is set or not.  If it is,
              * this block has already been run on this result
@@ -348,8 +350,6 @@ public class BackupValidator {
                 }
                 s3Checked = true;
             }
-            // Only run the loop once every minute.  None of our tasks are particularly quick.
-            Thread.sleep(60000);
         }
     }
 
