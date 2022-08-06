@@ -1,6 +1,7 @@
 //package com.example.myapp;
 
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
@@ -42,9 +43,9 @@ public class RDS {
                     .builder()
                     .region(region)
                     .build();
-
+            BackupClient backupClient = BackupClient.builder().region(region).build();
             RDSRestore rdsRestore
-                     = new RDSRestore(rdsClient, instanceSettings);
+                     = new RDSRestore(backupClient, rdsClient, instanceSettings);
 
             DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 

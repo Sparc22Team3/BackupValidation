@@ -195,12 +195,17 @@ public class BackupValidator {
             boolean terminate = !line.hasOption("donotterminate");
 
             restoreAndValidate(restore);
+            saveInstances();
             validateSystem();
             cleanUp(terminate);
 
-        } catch (ParseException | IOException e) {
-            printExceptionAndExit(e);
         } catch (Exception e) {
+            logger.error("{}: Instances will not be terminated.", e.getMessage(), e);
+            try {
+                cleanUp(false);
+            } catch (InterruptedException | IOException ex) {
+                throw new RuntimeException(ex);
+            }
             throw new RuntimeException(e);
         }
     }
@@ -238,7 +243,7 @@ public class BackupValidator {
         if(restore) {
             ec2Restore = new EC2Restore(backupClient, ec2Client, settings.getEc2Settings());
             s3Restore = new S3Restore(backupClient, s3Client, settings.getS3Settings());
-            rdsRestore = new RDSRestore(rdsClient, settings.getRdsSettings());
+            rdsRestore = new RDSRestore(backupClient, rdsClient, settings.getRdsSettings());
 
             ec2Future = Util.executor.submit(ec2Restore);
             rdsFuture = Util.executor.submit(rdsRestore);
@@ -276,7 +281,7 @@ public class BackupValidator {
                     ec2ValidateInstance.setEC2Instance(ec2Instance);
                     ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring EC2 instance failed", e);
+                    logger.error("Restoring EC2 instance failed. Cause: {}", e.getCause(), e);
                     ec2Checked = true;
                 }
             }
@@ -287,7 +292,7 @@ public class BackupValidator {
                     rdsValidateDatabase.setDbInstance(rdsInstance);
                     rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring RDS instance failed.", e);
+                    logger.error("Restoring RDS instance failed. Cause: {}", e.getCause(), e);
                     rdsChecked = true;
                 }
             }
@@ -298,7 +303,7 @@ public class BackupValidator {
                     s3ValidateBucket.setRestoredBucket(restoredBucketName);
                     s3ValidateFuture = Util.executor.submit(s3ValidateBucket);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring S3 bucket failed.", e);
+                    logger.error("Restoring S3 bucket failed. Cause: {}", e.getCause(), e);
                     s3Checked = true;
                 }
 
@@ -316,7 +321,7 @@ public class BackupValidator {
                         logger.info("EC2 Restored Instance Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("EC2 instance validation failed");
+                    logger.error("EC2 instance validation failed. Cause: {}", e.getCause(), e);
                 }
                 ec2Checked = true;
             }
@@ -331,7 +336,7 @@ public class BackupValidator {
                         logger.error("Restored Database Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("RDS database validation failed");
+                    logger.error("RDS database validation failed. Cause: {}", e.getCause(), e);
                 }
                 rdsChecked = true;
             }
@@ -346,7 +351,7 @@ public class BackupValidator {
                         logger.error("S3 Restored Bucket Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("S3 bucket validation failed");
+                    logger.error("S3 bucket validation failed. Cause: {}", e.getCause(), e);
                 }
                 s3Checked = true;
             }
@@ -357,7 +362,7 @@ public class BackupValidator {
      * This method will validate that EC2, RDS, and S3 bucket are working as a whole system and
      * not just the individual pieces.
      */
-    private void validateSystem() {
+    private void validateSystem() throws IOException {
         // Spin up restored instances to get new hostnames/bucket name
         ConfigLoader.replaceHostname(ec2Instance.publicDnsName(), rdsInstance.endpoint().address(), restoredBucketName, settings);
         logger.info("Do a System Check Here.");
@@ -373,33 +378,12 @@ public class BackupValidator {
                 Util.deleteS3Instance(restoredBucketName, s3Client);
             if(Files.exists(saveLocation))
                 Files.delete(saveLocation);
-        } else {
-            saveInstances();
         }
         backupClient.close();
         ec2Client.close();
         s3Client.close();
         rdsClient.close();
         Util.executor.shutdown();
-    }
-
-    /**
-     * Formats and prints an exception message before exiting the program.
-     *
-     * @param e the exception to print message from
-     */
-    public static void printExceptionAndExit(Exception e) {
-        printException(e);
-        System.exit(-1);
-    }
-
-    /**
-     * Formats and prints an exception message.
-     *
-     * @param e the exception to print message from
-     */
-    public static void printException(Exception e) {
-        System.err.format("%s: %s\n", e.getClass().getSimpleName(), e.getMessage());
     }
 
     private void saveInstances() throws IOException {

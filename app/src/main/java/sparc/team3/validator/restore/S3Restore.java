@@ -21,13 +21,12 @@ public class S3Restore extends AWSRestore implements Callable<String> {
     private final S3Client s3Client;
 
     public S3Restore(BackupClient backupClient, S3Client s3Client, InstanceSettings instanceSettings){
-        super(backupClient, instanceSettings);
-
+        super(backupClient, instanceSettings, "S3");
         this.s3Client = s3Client;
     }
 
     @Override
-    public String call() throws InterruptedException {
+    public String call() throws InterruptedException, RecoveryPointsExhaustedException {
         return restoreS3FromBackup();
     }
 
@@ -38,7 +37,7 @@ public class S3Restore extends AWSRestore implements Callable<String> {
      * @return a string of the bucket name
      * @throws InterruptedException when sleep is interrupted
      */
-    public String restoreS3FromBackup() throws InterruptedException {
+    public String restoreS3FromBackup() throws InterruptedException, RecoveryPointsExhaustedException {
 
         String restoreJobId = startRestore();
         if(restoreJobId == null)
