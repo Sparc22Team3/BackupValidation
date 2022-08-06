@@ -1,6 +1,8 @@
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.backup.BackupClient;
@@ -11,6 +13,10 @@ import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import sparc.team3.validator.restore.EC2Restore;
 import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.util.selenium.HtmlTag;
+import sparc.team3.validator.util.selenium.Login;
+import sparc.team3.validator.util.selenium.SearchTerm;
+import sparc.team3.validator.util.selenium.SeleniumSettings;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.WebAppValidate;
 
@@ -37,16 +43,52 @@ public class EC2 {
 
       Instance instance = instanceRep.reservations().get(0).instances().get(0); 
 
-      WebAppValidate validateInstance = new WebAppValidate(instance);
+      // SeleniumSettings settings = new SeleniumSettings(); 
 
-      Map<String,String> functionMap = new HashMap<String, String>(); 
+      // Map<String, String> title = new HashMap<String, String>(); 
 
-      //functionMap.put("Title","SPARC Absit Omen Lexicon");
-      //functionMap.put("Link", ""); 
-      functionMap.put("Login", "");
-      //functionMap.put("Search", "Brinley Abbott");
+      // title.put("/wiki/index.php?title=Main_Page", "SPARC Absit Omen Lexicon");
 
-      Boolean validated = validateInstance.validateWebFunctionality(functionMap, "/wiki/index.php?title=Main_Page");
+      // settings.setTitles(title);
+
+      // Set<HtmlTag> tags = new HashSet<HtmlTag>();
+
+      // HtmlTag tag = new HtmlTag("span", "Chapter=", "/wiki/index.php?title=Main_Page");
+
+      // tags.add(tag); 
+
+      // settings.setTags(tags);
+
+      // Set<Login> logins = new HashSet<Login>(); 
+
+      // Login login = new Login();
+
+      // login.setUsername("Sparc");
+      // login.setPassword("DinnerCrime");
+
+      // login.setUsernameFieldID("wpName1");
+      // login.setPasswordFieldID("wpPassword1");
+
+      // login.setEntrypoint("/wiki/index.php?title=Special:UserLogin&returnto=Main+Page");
+
+      // logins.add(login);
+
+      // settings.setLogins(logins);
+
+      // Set<SearchTerm> terms = new HashSet<SearchTerm>();
+
+      // SearchTerm term = new SearchTerm(); 
+
+      // term.setTerm("");
+      // term.setEntrypoint("/wiki/index.php?title=Main_Page");
+      // term.setSearchFieldID("searchInput");
+
+      // terms.add(term);
+      // settings.setSearchTerms(terms);
+
+      WebAppValidate validateInstance = new WebAppValidate(instance, settings);
+
+      Boolean validated = validateInstance.validateWebFunctionality("/wiki/index.php?title=Main_Page");
 
       System.out.println(""); 
       System.out.println("System returned:" + validated);
