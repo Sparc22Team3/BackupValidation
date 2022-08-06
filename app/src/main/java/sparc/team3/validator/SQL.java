@@ -33,8 +33,8 @@ public class SQL {
      */
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
         if(isValid()) {
-            System.out.println("Restored Database is valid.");
-        }
+            System.out.println("Restored Database is valid by the definitions set forth in this file.");
+        } else {System.out.println("Failed. Check logs for more information.");}
 
     }
 
@@ -83,6 +83,10 @@ public class SQL {
         HikariDataSource dsProd = new HikariDataSource(configProd);
         HikariDataSource dsRestored = new HikariDataSource(configRestored);
 
+        // Retain list of failed components and list of passed components of all the checks
+        // If any null checks fail, this returns false immediately
+        List<String> listOfFailedValidityTests = new ArrayList<>();
+        List<String> listOfPassedValidityTests = new ArrayList<>();
 
         // Connect to database
         try (Connection conProd = dsProd.getConnection();
@@ -118,9 +122,13 @@ public class SQL {
                     listDbsNotInRestored.add(rsRestoredDbName);
                 }
             }
-            if (listDbsNotInRestored.isEmpty()) {logger.info("All databases are present in restored.");}
+            if (listDbsNotInRestored.isEmpty()) {
+                listOfPassedValidityTests.add("All databases present.");
+                logger.info("All databases are present in restored.");
+            }
             else {
                 for (String s : listDbsNotInRestored) {
+                    listOfFailedValidityTests.add("The " +s+ " databases was not restored.");
                     logger.info("{} database is not present.", s);
                 }
             }
@@ -173,6 +181,7 @@ public class SQL {
             }
             rsRestoredTables.first();
             if (listProdTables.equals(listRestoredTables) == true) {
+                listOfPassedValidityTests.add("All tables present.");
                 logger.info("Both databases have the same number of tables ({} tables).", listProdTables.size());
             }
             else {
@@ -186,7 +195,9 @@ public class SQL {
                 }
                 // Log missing table names
                 logger.info("The following table(s) are missing from the restored database:");
-                for (String s : listMissingTables) {logger.info("\t --> {}", s);}
+                for (String s : listMissingTables) {
+                    listOfFailedValidityTests.add("Not all tables present. " +s+ " is missing.");
+                    logger.info("\t --> {}", s);}
             }
 
 
@@ -214,8 +225,13 @@ public class SQL {
             }
             rsRestoredTables.first();
             // Log results
+            if (corruptedDbList.size() == 0) {listOfPassedValidityTests.add("No corrupted tables.");}
             logger.info("There are {} corrupted tables in the database.", corruptedDbList.size());
-            for (ResultSet r : corruptedDbList) {logger.info("Corrupted table: : " + r.getString(1));}
+            for (ResultSet r : corruptedDbList) {
+                String corruptedTable = r.getString(1);
+                listOfFailedValidityTests.add(corruptedTable+ " is a corrupted table");
+                logger.info("Corrupted table: : " + corruptedTable);
+            }
 
 
             // Check all columns and all rows of all tables of restored database
@@ -238,6 +254,22 @@ public class SQL {
                     logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
                     return false;
                 }
+
+                int numProdRows = 0;
+                int numRestoredRows = 0;
+                while(rsProdRows.next()) {numProdRows++;}
+                while (rsRestoredRows.next()) {numRestoredRows++;}
+                if (numProdRows == numRestoredRows) {
+                    listOfPassedValidityTests.add("The number of rows in " +tableName+ " is the same.");
+                    logger.info("The production and restored tables of {} have the same number of rows.", tableName);
+                }
+                else {
+                    logger.info("The tables have a different number of rows. The production database table has {} rows, and the restored has {} rows.", numProdRows, numRestoredRows);
+                    listOfFailedValidityTests.add("The number of rows in " +tableName+ " is not the same.");
+                }
+                rsProdRows.first();
+                rsRestoredRows.first();
+
 
                 // Get Meta Data
                 ResultSetMetaData metaDataProdRows = rsProdRows.getMetaData();
@@ -273,10 +305,19 @@ public class SQL {
                 if (!mapProdSchemaToColumnNameAndDatatype.equals(mapRestoredSchemaToColumnNameAndDatatype)) {
                     listTablesWithBadColumns.add(tableName);
                 }
-                // Log table names with bad columns (ie. schema (column number) to [columnName, datatype] don't match that of the production database)
-                for (String table : listTablesWithBadColumns) {logger.warn("Table {} has corrupted column(s)", table);}
+                if (listTablesWithBadColumns.size() == 0) {
+                    listOfPassedValidityTests.add("Column meta data in " + tableName+ " is the same.");
+                    logger.info("{} table does not have any missing or corrupted columns.", tableName);
+                }
+                else {
+                    // Log table names with bad columns (ie. schema (column number) to [columnName, datatype] don't match that of the production database)
+                    for (String table : listTablesWithBadColumns) {
+                        listOfFailedValidityTests.add("Column meta data in " +table+ " is not the same.");
+                        logger.warn("Table {} has missing or corrupted column(s)", table);
+                    }
+                }
 
-                // Check if the rows are the same
+                // Check if the rows are the same ??
                 //while (rsProdRows.next()) {System.out.println("prod rows: " + rsProdRows.getObject(2));}
 
             }
@@ -314,6 +355,18 @@ public class SQL {
         }
         dsProd.close();
         dsRestored.close();
-        return true;
+
+        if (listOfFailedValidityTests.size() == 0) return true;
+        else {
+            System.out.println();
+            System.out.println("-------- SUMMARY OF FAILED VALIDATION TESTING RESULTS --------");
+            System.out.println();
+            System.out.println("List of Failed Tests:");
+            for (String s : listOfFailedValidityTests) {
+                System.out.println("\t- "+s);
+            }
+            System.out.println();
+        }
+        return false;
     }
 }
