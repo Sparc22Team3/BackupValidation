@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import sparc.team3.validator.util.Settings;
 
+import javax.xml.transform.Result;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -277,34 +278,54 @@ public class SQL {
 
                 // Check if columns are the same (ie. schema (column number), column name, and column data type.
                 //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
-                Map<String, List> mapProdSchemaToColumnNameAndDatatype = new HashMap();
-                List<String> listProdColumnNamesAndDatatypes = new ArrayList<>();
-                int columnCount = metaDataProdRows.getColumnCount();
+                Map<String, Object> mapProdSchemaToMetaData = new HashMap();
+                int columnCountProd = metaDataProdRows.getColumnCount();
                 int columnNum = 1;
-                while (rsProdRows.next() && columnNum <= columnCount) {
-                    listProdColumnNamesAndDatatypes.add(metaDataProdRows.getColumnName(columnNum));
-                    listProdColumnNamesAndDatatypes.add(metaDataProdRows.getColumnTypeName(columnNum));
-                    mapProdSchemaToColumnNameAndDatatype.put(metaDataProdRows.getSchemaName(columnNum), listProdColumnNamesAndDatatypes);
+                while (rsProdRows.next() && columnNum <= columnCountProd) {
+                    mapProdSchemaToMetaData.put("catalogName", metaDataProdRows.getCatalogName(columnNum));
+                    mapProdSchemaToMetaData.put("columnClassName", metaDataProdRows.getColumnClassName(columnNum));
+                    mapProdSchemaToMetaData.put("columnCount", metaDataProdRows.getColumnCount());
+                    mapProdSchemaToMetaData.put("columnDisplaySize", metaDataProdRows.getColumnDisplaySize(columnNum));
+                    mapProdSchemaToMetaData.put("columnLabel", metaDataProdRows.getColumnLabel(columnNum));
+                    mapProdSchemaToMetaData.put("columnName", metaDataProdRows.getColumnName(columnNum));
+                    mapProdSchemaToMetaData.put("columnType", metaDataProdRows.getColumnType(columnNum));
+                    mapProdSchemaToMetaData.put("columnTypeName", metaDataProdRows.getColumnTypeName(columnNum));
+                    mapProdSchemaToMetaData.put("precision", metaDataProdRows.getPrecision(columnNum));
+                    mapProdSchemaToMetaData.put("scale", metaDataProdRows.getScale(columnNum));
+                    mapProdSchemaToMetaData.put("schemaName", metaDataProdRows.getSchemaName(columnNum));
+                    mapProdSchemaToMetaData.put("tableName", metaDataProdRows.getTableName(columnNum));
                     columnNum++;
                 }
+                System.out.println("mapProdSchemaToMetaData : " +mapProdSchemaToMetaData);
                 rsProdRows.first();
 
-                Map<String, List> mapRestoredSchemaToColumnNameAndDatatype = new HashMap();
-                List<String> listRestoredColumnNamesAndDatatypes = new ArrayList<>();
-                columnCount = metaDataRestoredRows.getColumnCount();
+                Map<String, Object> mapRestoredSchemaToMetaData = new HashMap();
+                int columnCountRestored = metaDataRestoredRows.getColumnCount();
                 columnNum = 1;
-                while (rsRestoredRows.next() && columnNum <= columnCount) {
-                    listRestoredColumnNamesAndDatatypes.add(metaDataRestoredRows.getColumnName(columnNum));
-                    listRestoredColumnNamesAndDatatypes.add(metaDataRestoredRows.getColumnTypeName(columnNum));
-                    mapRestoredSchemaToColumnNameAndDatatype.put(metaDataRestoredRows.getSchemaName(columnNum), listRestoredColumnNamesAndDatatypes);
+                while (rsRestoredRows.next() && columnNum <= columnCountRestored) {
+                    mapRestoredSchemaToMetaData.put("catalogName", metaDataRestoredRows.getCatalogName(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnClassName", metaDataRestoredRows.getColumnClassName(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnCount", metaDataRestoredRows.getColumnCount());
+                    mapRestoredSchemaToMetaData.put("columnDisplaySize", metaDataRestoredRows.getColumnDisplaySize(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnLabel", metaDataRestoredRows.getColumnLabel(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnName", metaDataRestoredRows.getColumnName(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnType", metaDataRestoredRows.getColumnType(columnNum));
+                    mapRestoredSchemaToMetaData.put("columnTypeName", metaDataRestoredRows.getColumnTypeName(columnNum));
+                    mapRestoredSchemaToMetaData.put("precision", metaDataRestoredRows.getPrecision(columnNum));
+                    mapRestoredSchemaToMetaData.put("scale", metaDataRestoredRows.getScale(columnNum));
+                    mapRestoredSchemaToMetaData.put("schemaName", metaDataRestoredRows.getSchemaName(columnNum));
+                    mapRestoredSchemaToMetaData.put("tableName", metaDataRestoredRows.getTableName(columnNum));
                     columnNum++;
                 }
+                System.out.println("mapRestoredSchemaToMetaData : " +mapRestoredSchemaToMetaData);
                 rsRestoredRows.first();
 
                 List<String> listTablesWithBadColumns = new ArrayList<>();
-                if (!mapProdSchemaToColumnNameAndDatatype.equals(mapRestoredSchemaToColumnNameAndDatatype)) {
+                if (!mapProdSchemaToMetaData.equals(mapRestoredSchemaToMetaData)) {
                     listTablesWithBadColumns.add(tableName);
                 }
+                for (String s : listTablesWithBadColumns) {System.out.println("<---- S ----> : " +s);}
+
                 if (listTablesWithBadColumns.size() == 0) {
                     listOfPassedValidityTests.add("Column meta data in " + tableName+ " is the same.");
                     logger.info("{} table does not have any missing or corrupted columns.", tableName);
@@ -317,38 +338,14 @@ public class SQL {
                     }
                 }
 
-                // Check if the rows are the same ??
-                //while (rsProdRows.next()) {System.out.println("prod rows: " + rsProdRows.getObject(2));}
 
+            /**        Collections.sort(listRestoredMetaData, new Comparator<Object>() {
+                        @Override
+                        public int compare(Object a1, Object a2) {
+                            return a1.toString().compareToIgnoreCase(a2.toString());
+                        }
+                    }); */
             }
-
-
-            /**
- // Compare table rows. Report whether or not they all match.
-            // This only checks on those present in the restored database. Restored database doesn't include changes made since restore.
-            rsProd.first();
-            rsRestored.first();
-            int column = 1;
-            int numColumnsRestored = rsRestoredMetaData.getColumnCount();
-            int numColumnsNotValid = 0;
-            while (rsProd.next() && rsRestored.next() && column <= numColumnsRestored) {
-                final Object rsProdObj = rsProd.getObject(column); //NOPE. This just returns the value of the column for this row.
-                final Object rsRestoredObj = rsRestored.getObject(column);
-
-                if (!rsProdObj.equals(rsRestoredObj)) {
-                    numColumnsNotValid++;
-                    logger.info("Validity: Prod and Restored are NOT equal in column {}", column);
-                }
-                else {
-                    logger.info("Validity: Prod and Restored are equal in column {}", column);
-                }
-                column++;
-            }
-            System.out.println("numColumnsNotValid = " + numColumnsNotValid);
-            if (numColumnsNotValid > 0) {
-                logger.info("{} number of rows do not match. Fails validity test.", numColumnsNotValid);
-                return false;
-            }*/
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
