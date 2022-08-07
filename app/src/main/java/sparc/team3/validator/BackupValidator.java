@@ -31,10 +31,12 @@ import sparc.team3.validator.util.selenium.SeleniumSettings;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
+import sparc.team3.validator.validate.WebAppValidate;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.rmi.server.RemoteServer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -362,10 +364,18 @@ public class BackupValidator {
      * This method will validate that EC2, RDS, and S3 bucket are working as a whole system and
      * not just the individual pieces.
      */
-    private void validateSystem() throws IOException {
+    private void validateSystem() throws Exception {
         // Spin up restored instances to get new hostnames/bucket name
         ConfigLoader.replaceHostname(ec2Instance.publicDnsName(), rdsInstance.endpoint().address(), restoredBucketName, settings);
-        logger.info("Do a System Check Here.");
+        RemoteServerConfigurator remoteServerConfigurator = new RemoteServerConfigurator(ec2Instance.publicIpAddress(), settings);
+
+        WebAppValidate webAppValidate = new WebAppValidate(ec2Instance, seleniumSettings);
+
+        boolean webAppPass = webAppValidate.call();
+        if(webAppPass)
+            logger.info("Web App has passed Selenium validation tests.");
+        else
+            logger.warn("Web App has failed Selenium validation tests.");
     }
 
     private void cleanUp(boolean terminate) throws IOException, InterruptedException {

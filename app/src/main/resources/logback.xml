@@ -28,7 +28,13 @@
     <logger name="com.zaxxer.hikari" level="${sql-log-level:-WARN}">
         <appender-ref ref="FILE" />
     </logger>
-    <root level="debug">
+    <logger name="net.schmizz" level="${ssh-log-level:-WARN}">
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.openqa" level="${selenium-log-level:-WARN}">
+        <appender-ref ref="FILE" />
+    </logger>
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

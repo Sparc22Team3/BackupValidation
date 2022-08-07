@@ -202,15 +202,15 @@ public class SeleniumEditor extends Selenium{
 
 
     HtmlTag buildHtmlTag(boolean edit, HtmlTag current) throws IOException {
-        String tagFormat = edit ? "Html Tag ID [%s]:" : "HTML Tag ID:";
-        String valueFormat = edit ? "Expected Value [%s]:" : "Expected Value:";
+        String tagFormat = edit ? "CSS Selector to identify and find HTML tag [%s]:" : "CSS Selector to identify and find HTML tag:";
+        String valueFormat = edit ? "Expected text content inside HTML tag [%s]:" : "Expected text content inside HTML tag :";
         String entrypointFormat = edit ? "Entrypoint (path after domain) [%s]:" : "Entrypoint (path after domain):";
         String tag;
         String value;
         String entrypoint;
 
         if(edit && current != null) {
-            tag = promptCurrentValue(tagFormat, current.getTagID());
+            tag = promptCurrentValue(tagFormat, current.getCssSelector());
             value = promptCurrentValue(valueFormat, current.getValue());
             entrypoint = promptCurrentValue(entrypointFormat, current.getEntrypoint());
         } else {
@@ -229,8 +229,8 @@ public class SeleniumEditor extends Selenium{
     Login buildLogin(boolean edit, Login current) throws IOException {
         String usernameFormat = edit ? "Username [%s]:" : "Username:";
         String passwordFormat = edit ? "Password [%s]:" : "Password:";
-        String usernameFieldIDFormat = edit ? "Username text field's ID [%s]:" : "Username text field's ID:";
-        String passwordFieldIDFormat = edit ? "Password text field's ID  [%s]:" : "Password text field's ID :";
+        String usernameFieldIDFormat = edit ? "CSS Selector to identify and find Username text field [%s]:" : "CSS Selector to identify and find Username text field:";
+        String passwordFieldIDFormat = edit ? "CSS Selector to identify and find Password text field  [%s]:" : "CSS Selector to identify and find Password text field:";
         String entrypointFormat = edit ? "Entrypoint (path after domain) [%s]:" : "Entrypoint (path after domain):";
         String username;
         String password;
@@ -241,8 +241,8 @@ public class SeleniumEditor extends Selenium{
         if(edit && current != null) {
             username = promptCurrentValue(usernameFormat, current.getUsername());
             password = promptCurrentValue(passwordFormat, current.getPassword());
-            usernameFieldID = promptCurrentValue(usernameFieldIDFormat, current.getUsernameFieldID());
-            passwordFieldID = promptCurrentValue(passwordFieldIDFormat, current.getPasswordFieldID());
+            usernameFieldID = promptCurrentValue(usernameFieldIDFormat, current.getUsernameCssSelector());
+            passwordFieldID = promptCurrentValue(passwordFieldIDFormat, current.getPasswordCssSelector());
             entrypoint = promptCurrentValue(entrypointFormat, current.getEntrypoint());
         } else {
             username = promptRequireValue(usernameFormat);
@@ -261,7 +261,7 @@ public class SeleniumEditor extends Selenium{
 
     SearchTerm buildSearchTerm(boolean edit, SearchTerm current) throws IOException {
         String termFormat = edit ? "Search Term [%s]:" : "Search Term:";
-        String searchFieldIDFormat = edit ? "Search text field's ID [%s]:" : "Search text field's ID:";
+        String searchFieldIDFormat = edit ? "CSS Selector to identify and find Search text field [%s]:" : "CSS Selector to identify and find Search text field:";
         String entrypointFormat = edit ? "Entrypoint (path after domain) [%s]:" : "Entrypoint (path after domain):";
         String term;
         String searchFieldId;
@@ -269,7 +269,7 @@ public class SeleniumEditor extends Selenium{
 
         if(edit && current != null) {
             term = promptCurrentValue(termFormat, current.getTerm());
-            searchFieldId = promptCurrentValue(searchFieldIDFormat, current.getSearchFieldID());
+            searchFieldId = promptCurrentValue(searchFieldIDFormat, current.getSearchCssSelector());
             entrypoint = promptCurrentValue(entrypointFormat, current.getEntrypoint());
 
         } else {
@@ -309,9 +309,9 @@ public class SeleniumEditor extends Selenium{
         for(HtmlTag tag: htmlTagSet){
             String num = showCount ? i + ": " : "";
             cli.out("\t" + num + "HTML Tag\n" +
-                    "\t\tTag ID: '%s'\n" +
-                    "\t\tExpected Value: '%s'\n" +
-                    "\t\tEntrypoint: '%s'\n", tag.getTagID(), tag.getValue(), tag.getEntrypoint());
+                    "\t\tHTML Tag's CSS Selector: '%s'\n" +
+                    "\t\tExpected Text Content: '%s'\n" +
+                    "\t\tEntrypoint: '%s'\n", tag.getCssSelector(), tag.getValue(), tag.getEntrypoint());
             i++;
         }
     }
@@ -324,11 +324,11 @@ public class SeleniumEditor extends Selenium{
             cli.out("\t" + num + "Login\n" +
                     "\t\tUsername: '%s'\n" +
                     "\t\tPassword: '%s'\n" +
-                    "\t\tUsername Text Field's ID: '%s'\n" +
-                    "\t\tPassword Text Field's ID: '%s'\n" +
+                    "\t\tUsername Text Field's CSS Selector: '%s'\n" +
+                    "\t\tPassword Text Field's CSS Selector: '%s'\n" +
                     "\t\tEntrypoint: '%s'\n",
-                    login.getUsername(), login.getPassword(), login.getUsernameFieldID(),
-                    login.getPasswordFieldID(), login.getEntrypoint());
+                    login.getUsername(), login.getPassword(), login.getUsernameCssSelector(),
+                    login.getPasswordCssSelector(), login.getEntrypoint());
             i++;
         }
     }
@@ -340,8 +340,8 @@ public class SeleniumEditor extends Selenium{
             String num = showCount ? i + ": " : "";
             cli.out("\t" + num + "Search Term:\n" +
                     "\t\tTerm: '%s'\n" +
-                    "\t\tSearch Text Field's ID: '%s'\n" +
-                    "\t\tEntrypoint: '%s'\n", term.getTerm(), term.getSearchFieldID(), term.getEntrypoint());
+                    "\t\tSearch Text Field's CSS Selector: '%s'\n" +
+                    "\t\tEntrypoint: '%s'\n", term.getTerm(), term.getSearchCssSelector(), term.getEntrypoint());
             i++;
         }
     }

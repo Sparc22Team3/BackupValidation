@@ -7,18 +7,18 @@ import java.util.Objects;
 public class Login implements Comparable<Login> {
     String username;
     String password;
-    String usernameFieldID;
-    String passwordFieldID;
+    String usernameCssSelector;
+    String passwordCssSelector;
     String entrypoint;
 
     public Login() {
     }
 
-    public Login(String username, String password, String usernameFieldID, String passwordFieldID, String entrypoint) {
+    public Login(String username, String password, String usernameCssSelector, String passwordCssSelector, String entrypoint) {
         this.username = username;
         this.password = password;
-        this.usernameFieldID = usernameFieldID;
-        this.passwordFieldID = passwordFieldID;
+        this.usernameCssSelector = usernameCssSelector;
+        this.passwordCssSelector = passwordCssSelector;
         this.entrypoint = entrypoint;
     }
 
@@ -38,20 +38,20 @@ public class Login implements Comparable<Login> {
         this.password = password;
     }
 
-    public String getUsernameFieldID() {
-        return this.usernameFieldID;
+    public String getUsernameCssSelector() {
+        return this.usernameCssSelector;
     }
 
-    public void setUsernameFieldID(String usernameFieldID) {
-        this.usernameFieldID = usernameFieldID;
+    public void setUsernameCssSelector(String usernameCssSelector) {
+        this.usernameCssSelector = usernameCssSelector;
     }
 
-    public String getPasswordFieldID() {
-        return this.passwordFieldID;
+    public String getPasswordCssSelector() {
+        return this.passwordCssSelector;
     }
 
-    public void setPasswordFieldID(String passwordFieldID) {
-        this.passwordFieldID = passwordFieldID;
+    public void setPasswordCssSelector(String passwordCssSelector) {
+        this.passwordCssSelector = passwordCssSelector;
     }
 
     public String getEntrypoint() {
@@ -67,10 +67,10 @@ public class Login implements Comparable<Login> {
         if (username.compareTo(o.username) == 0) {
             if (password.compareTo(o.password) == 0) {
                 if (entrypoint.compareTo(o.entrypoint) == 0) {
-                    if (usernameFieldID.compareTo(o.usernameFieldID) == 0) {
-                        return passwordFieldID.compareTo(o.passwordFieldID);
+                    if (usernameCssSelector.compareTo(o.usernameCssSelector) == 0) {
+                        return passwordCssSelector.compareTo(o.passwordCssSelector);
                     }
-                    return usernameFieldID.compareTo(o.usernameFieldID);
+                    return usernameCssSelector.compareTo(o.usernameCssSelector);
                 }
                 return entrypoint.compareTo(o.entrypoint);
             }
@@ -88,9 +88,9 @@ public class Login implements Comparable<Login> {
 
         if (!Objects.equals(username, login.username)) return false;
         if (!Objects.equals(password, login.password)) return false;
-        if (!Objects.equals(usernameFieldID, login.usernameFieldID))
+        if (!Objects.equals(usernameCssSelector, login.usernameCssSelector))
             return false;
-        if (!Objects.equals(passwordFieldID, login.passwordFieldID))
+        if (!Objects.equals(passwordCssSelector, login.passwordCssSelector))
             return false;
         return Objects.equals(entrypoint, login.entrypoint);
     }
@@ -99,8 +99,8 @@ public class Login implements Comparable<Login> {
     public int hashCode() {
         int result = username != null ? username.hashCode() : 0;
         result = 31 * result + (password != null ? password.hashCode() : 0);
-        result = 31 * result + (usernameFieldID != null ? usernameFieldID.hashCode() : 0);
-        result = 31 * result + (passwordFieldID != null ? passwordFieldID.hashCode() : 0);
+        result = 31 * result + (usernameCssSelector != null ? usernameCssSelector.hashCode() : 0);
+        result = 31 * result + (passwordCssSelector != null ? passwordCssSelector.hashCode() : 0);
         result = 31 * result + (entrypoint != null ? entrypoint.hashCode() : 0);
         return result;
     }
@@ -110,8 +110,8 @@ public class Login implements Comparable<Login> {
         return "Login{" +
                 "username='" + username + '\'' +
                 ", password='" + password + '\'' +
-                ", usernameFieldID='" + usernameFieldID + '\'' +
-                ", passwordFieldID='" + passwordFieldID + '\'' +
+                ", usernameCssSelector='" + usernameCssSelector + '\'' +
+                ", passwordCssSelector='" + passwordCssSelector + '\'' +
                 ", entrypoint='" + entrypoint + '\'' +
                 ", complete=" + isComplete() +
                 '}';
@@ -119,7 +119,7 @@ public class Login implements Comparable<Login> {
 
     @JsonIgnore
     public boolean isComplete() {
-        return username != null && password != null && usernameFieldID != null &&
-                passwordFieldID != null && entrypoint != null;
+        return username != null && password != null && usernameCssSelector != null &&
+                passwordCssSelector != null && entrypoint != null;
     }
 }

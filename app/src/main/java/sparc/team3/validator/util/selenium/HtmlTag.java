@@ -5,25 +5,25 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Objects;
 
 public class HtmlTag implements Comparable<HtmlTag> {
-    String tagID;
+    String cssSelector;
     String value;
     String entrypoint;
 
     public HtmlTag() {
     }
 
-    public HtmlTag(String tagID, String value, String entrypoint) {
-        this.tagID = tagID;
+    public HtmlTag(String cssSelector, String value, String entrypoint) {
+        this.cssSelector = cssSelector;
         this.value = value;
         this.entrypoint = entrypoint;
     }
 
-    public String getTagID() {
-        return this.tagID;
+    public String getCssSelector() {
+        return this.cssSelector;
     }
 
-    public void setTagID(String tagID) {
-        this.tagID = tagID;
+    public void setCssSelector(String cssSelector) {
+        this.cssSelector = cssSelector;
     }
 
     public String getValue() {
@@ -44,13 +44,13 @@ public class HtmlTag implements Comparable<HtmlTag> {
 
     @Override
     public int compareTo(HtmlTag o) {
-        if (tagID.compareTo(o.tagID) == 0) {
+        if (cssSelector.compareTo(o.cssSelector) == 0) {
             if (value.compareTo(o.value) == 0) {
                 return entrypoint.compareTo(o.entrypoint);
             }
             return value.compareTo(o.value);
         }
-        return tagID.compareTo(o.tagID);
+        return cssSelector.compareTo(o.cssSelector);
     }
 
     @Override
@@ -60,14 +60,14 @@ public class HtmlTag implements Comparable<HtmlTag> {
 
         HtmlTag htmlTag = (HtmlTag) o;
 
-        if (!Objects.equals(tagID, htmlTag.tagID)) return false;
+        if (!Objects.equals(cssSelector, htmlTag.cssSelector)) return false;
         if (!Objects.equals(value, htmlTag.value)) return false;
         return Objects.equals(entrypoint, htmlTag.entrypoint);
     }
 
     @Override
     public int hashCode() {
-        int result = tagID != null ? tagID.hashCode() : 0;
+        int result = cssSelector != null ? cssSelector.hashCode() : 0;
         result = 31 * result + (value != null ? value.hashCode() : 0);
         result = 31 * result + (entrypoint != null ? entrypoint.hashCode() : 0);
         return result;
@@ -76,7 +76,7 @@ public class HtmlTag implements Comparable<HtmlTag> {
     @Override
     public String toString() {
         return "HtmlTag{" +
-                "tagID='" + tagID + '\'' +
+                "cssSelector='" + cssSelector + '\'' +
                 ", value='" + value + '\'' +
                 ", entrypoint='" + entrypoint + '\'' +
                 ", complete=" + isComplete() +
@@ -85,6 +85,6 @@ public class HtmlTag implements Comparable<HtmlTag> {
 
     @JsonIgnore
     public boolean isComplete() {
-        return tagID != null && value != null && entrypoint != null;
+        return cssSelector != null && value != null && entrypoint != null;
     }
 }
