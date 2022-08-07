@@ -6,15 +6,15 @@ import java.util.Objects;
 
 public class SearchTerm implements Comparable<SearchTerm> {
     String term;
-    String searchFieldID;
+    String searchCssSelector;
     String entrypoint;
 
     public SearchTerm() {
     }
 
-    public SearchTerm(String term, String searchFieldID, String entrypoint) {
+    public SearchTerm(String term, String searchCssSelector, String entrypoint) {
         this.term = term;
-        this.searchFieldID = searchFieldID;
+        this.searchCssSelector = searchCssSelector;
         this.entrypoint = entrypoint;
     }
 
@@ -26,12 +26,12 @@ public class SearchTerm implements Comparable<SearchTerm> {
         this.term = term;
     }
 
-    public String getSearchFieldID() {
-        return this.searchFieldID;
+    public String getSearchCssSelector() {
+        return this.searchCssSelector;
     }
 
-    public void setSearchFieldID(String searchFieldID) {
-        this.searchFieldID = searchFieldID;
+    public void setSearchCssSelector(String searchCssSelector) {
+        this.searchCssSelector = searchCssSelector;
     }
 
     public String getEntrypoint() {
@@ -45,10 +45,10 @@ public class SearchTerm implements Comparable<SearchTerm> {
     @Override
     public int compareTo(SearchTerm o) {
         if (term.compareTo(o.term) == 0) {
-            if (searchFieldID.compareTo(o.searchFieldID) == 0) {
+            if (searchCssSelector.compareTo(o.searchCssSelector) == 0) {
                 return entrypoint.compareTo(o.entrypoint);
             }
-            return searchFieldID.compareTo(o.searchFieldID);
+            return searchCssSelector.compareTo(o.searchCssSelector);
         }
         return term.compareTo(o.term);
     }
@@ -61,7 +61,7 @@ public class SearchTerm implements Comparable<SearchTerm> {
         SearchTerm that = (SearchTerm) o;
 
         if (!Objects.equals(term, that.term)) return false;
-        if (!Objects.equals(searchFieldID, that.searchFieldID))
+        if (!Objects.equals(searchCssSelector, that.searchCssSelector))
             return false;
         return Objects.equals(entrypoint, that.entrypoint);
     }
@@ -69,7 +69,7 @@ public class SearchTerm implements Comparable<SearchTerm> {
     @Override
     public int hashCode() {
         int result = term != null ? term.hashCode() : 0;
-        result = 31 * result + (searchFieldID != null ? searchFieldID.hashCode() : 0);
+        result = 31 * result + (searchCssSelector != null ? searchCssSelector.hashCode() : 0);
         result = 31 * result + (entrypoint != null ? entrypoint.hashCode() : 0);
         return result;
     }
@@ -78,7 +78,7 @@ public class SearchTerm implements Comparable<SearchTerm> {
     public String toString() {
         return "SearchTerm{" +
                 "term='" + term + '\'' +
-                ", searchFieldID='" + searchFieldID + '\'' +
+                ", searchCssSelector='" + searchCssSelector + '\'' +
                 ", entrypoint='" + entrypoint + '\'' +
                 ", complete=" + isComplete() +
                 '}';
@@ -86,6 +86,6 @@ public class SearchTerm implements Comparable<SearchTerm> {
 
     @JsonIgnore
     public boolean isComplete() {
-        return term != null && searchFieldID != null && entrypoint != null;
+        return term != null && searchCssSelector != null && entrypoint != null;
     }
 }
