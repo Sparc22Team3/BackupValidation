@@ -22,18 +22,16 @@ import java.util.*;
 public class SQL {
 
     /**
-     * --> Add null checks to all checks
      * Check if all databases are present in restored
-     * Choose specific db to test further or loop and automatically check all databases????
-     * Check if all tables are present in database(s)
-     * CHECK TABLES for corruption (all tables of all dbs or just all tables of chosen db?)
-     * Check if all columns are present in all tables of chosen database (or in all tables of all databases??)
-     * column checking ==> number of columns, names of columns, data types of columns
-     * Check if all rows are the same
-     * getObject returns cell value as an object, so need to do so individually for each col of each row
+     * Choose specific db to test further
+     * Check if all tables are present in database
+     * Run CHECK TABLES for corruption on all tables of specified database
+     * Check if all metadata of all columns in all tables of chosen database
+     * Check if number of rows of every table is the same
+     * If any null checks fail, this method logs that and returns false immediately
      */
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-        if (isValid()) {
+        if (isRdsRestoredValid()) {
             System.out.println("Restored Database is valid by the definitions set forth in this file.");
         } else {
             System.out.println("Failed. Check logs for more information.");
@@ -41,7 +39,7 @@ public class SQL {
 
     }
 
-    private static boolean isValid() throws SQLException, IOException, InterruptedException {
+    private static boolean isRdsRestoredValid() throws SQLException, IOException, InterruptedException {
         Logger logger = LoggerFactory.getLogger(SQL.class);
         Configurator configurator = new Configurator();
         Settings settings = configurator.loadSettings();
@@ -86,8 +84,7 @@ public class SQL {
         HikariDataSource dsProd = new HikariDataSource(configProd);
         HikariDataSource dsRestored = new HikariDataSource(configRestored);
 
-        // Retain list of failed components and list of passed components of all the checks
-        // If any null checks fail, this returns false immediately
+        // Retain list of failed and passed validity tests for all checks
         List<String> listOfFailedValidityTests = new ArrayList<>();
         List<String> listOfPassedValidityTests = new ArrayList<>();
 
@@ -97,7 +94,6 @@ public class SQL {
         ) {
 
             // Check if all databases are present in the restored database
-            // Put all Databases in list ---> doing this or specifying db above?
             PreparedStatement pstProdAllDbs = conProd.prepareStatement("SHOW DATABASES;");
             PreparedStatement pstRestoredAllDbs = conProd.prepareStatement("SHOW DATABASES;");
 
@@ -113,35 +109,40 @@ public class SQL {
             ResultSetMetaData metaDataProdAllDbs = rsProdAllDbs.getMetaData();
             ResultSetMetaData metaDataRestoredAllDbs = rsRestoredAllDbs.getMetaData();
 
-            // Would like to loop on the tree sets b/c ordering of ResultSets not guaranteed ;;; I'll look into whether or not the order is not natural but is consistent and then it wouldn't matter
-
             String rsProdDbName = "";
-            String rsRestoredDbName = "";
-            List<String> listDbsNotInRestored = new ArrayList<>();
-            while (rsProdAllDbs.next() && rsRestoredAllDbs.next()) {
+            Set<String> setProdDbs = new TreeSet<>();
+            while (rsProdAllDbs.next()) {
                 rsProdDbName = rsProdAllDbs.getString(1);
-                rsRestoredDbName = rsRestoredAllDbs.getString(1);
-                if (!rsProdDbName.equals(rsRestoredDbName)) {
-                    listDbsNotInRestored.add(rsRestoredDbName);
-                }
+                setProdDbs.add(rsProdDbName);
             }
-            if (listDbsNotInRestored.isEmpty()) {
+
+            String rsRestoredDbName = "";
+            Set<String> setRestoredDbs = new TreeSet<>();
+            while (rsRestoredAllDbs.next()) {
+                rsRestoredDbName = rsRestoredAllDbs.getString(1);
+                setRestoredDbs.add(rsRestoredDbName);
+            }
+
+            Set<String> setDbsNotInRestored = new TreeSet<>();
+            for (String s : setProdDbs) {
+                if (!setRestoredDbs.contains(s)) { setDbsNotInRestored.add(s); }
+            }
+
+            if (setDbsNotInRestored.isEmpty()) {
                 listOfPassedValidityTests.add("All databases present.");
                 logger.info("All databases are present in restored.");
             } else {
-                for (String s : listDbsNotInRestored) {
-                    listOfFailedValidityTests.add("The " + s + " databases was not restored.");
+                // Get names of database(s) missing from restore.
+                for (String s : setDbsNotInRestored) {
+                    listOfFailedValidityTests.add("The " + s + " database was not restored.");
                     logger.warn("{} database is not present.", s);
                 }
             }
 
 
             // Query for all tables of a specific database
-            // Select the database to use --> do we want this to automatically check all databases or be customize-able to only check specific dbs?
             String dbName = "Wiki";
-            rsProdAllDbs.first();
-            rsRestoredAllDbs.first();
-            dbName = rsRestoredAllDbs.getString(1);
+            //dbName = rsRestoredAllDbs.getString(1);
 
             // Check to see if all tables are present in restored database
             PreparedStatement pstProdDb = conProd.prepareStatement("USE " + dbName + ";");
@@ -172,46 +173,46 @@ public class SQL {
             ResultSetMetaData metaDataRestoredTables = rsRestoredTables.getMetaData();
 
             // Check if tables are the same.
-            List<String> listProdTables = new ArrayList<>();
-            List<String> listRestoredTables = new ArrayList<>();
+            String rsProdTableName = "";
+            Set<String> setProdTables = new TreeSet<>();
             while (rsProdTables.next()) {
-                listProdTables.add(rsProdTables.getString(1));
+                rsProdTableName = rsProdTables.getString(1);
+                setProdTables.add(rsProdTableName);
             }
-            rsProdTables.first();
+
+            String rsRestoredTableName = "";
+            Set<String> setRestoredTables = new TreeSet<>();
             while (rsRestoredTables.next()) {
-                listRestoredTables.add(rsRestoredTables.getString(1));
+                rsRestoredTableName = rsRestoredTables.getString(1);
+                setRestoredTables.add(rsRestoredTableName);
             }
-            rsRestoredTables.first();
-            if (listProdTables.equals(listRestoredTables) == true) {
+
+            Set<String> setTablesNotInRestored = new TreeSet<>();
+            for (String s : setProdTables) {
+                if (!setRestoredTables.contains(s)) { setTablesNotInRestored.add(s); }
+            }
+
+            if (setTablesNotInRestored.isEmpty()) {
                 listOfPassedValidityTests.add("All tables present.");
-                logger.info("Both databases have the same number of tables ({} tables).", listProdTables.size());
-            } else {
-                logger.warn("The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", listProdTables.size(), listRestoredTables.size());
+                logger.info("Both databases have {} tables.", setProdTables.size());
+            }
+            else {
                 // Get names of tables missing from restored database
-                List<String> listMissingTables = new ArrayList<>();
-                for (int counter = 0; counter < listProdTables.size(); counter++) {
-                    if (!listRestoredTables.contains(listProdTables.get(counter))) {
-                        listMissingTables.add(listProdTables.get(counter));
-                    }
-                }
-                // Log missing table names
-                logger.warn("The following table(s) are missing from the restored database:");
-                for (String s : listMissingTables) {
+                logger.warn("The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", setProdTables.size(), setRestoredTables.size());
+                for (String s : setTablesNotInRestored) {
                     listOfFailedValidityTests.add("Not all tables present. " + s + " is missing.");
-                    logger.warn("\t --> {}", s);
+                    logger.warn("The {} table is missing from the restored database.", s);
                 }
             }
 
 
             // Run CHECK TABLES on all tables of restored database
-            List<ResultSet> corruptedDbList = new ArrayList<>();
-            while (rsRestoredTables.next()) {
+            List<String> corruptedDbList = new ArrayList<>();
+            Iterator<String> iter = setRestoredTables.iterator();
+            while(iter.hasNext()) {
                 // Loop through all tables to query CHECK TABLE on each one
-                PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " + rsRestoredTables.getString(1) + ";");
-
+                PreparedStatement pstRestoredCHECKTable = conRestored.prepareStatement("CHECK TABLE " + iter.next() + ";");
                 ResultSet rsRestoredCHECKTable = pstRestoredCHECKTable.executeQuery();
-
-                ResultSetMetaData m = rsRestoredCHECKTable.getMetaData();
 
                 // Check that ResultSet returns from each query
                 if (rsRestoredCHECKTable == null) {
@@ -219,33 +220,39 @@ public class SQL {
                     return false;
                 }
 
+                ResultSetMetaData metaDataRestoredCHECKTable = rsRestoredCHECKTable.getMetaData();
+
                 rsRestoredCHECKTable.next();
-                String checkMsg = rsRestoredCHECKTable.getString(m.getColumnName(4));
-                // If Msg_text column returns anything other thank "OK", add to corruptedDbList
+                String rsRestoredCorruptedTableName = "";
+                // If Msg_text column (4) returns anything other thank "OK", add to corruptedDbList
+                String checkMsg = rsRestoredCHECKTable.getString(metaDataRestoredCHECKTable.getColumnName(4));
                 if (!checkMsg.equals("OK")) {
-                    corruptedDbList.add(rsRestoredCHECKTable);
+                    rsRestoredCorruptedTableName = rsRestoredCHECKTable.getString(1);
+                    corruptedDbList.add(rsRestoredCorruptedTableName);
                 }
                 rsRestoredCHECKTable.close();
             }
-            rsRestoredTables.first();
+
             // Log results
             if (corruptedDbList.size() == 0) {
                 listOfPassedValidityTests.add("No corrupted tables.");
+                logger.info("There are no corrupted tables in the restored database.");
             }
-            logger.warn("There are {} corrupted tables in the database.", corruptedDbList.size());
-            for (ResultSet r : corruptedDbList) {
-                String corruptedTable = r.getString(1);
-                listOfFailedValidityTests.add(corruptedTable + " is a corrupted table");
-                logger.warn("Corrupted table: : " + corruptedTable);
+            else {
+                //Get names of corrupted tables
+                for (String s : corruptedDbList) {
+                    listOfFailedValidityTests.add(s + " is a corrupted table.");
+                    logger.warn("{} table is corrupted." + s);
+                }
             }
 
 
-            // Check all columns and all rows of all tables of restored database
+            // Check the metadata of all tables of restored database
             // Loop through all tables to query and validate each (only those present in the restored database)
-            Iterator<String> iter = listRestoredTables.iterator();
+            iter = setRestoredTables.iterator();
             while (iter.hasNext()) {
                 String tableName = iter.next();
-                String query = "SELECT * FROM " + dbName + "." + tableName + ";";
+                String query = "SELECT COUNT(*) AS numRows FROM " + dbName + "." + tableName + ";";
 
                 // Prepared Statements
                 PreparedStatement pstProd = conProd.prepareStatement(query);
@@ -261,35 +268,55 @@ public class SQL {
                     return false;
                 }
 
-                int numProdRows = 0;
-                int numRestoredRows = 0;
-                while (rsProdRows.next()) {
-                    numProdRows++;
-                }
-                while (rsRestoredRows.next()) {
-                    numRestoredRows++;
-                }
-                if (numProdRows == numRestoredRows) {
-                    listOfPassedValidityTests.add("The number of rows in " + tableName + " is the same.");
-                    logger.info("The production and restored tables of {} have the same number of rows.", tableName);
-                } else {
-                    logger.warn("The tables have a different number of rows. The production database table has {} rows, and the restored has {} rows.", numProdRows, numRestoredRows);
-                    listOfFailedValidityTests.add("The number of rows in " + tableName + " is not the same.");
-                }
-                rsProdRows.first();
-                rsRestoredRows.first();
+                rsProdRows.next();
+                int numProdRows = rsProdRows.getInt("numRows");
 
+                rsRestoredRows.next();
+                int numRestoredRows = rsRestoredRows.getInt("numRows");
+
+                if (numProdRows == numRestoredRows) {
+                    listOfPassedValidityTests.add("The number of rows in " + tableName + " is the same in both databases.");
+                    logger.info("The number of rows in {} table is the same in both databases.", tableName);
+                } else {
+                    listOfFailedValidityTests.add("The number of rows in " + tableName + " is not the same.");
+                    logger.warn("The number of rows in {} is not the same. The production database table has {} rows, and the restored has {} rows.", tableName, numProdRows, numRestoredRows);
+                }
+            }
+             //   rsProdRows.first();
+             //   rsRestoredRows.first();
+
+                // query for one row for the metadata: SELECT * FROM db.table LIMIT 1;
+
+            // Running query again to get to row 0 of result set to check metadata
+            iter = setRestoredTables.iterator();
+            while (iter.hasNext()) {
+                String tableName = iter.next();
+                String query = "SELECT * FROM " + dbName + "." + tableName + " LIMIT 1;";
+
+                // Prepared Statements
+                PreparedStatement pstProd = conProd.prepareStatement(query);
+                PreparedStatement pstRestored = conRestored.prepareStatement(query);
+
+                // Execute SQL query
+                ResultSet rsProdRows = pstProd.executeQuery();
+                ResultSet rsRestoredRows = pstRestored.executeQuery();
+
+                // Check that ResultSets return from each query
+                if (rsProdRows == null || rsRestoredRows == null) {
+                    logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
+                    return false;
+                }
 
                 // Get Meta Data
                 ResultSetMetaData metaDataProdRows = rsProdRows.getMetaData();
                 ResultSetMetaData metaDataRestoredRows = rsRestoredRows.getMetaData();
 
-                // Check if columns are the same (ie. schema (column number), column name, and column data type.
-                //what is possible with a database restore? can columns mysteriously be added or are we only concerned about any being lost?
+                // Store metadata, then compare results
                 Map<String, Object> mapProdSchemaToMetaData = new HashMap();
                 int columnCountProd = metaDataProdRows.getColumnCount();
                 int columnNum = 1;
-                while (rsProdRows.next() && columnNum <= columnCountProd) {
+                rsProdRows.next();
+                while (columnNum <= columnCountProd) {
                     mapProdSchemaToMetaData.put("catalogName", metaDataProdRows.getCatalogName(columnNum));
                     mapProdSchemaToMetaData.put("columnClassName", metaDataProdRows.getColumnClassName(columnNum));
                     mapProdSchemaToMetaData.put("columnCount", metaDataProdRows.getColumnCount());
@@ -304,12 +331,12 @@ public class SQL {
                     mapProdSchemaToMetaData.put("tableName", metaDataProdRows.getTableName(columnNum));
                     columnNum++;
                 }
-                rsProdRows.first();
 
                 Map<String, Object> mapRestoredSchemaToMetaData = new HashMap();
                 int columnCountRestored = metaDataRestoredRows.getColumnCount();
                 columnNum = 1;
-                while (rsRestoredRows.next() && columnNum <= columnCountRestored) {
+                rsRestoredRows.next();
+                while (columnNum <= columnCountRestored) {
                     mapRestoredSchemaToMetaData.put("catalogName", metaDataRestoredRows.getCatalogName(columnNum));
                     mapRestoredSchemaToMetaData.put("columnClassName", metaDataRestoredRows.getColumnClassName(columnNum));
                     mapRestoredSchemaToMetaData.put("columnCount", metaDataRestoredRows.getColumnCount());
@@ -324,8 +351,8 @@ public class SQL {
                     mapRestoredSchemaToMetaData.put("tableName", metaDataRestoredRows.getTableName(columnNum));
                     columnNum++;
                 }
-                rsRestoredRows.first();
 
+                // Store tables that have missing or corrupted metadata
                 List<String> listTablesWithBadColumns = new ArrayList<>();
                 if (!mapProdSchemaToMetaData.equals(mapRestoredSchemaToMetaData)) {
                     listTablesWithBadColumns.add(tableName);
@@ -335,10 +362,10 @@ public class SQL {
                     listOfPassedValidityTests.add("Column meta data in " + tableName + " is the same.");
                     logger.info("{} table does not have any missing or corrupted columns.", tableName);
                 } else {
-                    // Log table names with bad columns (ie. schema (column number) to [columnName, datatype] don't match that of the production database)
-                    for (String table : listTablesWithBadColumns) {
-                        listOfFailedValidityTests.add("Column meta data in " + table + " is not the same.");
-                        logger.warn("Table {} has missing or corrupted column(s)", table);
+                    // Log table names with bad columns
+                    for (String s : listTablesWithBadColumns) {
+                        listOfFailedValidityTests.add("Column meta data in " + s + " is not the same.");
+                        logger.warn("Table {} has missing or corrupted column(s)", s);
                     }
                 }
 
@@ -380,3 +407,25 @@ public class SQL {
         return false;
     }
 }
+
+/** Notes on .next() and checks on it
+ * // Checking that tables does contain rows and data
+ *             // isBeforeFirst() only works for forward-only
+ *             if (rsProdAllDbs.getRow() == 0) {;}
+ *             // or a do while?
+ *             // TYPE_FORWARD_ONLY returns value 1003; check this to ensure .next() and .isBeforeFirst() return without error .first()
+ *             /////////////////  just run the query again /////////////////////////
+ *             if (rsProdAllDbs.getType() != 1003) {
+ *                 logger.error("Table is not forward-only traversing.");
+ *                 throw new SQLException();
+ *             }
+ *             if (rsProdAllDbs.next()) {
+ *                 do {
+ *
+ *                 }while (rsProdAllDbs.next());
+ *             }
+ *             else {
+ *                 logger.error("Production database: no rows.");
+ *                 throw new SQLException();
+ *             }
+ */
