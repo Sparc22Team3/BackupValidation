@@ -26,6 +26,7 @@ public final class Settings {
     private final InstanceSettings ec2Settings;
     private final InstanceSettings rdsSettings;
     private final InstanceSettings s3Settings;
+    private final String snsTopicArn;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Settings(@JsonProperty("serverUserName") String serverUsername,
@@ -37,6 +38,7 @@ public final class Settings {
                     @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
+                    @JsonProperty("SnsTopicArn") String snsTopicArn,
                     @JsonProperty("ec2Settings") InstanceSettings ec2Settings,
                     @JsonProperty("rdsSettings") InstanceSettings rdsSettings,
                     @JsonProperty("s3Settings") InstanceSettings s3Settings) {
@@ -50,6 +52,7 @@ public final class Settings {
         this.awsRegion = awsRegion;
         this.vpcID = vpcID;
         this.vpcName = vpcName;
+        this.snsTopicArn = snsTopicArn;
         this.ec2Settings = ec2Settings;
         this.rdsSettings = rdsSettings;
         this.s3Settings = s3Settings;
@@ -90,6 +93,10 @@ public final class Settings {
 
     public String getVpcName() {
         return vpcName;
+    }
+
+    public String getSnsTopicArn(){
+        return snsTopicArn;
     }
 
     public InstanceSettings getEc2Settings() {
@@ -208,6 +215,7 @@ public final class Settings {
         private String awsRegion;
         private String vpcID;
         private String vpcName;
+        private String snsTopicArn;
         private InstanceSettings ec2Settings;
         private InstanceSettings rdsSettings;
         private InstanceSettings s3Settings;
@@ -277,6 +285,11 @@ public final class Settings {
             return this;
         }
 
+        public SettingsBuilder snsTopicArn(String snsTopicArn){
+            this.snsTopicArn = snsTopicArn;
+            return this;
+        }
+
         public SettingsBuilder configFile(ServerConfigFile file) {
             if (configFiles == null)
                 configFiles = new HashSet<>();
@@ -322,6 +335,7 @@ public final class Settings {
                     awsRegion,
                     vpcID,
                     vpcName,
+                    snsTopicArn,
                     ec2Settings,
                     rdsSettings,
                     s3Settings
@@ -362,6 +376,10 @@ public final class Settings {
 
         public String getVpcName() {
             return vpcName;
+        }
+
+        public String getSnsTopicArn(){
+            return snsTopicArn;
         }
 
         public InstanceSettings getEc2Settings() {
