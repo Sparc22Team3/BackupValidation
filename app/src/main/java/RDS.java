@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import sparc.team3.validator.restore.RDSRestore;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.SecurityGroup;
+import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.validate.RDSValidate;
 
 import java.util.LinkedList;
@@ -45,13 +46,13 @@ public class RDS {
                     .build();
             BackupClient backupClient = BackupClient.builder().region(region).build();
             RDSRestore rdsRestore
-                     = new RDSRestore(backupClient, rdsClient, instanceSettings);
+                    = new RDSRestore(backupClient, rdsClient, instanceSettings);
 
             DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 
             RDSValidate rdsValidate = new RDSValidate(rdsClient, instanceSettings);
-            rdsValidate.setDbInstance(restoredInstance);
-            rdsValidate.validateResource();
+            rdsValidate.setRestoredDbInstance(restoredInstance);
+            rdsValidate.call();
 
             rdsClient.close();
 

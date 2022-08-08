@@ -246,6 +246,8 @@ public class BackupValidator {
 
         ec2ValidateInstance = new EC2ValidateInstance(ec2Client, settings.getEc2Settings());
         rdsValidateDatabase = new RDSValidate(rdsClient, settings.getRdsSettings());
+        rdsValidateDatabase.setDBCredentials(settings.getDbUsername(), settings.getDbPassword());
+        rdsValidateDatabase.setDatabasesToCheck(settings.getDatabases());
         s3ValidateBucket = new S3ValidateBucket(s3Client, settings.getS3Settings());
 
         boolean ec2Checked = false;
@@ -269,7 +271,7 @@ public class BackupValidator {
             ec2ValidateInstance.setEC2Instance(ec2Instance);
             ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
 
-            rdsValidateDatabase.setDbInstance(rdsInstance);
+            rdsValidateDatabase.setRestoredDbInstance(rdsInstance);
             rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
 
             s3ValidateBucket.setRestoredBucket(restoredBucketName);
@@ -302,7 +304,7 @@ public class BackupValidator {
             if (rdsFuture != null && rdsFuture.isDone() && rdsInstance == null) {
                 try {
                     rdsInstance = rdsFuture.get();
-                    rdsValidateDatabase.setDbInstance(rdsInstance);
+                    rdsValidateDatabase.setRestoredDbInstance(rdsInstance);
                     rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
                 } catch (ExecutionException e) {
                     logger.error("Restoring RDS instance failed. Cause: {}", e.getCause(), e);
