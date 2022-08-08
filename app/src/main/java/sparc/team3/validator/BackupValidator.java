@@ -185,9 +185,14 @@ public class BackupValidator {
             }
             configLoader = new ConfigLoader(cli, configFile);
             SeleniumLoader seleniumLoader = new SeleniumLoader(cli, seleniumFile);
-            seleniumSettings = seleniumLoader.loadSettings();
 
-            settings = configLoader.loadSettings();
+            try {
+                seleniumSettings = seleniumLoader.loadSettings();
+                settings = configLoader.loadSettings();
+            } catch (IOException e){
+                logger.error("Missing config files: {}", e.getMessage());
+                return;
+            }
 
             if (settings == null)
                 return;
@@ -294,7 +299,7 @@ public class BackupValidator {
                     ec2ValidateInstance.setEC2Instance(ec2Instance);
                     ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring EC2 instance failed. Cause: {}", e.getCause(), e);
+                    logger.error("Restoring EC2 instance failed. Cause: {}", e.getMessage());
                     ec2Checked = true;
                 }
             }
@@ -305,7 +310,7 @@ public class BackupValidator {
                     rdsValidateDatabase.setDbInstance(rdsInstance);
                     rdsValidateFuture = Util.executor.submit(rdsValidateDatabase);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring RDS instance failed. Cause: {}", e.getCause(), e);
+                    logger.error("Restoring RDS instance failed. Cause: {}", e.getMessage());
                     rdsChecked = true;
                 }
             }
@@ -316,7 +321,7 @@ public class BackupValidator {
                     s3ValidateBucket.setRestoredBucket(restoredBucketName);
                     s3ValidateFuture = Util.executor.submit(s3ValidateBucket);
                 } catch (ExecutionException e) {
-                    logger.error("Restoring S3 bucket failed. Cause: {}", e.getCause(), e);
+                    logger.error("Restoring S3 bucket failed. Cause: {}", e.getMessage());
                     s3Checked = true;
                 }
 
@@ -334,7 +339,7 @@ public class BackupValidator {
                         logger.info("EC2 Restored Instance Validation Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("EC2 instance validation failed. Cause: {}", e.getCause(), e);
+                    logger.error("EC2 instance validation failed. Cause: {}", e.getMessage());
                 }
                 ec2Checked = true;
             }
@@ -349,7 +354,7 @@ public class BackupValidator {
                         logger.info("Restored Database Validation Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("RDS database validation failed. Cause: {}", e.getCause(), e);
+                    logger.error("RDS database validation failed. Cause: {}", e.getMessage());
                 }
                 rdsChecked = true;
             }
@@ -364,7 +369,7 @@ public class BackupValidator {
                         logger.error("S3 Restored Bucket Failed");
                     }
                 } catch (ExecutionException e) {
-                    logger.error("S3 bucket validation failed. Cause: {}", e.getCause(), e);
+                    logger.error("S3 bucket validation failed. Cause: {}", e.getMessage());
                 }
                 s3Checked = true;
             }
