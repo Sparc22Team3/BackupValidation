@@ -96,10 +96,10 @@ public class RDSValidate implements Callable<Boolean> {
 
         if (!System.getProperty("user.name").startsWith("ec2")) {
             System.out.println(CLI.ANSI_YELLOW_BACKGROUND + CLI.ANSI_BLACK + "Running this on your local machine, you need to setup an ssh tunnel.  This can be done with the following command:\n" +
-                    "\t\tssh -i \"Path\\to\\PrivateKeyFile\" -N -l ec2-user -L 3306:" + urlProduction + ":3306 -L 3307:" + urlRestored + ":3306 ec2-18-215-239-112.compute-1.amazonaws.com -v\n" +
+                    "\t\tssh -i \"Path\\to\\PrivateKeyFile\" -N -l ec2-user -L 3306:" + dbInstanceProd.endpoint().address() + ":3306 -L 3307:" + dbInstanceRestored.endpoint().address() + ":3306  [EC2 Public Address With Access to Database With SSH Access From This Machine] -v\n" +
                     "The tunnel will stay open as long as the terminal is open.\n" +
-                    CLI.ANSI_GREEN + "You have one minute to setup tunnel before validation continues and fails." + CLI.ANSI_RESET);
-            Thread.sleep(60000);
+                    CLI.ANSI_GREEN_BACKGROUND + "You have two minutes to setup tunnel before validation continues and fails." + CLI.ANSI_RESET);
+            Thread.sleep(150000);
             urlProduction = engine + "localhost:3306";
             urlRestored = engine + "localhost:3307";
         }
