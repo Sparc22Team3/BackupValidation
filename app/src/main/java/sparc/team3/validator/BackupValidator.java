@@ -23,9 +23,7 @@ import sparc.team3.validator.config.ConfigEditor;
 import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.config.SeleniumEditor;
 import sparc.team3.validator.config.SeleniumLoader;
-import sparc.team3.validator.restore.EC2Restore;
-import sparc.team3.validator.restore.RDSRestore;
-import sparc.team3.validator.restore.S3Restore;
+import sparc.team3.validator.restore.*;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
 import sparc.team3.validator.util.Util;
@@ -249,9 +247,6 @@ public class BackupValidator {
         Future<DBInstance> rdsFuture = null;
         Future<String> s3Future = null;
 
-        ec2Future = Util.executor.submit(ec2Restore);
-        rdsFuture = Util.executor.submit(rdsRestore);
-        s3Future = Util.executor.submit(s3Restore);
         Future<Boolean> ec2ValidateFuture = null;
         Future<Boolean> rdsValidateFuture = null;
         Future<Boolean> s3ValidateFuture = null;
@@ -305,7 +300,6 @@ public class BackupValidator {
                  */
                 try {
                     ec2Instance = ec2Future.get();
-                    ec2ValidateInstance = new EC2ValidateInstance(ec2Client, settings.getEc2Settings());
                     ec2ValidateInstance.setEC2Instance(ec2Instance);
 
                     ec2ValidateFuture = Util.executor.submit(ec2ValidateInstance);
