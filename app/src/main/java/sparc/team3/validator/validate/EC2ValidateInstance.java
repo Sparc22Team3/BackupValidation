@@ -67,47 +67,4 @@ public class EC2ValidateInstance implements Callable<Boolean> {
         return httpResponse.statusCode() == 200;
 
     }
-
-    /**
-     * Busy wait for EC2 to complete setup.
-     *
-     * @throws InterruptedException when sleep is interrupted
-     * @throws TimeoutException when waiting for the EC2 instance times out
-     */
-    private void waitForEC2Checks() throws InterruptedException, TimeoutException {
-
-        //Wait for ec2 instance to complete setup
-        //@TODO should we change to waiter?
-        int attempts = 0;
-        while (attempts < 11) {
-
-            try {
-                DescribeInstanceStatusRequest statusReq = DescribeInstanceStatusRequest
-                        .builder().instanceIds(instance.instanceId()).build();
-
-                DescribeInstanceStatusResponse statusRes = ec2Client.describeInstanceStatus(statusReq);
-
-                String running = statusRes.instanceStatuses().get(0).instanceState().name().toString();
-                String sysPass = statusRes.instanceStatuses().get(0).systemStatus().status().toString();
-                String reachPass = statusRes.instanceStatuses().get(0).instanceStatus().status().toString();
-
-                logger.info("EC2 instance {}:\t\tRunning:{}\t\tSys Pass:{}\t\tReach Pass:{}", instance.instanceId(), running, sysPass, reachPass);
-
-                if ((running.equals("running")) && (sysPass.equals("passed") || sysPass.equals("ok")) && (reachPass.equals("passed") || reachPass.equals("ok"))) {
-                    break;
-                }
-
-            } catch (AwsServiceException e) {
-                logger.error("Problem getting status of EC2 instance {}", instance.instanceId(), e);
-                return;
-            }
-
-            Thread.sleep(60000);
-            attempts++;
-        }
-
-        if (attempts >= 11) {
-            throw new TimeoutException("EC2 Instance Timeout");
-        }
-    }
 }
