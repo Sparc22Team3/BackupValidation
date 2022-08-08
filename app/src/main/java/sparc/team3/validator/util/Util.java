@@ -144,8 +144,10 @@ public class Util {
             } catch (S3Exception e) {
                 logger.error("Error deleting objects in {}", bucketName, e);
                 errors++;
-                if(errors > 5)
-                    System.exit(1);
+                if(errors > 5) {
+                    logger.error("Unable to empty {}", bucketName);
+                    return;
+                }
                 Thread.sleep(30000);
             }
 
@@ -161,7 +163,6 @@ public class Util {
             s3Client.deleteBucket(deleteBucketRequest);
         } catch (S3Exception e) {
             logger.error("Error deleting {}", bucketName, e);
-            System.exit(1);
         }
 
         logger.info("S3 Bucket {} has been deleted", bucketName);
