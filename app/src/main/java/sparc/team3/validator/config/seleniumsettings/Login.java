@@ -1,4 +1,4 @@
-package sparc.team3.validator.config.selenium;
+package sparc.team3.validator.config.seleniumsettings;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

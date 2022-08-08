@@ -3,10 +3,10 @@ package sparc.team3.validator.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import sparc.team3.validator.util.CLI;
-import sparc.team3.validator.config.selenium.HtmlTag;
-import sparc.team3.validator.config.selenium.Login;
-import sparc.team3.validator.config.selenium.SearchTerm;
-import sparc.team3.validator.config.selenium.SeleniumSettings;
+import sparc.team3.validator.config.seleniumsettings.HtmlTag;
+import sparc.team3.validator.config.seleniumsettings.Login;
+import sparc.team3.validator.config.seleniumsettings.SearchTerm;
+import sparc.team3.validator.config.seleniumsettings.SeleniumSettings;
 
 import java.io.IOException;
 import java.util.*;

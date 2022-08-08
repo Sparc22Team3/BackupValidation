@@ -29,7 +29,7 @@ import sparc.team3.validator.config.settings.Settings;
 import sparc.team3.validator.util.Notification;
 import sparc.team3.validator.util.RemoteServerConfigurator;
 import sparc.team3.validator.util.Util;
-import sparc.team3.validator.config.selenium.SeleniumSettings;
+import sparc.team3.validator.config.seleniumsettings.SeleniumSettings;
 import sparc.team3.validator.validate.EC2ValidateInstance;
 import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
