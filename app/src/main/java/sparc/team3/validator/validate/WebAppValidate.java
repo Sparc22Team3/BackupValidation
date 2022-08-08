@@ -11,10 +11,10 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.ec2.model.Instance;
-import sparc.team3.validator.util.selenium.HtmlTag;
-import sparc.team3.validator.util.selenium.Login;
-import sparc.team3.validator.util.selenium.SearchTerm;
-import sparc.team3.validator.util.selenium.SeleniumSettings;
+import sparc.team3.validator.config.selenium.HtmlTag;
+import sparc.team3.validator.config.selenium.Login;
+import sparc.team3.validator.config.selenium.SearchTerm;
+import sparc.team3.validator.config.selenium.SeleniumSettings;
 
 import java.io.IOException;
 import java.net.URI;

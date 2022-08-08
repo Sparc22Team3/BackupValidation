@@ -1,7 +1,7 @@
-package sparc.team3.validator;
+package sparc.team3.validator.util;
 
-import sparc.team3.validator.util.ServerConfigFile;
-import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.config.settings.ServerConfigFile;
+import sparc.team3.validator.config.settings.Settings;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

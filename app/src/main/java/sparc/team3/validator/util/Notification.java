@@ -1,4 +1,4 @@
-package sparc.team3.validator;
+package sparc.team3.validator.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

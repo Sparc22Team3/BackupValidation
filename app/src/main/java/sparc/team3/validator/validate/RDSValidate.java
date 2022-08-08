@@ -9,7 +9,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import sparc.team3.validator.util.CLI;
-import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.config.settings.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
 import java.sql.*;

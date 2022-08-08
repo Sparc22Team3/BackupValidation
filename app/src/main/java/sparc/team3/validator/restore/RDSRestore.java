@@ -11,8 +11,8 @@ import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
-import sparc.team3.validator.util.InstanceSettings;
-import sparc.team3.validator.util.SecurityGroup;
+import sparc.team3.validator.config.settings.InstanceSettings;
+import sparc.team3.validator.config.settings.SecurityGroup;
 import sparc.team3.validator.util.Util;
 
 import java.util.Map;

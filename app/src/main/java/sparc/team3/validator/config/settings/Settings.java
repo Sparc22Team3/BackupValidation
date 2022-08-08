@@ -1,8 +1,9 @@
-package sparc.team3.validator.util;
+package sparc.team3.validator.config.settings;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import sparc.team3.validator.util.CLI;
 
 import java.util.*;
 

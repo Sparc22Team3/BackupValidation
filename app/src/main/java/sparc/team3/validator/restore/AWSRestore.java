@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
-import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.config.settings.InstanceSettings;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

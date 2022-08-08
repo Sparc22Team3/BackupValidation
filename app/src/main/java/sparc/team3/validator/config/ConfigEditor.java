@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
-import sparc.team3.validator.Notification;
+import sparc.team3.validator.util.Notification;
 import sparc.team3.validator.util.CLI;
-import sparc.team3.validator.util.InstanceSettings;
-import sparc.team3.validator.util.ServerConfigFile;
-import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.config.settings.InstanceSettings;
+import sparc.team3.validator.config.settings.ServerConfigFile;
+import sparc.team3.validator.config.settings.Settings;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -1,15 +1,16 @@
-package sparc.team3.validator.util;
+package sparc.team3.validator.config.settings;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import sparc.team3.validator.util.RemoteServerConfigurator;
 
 import java.util.*;
 
 /**
  * Information about config files on remote server and the settings to change in the specified file.
  *
- * @see sparc.team3.validator.RemoteServerConfigurator
+ * @see RemoteServerConfigurator
  */
 public final class ServerConfigFile {
     public static final Set<String> placeholders = Set.of("ec2_hostname", "rds_hostname", "s3_bucketname");

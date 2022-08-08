@@ -9,7 +9,7 @@ import software.amazon.awssdk.services.s3.model.GetBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketPolicyResponse;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.config.settings.InstanceSettings;
 import sparc.team3.validator.util.Util;
 
 import java.util.HashMap;

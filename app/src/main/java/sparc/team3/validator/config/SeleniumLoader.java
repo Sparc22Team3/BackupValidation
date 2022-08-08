@@ -2,7 +2,7 @@ package sparc.team3.validator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import sparc.team3.validator.util.CLI;
-import sparc.team3.validator.util.selenium.SeleniumSettings;
+import sparc.team3.validator.config.selenium.SeleniumSettings;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

@@ -2,21 +2,13 @@ package sparc.team3.validator.validate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
-import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.config.settings.InstanceSettings;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
 
 public class EC2ValidateInstance implements Callable<Boolean> {
     private final Ec2Client ec2Client;

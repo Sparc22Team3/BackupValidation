@@ -7,7 +7,7 @@ import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 import software.amazon.awssdk.services.ec2.waiters.Ec2Waiter;
-import sparc.team3.validator.util.InstanceSettings;
+import sparc.team3.validator.config.settings.InstanceSettings;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -2,8 +2,8 @@ package sparc.team3.validator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import sparc.team3.validator.util.CLI;
-import sparc.team3.validator.util.ServerConfigFile;
-import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.config.settings.ServerConfigFile;
+import sparc.team3.validator.config.settings.Settings;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

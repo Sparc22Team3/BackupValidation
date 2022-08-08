@@ -1,4 +1,4 @@
-package sparc.team3.validator;
+package sparc.team3.validator.util;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.SFTPClient;
