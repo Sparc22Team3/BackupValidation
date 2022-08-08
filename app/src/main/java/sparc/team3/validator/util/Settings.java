@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * Settings for the program to run.
  *
- * @see sparc.team3.validator.Configurator
+ * @see sparc.team3.validator.config.ConfigEditor
  */
 @JsonPropertyOrder({"serverUsername", "privateKeyFile"})
 public final class Settings {

@@ -42,7 +42,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -232,17 +235,6 @@ public class BackupValidator {
         }
     }
 
-    /**
-     * Calls the configurator to output a blank config file
-     */
-    private void runNewConfig() {
-        try {
-            configurator.createBlankConfigFile();
-
-        } catch (IOException e) {
-            printException(e);
-        }
-    }
 
     /**
      * Uses a fixed thread pool from {@link Util#executor} to run the call methods
@@ -257,9 +249,9 @@ public class BackupValidator {
         Future<DBInstance> rdsFuture = null;
         Future<String> s3Future = null;
 
-        Future<Instance> ec2Future = Util.executor.submit(ec2Restore);
-        Future<DBInstance> rdsFuture = Util.executor.submit(rdsRestore);
-        Future<String> s3Future = Util.executor.submit(s3Restore);
+        ec2Future = Util.executor.submit(ec2Restore);
+        rdsFuture = Util.executor.submit(rdsRestore);
+        s3Future = Util.executor.submit(s3Restore);
         Future<Boolean> ec2ValidateFuture = null;
         Future<Boolean> rdsValidateFuture = null;
         Future<Boolean> s3ValidateFuture = null;
