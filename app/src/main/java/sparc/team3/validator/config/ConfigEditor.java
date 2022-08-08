@@ -2,6 +2,9 @@ package sparc.team3.validator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
+import sparc.team3.validator.Notification;
 import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.InstanceSettings;
 import sparc.team3.validator.util.ServerConfigFile;
@@ -134,8 +137,8 @@ public class ConfigEditor extends Config {
 
     boolean editServerConnectionSettings() throws IOException {
         String databases;
-        if (settingsBuilder.getDatabaseTables() != null)
-            databases = settingsBuilder.getDatabaseTables().toString();
+        if (settingsBuilder.getDatabases() != null)
+            databases = settingsBuilder.getDatabases().toString();
         else
             databases = "None";
 
@@ -145,13 +148,13 @@ public class ConfigEditor extends Config {
         options.add(new Option("Change Private Key File", settingsBuilder.getPrivateKeyFile()));
         options.add(new Option("Change DB Username", settingsBuilder.getDbUsername()));
         options.add(new Option("Change DB Password", settingsBuilder.getDbPassword()));
-        options.add(new Option("Add table to DB Tables", databases));
-        options.add(new Option("Remove table from DB Tables", databases));
-        options.add(new Option("Remove all tables from DB Tables", databases));
+        options.add(new Option("Add Database", databases));
+        options.add(new Option("Remove Database", databases));
+        options.add(new Option("Remove all Databases", databases));
         options.add(new Option("Change AWS Region", settingsBuilder.getAwsRegion()));
         options.add(new Option("Change VPC ID", settingsBuilder.getVpcID()));
         options.add(new Option("Change VPC Name", settingsBuilder.getVpcName()));
-
+        options.add(new Option("Change SNS Topic ARN", settingsBuilder.getSnsTopicArn()));
 
         int selection = printOptionsAndSelect(options);
 
@@ -176,23 +179,23 @@ public class ConfigEditor extends Config {
                 settingsBuilder.dbPassword(cli.prompt("New DB Password:"));
                 cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDbPassword());
                 break;
-            case "Add table to DB Tables":
-                String table;
+            case "Add Database":
+                String db;
                 cli.outColor("Old Value: %s\n", CLI.ANSI_YELLOW, databases);
                 //noinspection StatementWithEmptyBody
-                while (!(table = cli.prompt("New Table to Add:")).contains(".")) ;
-                settingsBuilder.databaseTable(table);
-                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabaseTables());
+                while (!(db = cli.prompt("New Database to Add:")).contains(".")) ;
+                settingsBuilder.database(db);
+                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabases());
                 break;
-            case "Remove table from DB Tables":
+            case "Remove Database":
                 cli.outColor("Old Value: %s\n", CLI.ANSI_YELLOW, databases);
-                settingsBuilder.removeDatabaseTable(cli.prompt("Table to remove :"));
-                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabaseTables());
+                settingsBuilder.removeDatabase(cli.prompt("Database to remove :"));
+                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabases());
                 break;
-            case "Remove all tables from DB Tables":
+            case "Remove all Databases":
                 cli.outColor("Old Value: %s", CLI.ANSI_YELLOW, databases);
-                settingsBuilder.clearDatabaseTables();
-                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabaseTables());
+                settingsBuilder.clearDatabases();
+                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getDatabases());
                 break;
             case "Change AWS Region":
                 cli.outColor("Old Value: %s\n", CLI.ANSI_YELLOW, settingsBuilder.getAwsRegion());
@@ -208,6 +211,11 @@ public class ConfigEditor extends Config {
                 cli.outColor("Old Value: %s\n", CLI.ANSI_YELLOW, settingsBuilder.getVpcName());
                 settingsBuilder.vpcName(cli.prompt("New VPC Name:"));
                 cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getVpcName());
+                break;
+            case "Change SNS Topic ARN":
+                cli.outColor("Old Value: %s\n", CLI.ANSI_YELLOW, settingsBuilder.getSnsTopicArn());
+                settingsBuilder.vpcName(cli.prompt("New SNS Topic ARN:"));
+                cli.outColor("New Value: %s\n", CLI.ANSI_GREEN, settingsBuilder.getSnsTopicArn());
                 break;
 
         }
@@ -400,29 +408,36 @@ public class ConfigEditor extends Config {
 
         settingsBuilder.dbUsername(cli.prompt("\tDB Username: "));
         settingsBuilder.dbPassword(cli.prompt("\tDB Password: "));
-        cli.out("\tAdd database tables to check.  These tables will be checked from the last common row back.\n" +
-                "\tThe tables should be tables that have primary keys that follow with the time the rows were added.\n" +
+        cli.out("\tAdd databases to check.\n" +
                 "\tEnter blank line when finished adding settings.\n");
-        String table;
-        while (!(table = cli.prompt("\t\tDatabase Table: <Database.table_name>")).equals("")) {
-            while (!table.contains(".")) {
-                cli.outColor("\t\tIncorrect format, table must be entered \"DatabaseName.TableName\"\n", CLI.ANSI_RED);
-                table = cli.prompt("\t\tDatabase Table: <Database.table_name>");
-            }
-            settingsBuilder.databaseTable(table);
+        String db;
+        while (!(db = cli.prompt("\t\tDatabase:")).equals("")) {
+            settingsBuilder.database(db);
         }
 
         settingsBuilder.awsRegion(cli.promptDefault("\tAWS Region: ", "us-east-1"));
         settingsBuilder.vpcID(cli.prompt("\tVPC ID: "));
         settingsBuilder.vpcName(cli.prompt("\tVPC Name: "));
-
+        if(cli.promptYesOrNo("Do you have a SNS topic setup to accept reports?"))
+            settingsBuilder.snsTopicArn(cli.prompt("\tSNS Topic ARN to send reports to:"));
+        else
+            if(cli.promptYesOrNo("Would you like to create an SNS topic? Will be created in AWS region %s\n" +
+                    "(Will only accept messages from the IAM credentials being used to run this program without further configuration in the AWS console.)", settingsBuilder.getAwsRegion())) {
+                String topicName = cli.prompt("Topic name to create: ");
+                SnsClient snsClient = SnsClient.builder().region(Region.of(settingsBuilder.getAwsRegion())).build();
+                String topicArn = Notification.createSNSTopic(topicName, snsClient);
+                if(!topicArn.isEmpty())
+                    settingsBuilder.snsTopicArn(topicArn);
+                else
+                    cli.outColor("Unable to create SNS topic", CLI.ANSI_RED);
+            }
         cli.out(settingsBuilder.serverConnectionSettingsToString());
     }
 
     void serverConfigFiles() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_BLUE, Sections.CONFIG);
         boolean result = cli.promptYesOrNo("\tDo you need to modify configuration files on the restored server for the application to function\n" +
-                "\t\twith the new restored server hostname, database hostname, or s3 bucketname?");
+                "\t\twith the new restored server hostname, database server hostname, or s3 bucketname?");
         if (result) {
             configFileBuilders = new HashMap<>();
             serverConfigFile();
