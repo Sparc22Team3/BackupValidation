@@ -1,0 +1,26 @@
+{
+  "titles" : {
+    "index.php" : "Title of Index.php"
+  },
+  "tags" : [ {
+    "cssSelector" : "#p-label",
+    "value" : "Value in Element specified by cssSelector",
+    "entrypoint" : "/wiki/index.php"
+  }, {
+    "cssSelector" : "#p-label",
+    "value" : "Value in Element specified by cssSelector",
+    "entrypoint" : "/index.php"
+  } ],
+  "logins" : [ {
+    "username" : "Username in App",
+    "password" : "Password of App",
+    "usernameCssSelector" : "#wpName1",
+    "passwordCssSelector" : "#wpPassword1",
+    "entrypoint" : "/wiki/index.php?title=Special:UserLogin"
+  } ],
+  "searchTerms" : [ {
+    "term" : "Term to Search For",
+    "searchCssSelector" : "#searchInput",
+    "entrypoint" : "/wiki/index.php?title=Main_Page"
+  } ]
+}

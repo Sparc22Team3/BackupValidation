@@ -1,0 +1,44 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances",
+                "s3:DeleteObjectVersion",
+                "s3:ListBucketVersions",
+                "s3:ListBucket",
+                "s3:GetObjectVersionAttributes",
+                "s3:GetBucketPolicy",
+                "iam:PassRole",
+                "sns:Publish",
+                "rds:DescribeDBInstances",
+                "backup:StartRestoreJob",
+                "rds:ModifyDBInstance",
+                "s3:GetObjectTagging",
+                "s3:PutBucketAcl",
+                "s3:PutObjectTagging",
+                "backup:ListRecoveryPointsByBackupVault",
+                "s3:DeleteObject",
+                "s3:DeleteBucket",
+                "rds:DeleteDBInstance",
+                "ec2:DescribeInstanceStatus",
+                "ec2:TerminateInstances",
+                "sns:CreateTopic",
+                "backup:DescribeRestoreJob",
+                "s3:GetObjectAttributes",
+                "ec2:StopInstances",
+                "backup:GetRecoveryPointRestoreMetadata",
+                "s3:PutObject",
+                "s3:GetObject",
+                "backup:ListRecoveryPointsByResource",
+                "rds:RestoreDBInstanceFromDBSnapshot",
+                "rds:RebootDBInstance",
+                "s3:PutBucketPolicy",
+                "s3:GetObjectVersion"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

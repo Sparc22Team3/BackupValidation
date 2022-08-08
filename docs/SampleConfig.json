@@ -1,0 +1,47 @@
+{
+  "serverUsername" : "ec2-user",
+  "privateKeyFile" : "",
+  "dbUsername" : "",
+  "dbPassword" : "",
+  "databases" : [ "Wiki", "Wiki_Cargo" ],
+  "configFiles" : [ {
+    "filename" : "LocalSettings.php",
+    "path" : "/var/www/html/wiki",
+    "settings" : {
+      "$wgServer" : "ec2_hostname",
+      "$wgDBserver" : "rds_hostname",
+      "$wgCargoDBserver" : "rds_hostname"
+    }
+  }, {
+    "filename" : "index.php",
+    "path" : "/var/www/html",
+    "settings" : {
+      "$s3bucket" : "s3_bucketname"
+    }
+  } ],
+  "awsRegion" : "us-east-1",
+  "vpcID" : "vpc-###",
+  "vpcName" : "vpc-Name",
+  "ec2Settings" : {
+    "productionName" : "i-###",
+    "backupVault" : "webapp-vault",
+    "securityGroups" : [ ],
+    "subnetName" : null
+  },
+  "rdsSettings" : {
+    "productionName" : "database-name",
+    "backupVault" : "webapp-vault",
+    "securityGroups" : [ {
+      "id" : "sg-####",
+      "name" : "Security-Group-Name"
+    } ],
+    "subnetName" : "rds-subnet-group-name"
+  },
+  "s3Settings" : {
+    "productionName" : "bucket-name",
+    "backupVault" : "webapp-vault",
+    "securityGroups" : [ ],
+    "subnetName" : null
+  },
+  "snsTopicArn" : "arn:aws:sns:us-east-1:#####:Topic-Name"
+}
