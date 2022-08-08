@@ -10,11 +10,15 @@ import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
+import sparc.team3.validator.config.ConfigLoader;
+import sparc.team3.validator.util.CLI;
 import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.util.Util;
 
-import javax.xml.transform.Result;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.io.InputStreamReader;
+
 import java.sql.*;
 import java.util.*;
 
@@ -39,10 +43,11 @@ public class SQL {
 
     }
 
+
     private static boolean isRdsRestoredValid() throws SQLException, IOException, InterruptedException {
         Logger logger = LoggerFactory.getLogger(SQL.class);
-        Configurator configurator = new Configurator();
-        Settings settings = configurator.loadSettings();
+        ConfigLoader configLoader = new ConfigLoader(new CLI(), Util.DEFAULT_CONFIG.toString());
+        Settings settings = configLoader.loadSettings();
         logger.debug("Settings: {}", settings);
         RdsClient rdsClient = RdsClient.builder().region(Region.of(settings.getAwsRegion())).build();
         DescribeDbInstancesRequest describeDbInstancesRequest = DescribeDbInstancesRequest.builder().dbInstanceIdentifier(settings.getRdsSettings().getProductionName()).build();

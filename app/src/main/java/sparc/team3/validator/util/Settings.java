@@ -79,6 +79,7 @@ public final class Settings {
     }
 
     public List<ServerConfigFile> getConfigFiles() {
+
         return configFiles;
     }
 
