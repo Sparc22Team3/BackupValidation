@@ -95,7 +95,7 @@ public class SQL {
 
             // Check if all databases are present in the restored database
             PreparedStatement pstProdAllDbs = conProd.prepareStatement("SHOW DATABASES;");
-            PreparedStatement pstRestoredAllDbs = conProd.prepareStatement("SHOW DATABASES;");
+            PreparedStatement pstRestoredAllDbs = conRestored.prepareStatement("SHOW DATABASES;");
 
             ResultSet rsProdAllDbs = pstProdAllDbs.executeQuery();
             ResultSet rsRestoredAllDbs = pstRestoredAllDbs.executeQuery();
@@ -135,7 +135,7 @@ public class SQL {
                 // Get names of database(s) missing from restore.
                 for (String s : setDbsNotInRestored) {
                     listOfFailedValidityTests.add("The " + s + " database was not restored.");
-                    logger.warn("{} database is not present.", s);
+                    logger.warn("{} database is not present in the restore.", s);
                 }
             }
 
@@ -282,10 +282,7 @@ public class SQL {
                     logger.warn("The number of rows in {} is not the same. The production database table has {} rows, and the restored has {} rows.", tableName, numProdRows, numRestoredRows);
                 }
             }
-             //   rsProdRows.first();
-             //   rsRestoredRows.first();
 
-                // query for one row for the metadata: SELECT * FROM db.table LIMIT 1;
 
             // Running query again to get to row 0 of result set to check metadata
             iter = setRestoredTables.iterator();
@@ -368,13 +365,6 @@ public class SQL {
                         logger.warn("Table {} has missing or corrupted column(s)", s);
                     }
                 }
-
-
-                /**        Collections.sort(listRestoredMetaData, new Comparator<Object>() {
-                @Override public int compare(Object a1, Object a2) {
-                return a1.toString().compareToIgnoreCase(a2.toString());
-                }
-                }); */
                 rsProdRows.close();
                 rsRestoredRows.close();
             }
@@ -387,6 +377,7 @@ public class SQL {
 
 
         } catch (SQLException e) {
+            logger.error("SQL Exception");
             throw new RuntimeException(e);
         }
         dsProd.close();
@@ -408,24 +399,3 @@ public class SQL {
     }
 }
 
-/** Notes on .next() and checks on it
- * // Checking that tables does contain rows and data
- *             // isBeforeFirst() only works for forward-only
- *             if (rsProdAllDbs.getRow() == 0) {;}
- *             // or a do while?
- *             // TYPE_FORWARD_ONLY returns value 1003; check this to ensure .next() and .isBeforeFirst() return without error .first()
- *             /////////////////  just run the query again /////////////////////////
- *             if (rsProdAllDbs.getType() != 1003) {
- *                 logger.error("Table is not forward-only traversing.");
- *                 throw new SQLException();
- *             }
- *             if (rsProdAllDbs.next()) {
- *                 do {
- *
- *                 }while (rsProdAllDbs.next());
- *             }
- *             else {
- *                 logger.error("Production database: no rows.");
- *                 throw new SQLException();
- *             }
- */

@@ -40,7 +40,7 @@
     <logger name="software.amazon.awssdk" level="${aws-log-level:-WARN}">
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="com.zaxxer.hikari" level="${sql-log-level:-WARN}">
+    <logger name="com.zaxxer.hikari" level="${sql-log-level:-INFO}">
         <appender-ref ref="FILE" />
     </logger>
     <logger name="net.schmizz" level="${ssh-log-level:-WARN}">
