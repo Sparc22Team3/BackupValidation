@@ -309,6 +309,8 @@ public class RDSValidate implements Callable<Boolean> {
                 iter = setRestoredTables.iterator();
                 while (iter.hasNext()) {
                     String tableName = iter.next();
+                    if(tableName.toLowerCase().contains("cache") || tableName.toLowerCase().contains("session"))
+                        continue;
                     String query = "SELECT COUNT(*) AS numRows FROM " + db + "." + tableName + ";";
 
                     // Prepared Statements
