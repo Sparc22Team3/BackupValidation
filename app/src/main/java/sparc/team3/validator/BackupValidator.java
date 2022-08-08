@@ -289,7 +289,7 @@ public class BackupValidator {
              * Check if return value from future is set or not.  If it is,
              * this block has already been run on this result
              */
-            if (ec2Future != null && ec2Future.isDone() && ec2Instance == null) {
+            if (ec2Future != null && ec2Future.isDone() && ec2Instance == null && !ec2Checked) {
                 /* If an error occurs in the thread, future.get will throw an
                  * ExecutionException wrapped around the exception that was
                  * thrown in the thread
@@ -304,7 +304,7 @@ public class BackupValidator {
                 }
             }
 
-            if (rdsFuture != null && rdsFuture.isDone() && rdsInstance == null) {
+            if (rdsFuture != null && rdsFuture.isDone() && rdsInstance == null && !rdsChecked) {
                 try {
                     rdsInstance = rdsFuture.get();
                     rdsValidateDatabase.setDbInstance(rdsInstance);
@@ -315,7 +315,7 @@ public class BackupValidator {
                 }
             }
 
-            if (s3Future != null && s3Future.isDone() && restoredBucketName == null) {
+            if (s3Future != null && s3Future.isDone() && restoredBucketName == null && !s3Checked) {
                 try {
                     restoredBucketName = s3Future.get();
                     s3ValidateBucket.setRestoredBucket(restoredBucketName);
@@ -384,7 +384,10 @@ public class BackupValidator {
     private boolean validateSystem() throws Exception {
         // Spin up restored instances to get new hostnames/bucket name
         ConfigLoader.replaceHostname(ec2Instance.publicDnsName(), rdsInstance.endpoint().address(), restoredBucketName, settings);
-        RemoteServerConfigurator remoteServerConfigurator = new RemoteServerConfigurator(ec2Instance.publicIpAddress(), settings);
+        if(!System.getProperty("user.name").startsWith("ec2"))
+            new RemoteServerConfigurator(ec2Instance.publicIpAddress(), settings);
+        else
+            new RemoteServerConfigurator(ec2Instance.privateIpAddress(), settings);
 
         WebAppValidate webAppValidate = new WebAppValidate(ec2Instance, seleniumSettings);
 
