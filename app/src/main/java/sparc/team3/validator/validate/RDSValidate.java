@@ -199,9 +199,11 @@ public class RDSValidate implements Callable<Boolean> {
         }
 
         public Boolean call() {
+
             try (Connection conProd = dsProd.getConnection();
                  Connection conRestored = dsRestored.getConnection();
             ) {
+                boolean passedTablePresentCheck = true;
                 // Check to see if all tables are present in restored database
                 PreparedStatement pstProdDb = conProd.prepareStatement("USE " + db + ";");
                 PreparedStatement pstRestoredDb = conRestored.prepareStatement("USE " + db + ";");
@@ -211,7 +213,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                 // Check that ResultSets return from each query
                 if (rsProdUseDb == null || rsRestoredUseDb == null) {
-                    logger.warn("Alert: NULL Result Set from \"USE [DatabaseName]\".");
+                    logger.warn("Validation Error: NULL Result Set from \"USE [DatabaseName]\".");
                     return false;
                 }
 
@@ -223,7 +225,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                 // Check that ResultSets return from each query
                 if (rsProdTables == null || rsRestoredTables == null) {
-                    logger.warn("Alert: NULL Result Set from \"SHOW TABLES\".");
+                    logger.warn("Validation Error: NULL Result Set from \"SHOW TABLES\".");
                     return false;
                 }
 
@@ -249,17 +251,19 @@ public class RDSValidate implements Callable<Boolean> {
                     }
                 }
 
-                if (setTablesNotInRestored.isEmpty()) {
-                    logger.info("Both databases have {} tables.", setProdTables.size());
-                } else {
+                if (!setTablesNotInRestored.isEmpty()) {
                     // Get names of tables missing from restored database
-                    logger.warn("The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", setProdTables.size(), setRestoredTables.size());
+                    logger.warn("Validation Error: The databases have a different number of tables. The production database has {} tables, and the restored has {} tables.", setProdTables.size(), setRestoredTables.size());
+                    passedTablePresentCheck = false;
                     for (String s : setTablesNotInRestored) {
-                        logger.warn("The {} table is missing from the restored database.", s);
+                        logger.warn("Validation Error: The {} table is missing from the restored database.", s);
                     }
                 }
 
+                if(passedTablePresentCheck)
+                    logger.info("Validated both databases have {} tables.", setProdTables.size());
 
+                boolean passedCheckTables = true;
                 // Run CHECK TABLES on all tables of restored database
                 List<String> corruptedDbList = new ArrayList<>();
                 Iterator<String> iter = setRestoredTables.iterator();
@@ -270,7 +274,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                     // Check that ResultSet returns from each query
                     if (rsRestoredCHECKTable == null) {
-                        logger.warn("Alert: NULL Result Set from \"CHECK TABLE [TableName]\".");
+                        logger.warn("Validation Error: NULL Result Set from \"CHECK TABLE [TableName]\".");
                         return false;
                     }
 
@@ -287,16 +291,19 @@ public class RDSValidate implements Callable<Boolean> {
                     rsRestoredCHECKTable.close();
                 }
 
-                if (corruptedDbList.size() == 0) {
-                    logger.info("There are no corrupted tables in the restored database.");
-                } else {
+                if (corruptedDbList.size() != 0) {
                     //Get names of corrupted tables
                     for (String s : corruptedDbList) {
-                        logger.warn("{} table is corrupted." + s);
+                        logger.warn("Validation Error: {} table is corrupted." + s);
+                        passedCheckTables = false;
                     }
                 }
 
+                if(passedCheckTables)
+                    logger.info("Validated no corrupted tables in the restored database.");
 
+
+                boolean passedNumRowsCheck = true;
                 // Check the metadata of all tables of restored database
                 // Loop through all tables to query and validate each (only those present in the restored database)
                 iter = setRestoredTables.iterator();
@@ -314,7 +321,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                     // Check that ResultSets return from each query
                     if (rsProdRows == null || rsRestoredRows == null) {
-                        logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
+                        logger.warn("Validation Error: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
                         return false;
                     }
 
@@ -324,14 +331,17 @@ public class RDSValidate implements Callable<Boolean> {
                     rsRestoredRows.next();
                     int numRestoredRows = rsRestoredRows.getInt("numRows");
 
-                    if (numProdRows == numRestoredRows) {
-                        logger.info("The number of rows in {} table is the same in both databases.", tableName);
-                    } else {
-                        logger.warn("The number of rows in {} is not the same. The production database table has {} rows, and the restored has {} rows.", tableName, numProdRows, numRestoredRows);
+                    if (numProdRows != numRestoredRows) {
+                        logger.warn("Validation Error: The number of rows in {} is not the same. The production database table has {} rows, and the restored has {} rows.", tableName, numProdRows, numRestoredRows);
+                        passedNumRowsCheck = false;
                     }
                 }
 
+                if(passedNumRowsCheck)
+                    logger.info("Validated that production database is ahead of restored database. (Production database has the same or more rows than restored database.)");
 
+
+                boolean passedSchemaCheck = true;
                 // Running query again to get to row 0 of result set to check metadata
                 iter = setRestoredTables.iterator();
                 while (iter.hasNext()) {
@@ -348,7 +358,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                     // Check that ResultSets return from each query
                     if (rsProdRows == null || rsRestoredRows == null) {
-                        logger.warn("Alert: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
+                        logger.warn("Validation Error: NULL Result Set from \"SELECT * FROM [DatabaseName].[DatabaseTable]\".");
                         return false;
                     }
 
@@ -403,28 +413,31 @@ public class RDSValidate implements Callable<Boolean> {
                         listTablesWithBadColumns.add(tableName);
                     }
 
-                    if (listTablesWithBadColumns.size() == 0) {
-                        logger.info("{} table does not have any missing or corrupted columns.", tableName);
-                    } else {
-                        // Log table names with bad columns
+                    if (listTablesWithBadColumns.size() != 0) {
                         for (String s : listTablesWithBadColumns) {
                             logger.warn("Table {} has missing or corrupted column(s)", s);
                         }
+                        passedSchemaCheck = false;
                     }
+
                     rsProdRows.close();
                     rsRestoredRows.close();
                 }
+                if(passedSchemaCheck)
+                    logger.info("Validated that tables' structures are the same.");
+
+
 
                 rsProdUseDb.close();
                 rsRestoredUseDb.close();
                 rsProdTables.close();
                 rsRestoredTables.close();
+
+                return passedTablePresentCheck && passedCheckTables && passedNumRowsCheck && passedSchemaCheck;
             } catch (SQLException e) {
                 logger.error("SQL Error: {}", e.getMessage(), e);
                 return false;
             }
-
-            return false;
         }
     }
 }
