@@ -75,10 +75,10 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      *
      * @return the restored instance ID as a string
      */
-    public DBInstance restoreRDSFromBackup() throws Exception {
-        RecoveryPointByBackupVault recoveryPoint = getNextRecoveryPoint();
+    public DBInstance restoreRDSFromBackup() throws RecoveryPointsExhaustedException, InstanceUnavailableException {
+        currentRecoveryPoint = getNextRecoveryPoint();
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
-        String arn = recoveryPoint.recoveryPointArn();
+        String arn = currentRecoveryPoint.recoveryPointArn();
         logger.info("Attempting to restore rds snapshot: {}", arn);
 
         String uniqueNameForRestoredDBInstance = Util.UNIQUE_RESTORE_NAME_BASE + System.currentTimeMillis();
@@ -97,11 +97,13 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
         // wait for snapshot to finish restoring to a new instance
         restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
-        // update security group to custom one
+        // update security group to custom one and wait
         updateSecurityGroup(restoredInstance.dbInstanceIdentifier());
+        restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
-        // reboot for modifications to take effect immediately
+        // reboot for modifications to take effect immediately and wait
         rebootInstance(restoredInstance.dbInstanceIdentifier());
+        restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
         return restoredInstance;
     }
@@ -111,7 +113,7 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      *
      * @param dbInstanceIdentifier the string of the database identifier
      */
-    private DBInstance waitForInstanceToBeAvailable(String dbInstanceIdentifier) throws Exception {
+    private DBInstance waitForInstanceToBeAvailable(String dbInstanceIdentifier) throws InstanceUnavailableException {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest
                 .builder()
                 .dbInstanceIdentifier(dbInstanceIdentifier)
@@ -120,10 +122,12 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
         logger.info("Waiting for database {} to be available", dbInstanceIdentifier);
         ResponseOrException<DescribeDbInstancesResponse> responseOrException = waiter.waitUntilDBInstanceAvailable(request).matched();
 
-        if(responseOrException.response().isPresent()){
+        if(responseOrException.response().isPresent())
             return responseOrException.response().get().dbInstances().get(0);
-        }
-        throw new Exception(responseOrException.exception().get());
+        else if(responseOrException.exception().isPresent())
+            throw new InstanceUnavailableException("Exception was returned instead of DB Instance", responseOrException.exception().get());
+        else
+            throw new InstanceUnavailableException("Exception was returned instead of DB Instance");
     }
 
     /**
@@ -131,7 +135,7 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      *
      * @param restoredInstanceID the string of the rds instance id
      */
-    private void updateSecurityGroup(String restoredInstanceID) throws Exception {
+    private void updateSecurityGroup(String restoredInstanceID)  {
         ModifyDbInstanceRequest modifyDbRequest = ModifyDbInstanceRequest
                 .builder()
                 .dbInstanceIdentifier(restoredInstanceID)
@@ -140,7 +144,7 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
                 .build();
         logger.info("Update the security group of {} to {}", restoredInstanceID, securityGroupIDs);
         rdsClient.modifyDBInstance(modifyDbRequest);
-        waitForInstanceToBeAvailable(restoredInstanceID);
+
     }
 
     /**
@@ -148,14 +152,13 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      *
      * @param dbInstanceIdentifier the string of the rds instance id
      */
-    private void rebootInstance(String dbInstanceIdentifier) throws Exception {
+    private void rebootInstance(String dbInstanceIdentifier) {
         RebootDbInstanceRequest request = RebootDbInstanceRequest
                 .builder()
                 .dbInstanceIdentifier(dbInstanceIdentifier)
                 .build();
         logger.info("Rebooting database {}", dbInstanceIdentifier);
         rdsClient.rebootDBInstance(request);
-        waitForInstanceToBeAvailable(dbInstanceIdentifier);
     }
 
     /**

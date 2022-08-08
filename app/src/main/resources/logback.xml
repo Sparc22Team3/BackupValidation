@@ -19,8 +19,23 @@
         </encoder>
     </appender>
 
+    <property name="reportFileName" value="failed-tests.log" scope="context"/>
+    <appender name="REPORT_FILE" class="ch.qos.logback.core.FileAppender">
+        <!-- use the previously created timestamp to create a uniquely
+             named log file -->
+        <file>${reportFileName}</file>
+        <encoder>
+            <pattern>%logger{0} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+        <append>false</append>
+    </appender>
+
     <logger name="sparc.team3.validator" level="${log-level:-INFO}">
         <appender-ref ref="FILE" />
+        <appender-ref ref="REPORT_FILE" />
     </logger>
     <logger name="software.amazon.awssdk" level="${aws-log-level:-WARN}">
         <appender-ref ref="FILE" />

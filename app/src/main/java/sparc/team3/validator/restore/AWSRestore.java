@@ -123,4 +123,18 @@ public abstract class AWSRestore {
             super(message);
         }
     }
+
+    public static class InstanceUnavailableException extends Exception{
+
+        public InstanceUnavailableException(String message) {
+            super(message);
+        }
+        public InstanceUnavailableException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public RecoveryPointByBackupVault getCurrentRecoveryPoint() {
+        return currentRecoveryPoint;
+    }
 }

@@ -18,7 +18,7 @@ public final class Settings {
     private final String privateKeyFile;
     private final String dbUsername;
     private final String dbPassword;
-    private final Set<String> databaseTables;
+    private final Set<String> databases;
     private final List<ServerConfigFile> configFiles;
     private final String awsRegion;
     private final String vpcID;
@@ -26,17 +26,19 @@ public final class Settings {
     private final InstanceSettings ec2Settings;
     private final InstanceSettings rdsSettings;
     private final InstanceSettings s3Settings;
+    private final String snsTopicArn;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Settings(@JsonProperty("serverUserName") String serverUsername,
                     @JsonProperty("privateKeyFile") String privateKeyFile,
                     @JsonProperty("dbUsername") String dbUsername,
                     @JsonProperty("dbPassword") String dbPassword,
-                    @JsonProperty("databaseTables") Set<String> databaseTables,
+                    @JsonProperty("databases") Set<String> databases,
                     @JsonProperty("configFiles") List<ServerConfigFile> configFiles,
                     @JsonProperty("awsRegion") String awsRegion,
                     @JsonProperty("vpcID") String vpcID,
                     @JsonProperty("vpcName") String vpcName,
+                    @JsonProperty("SnsTopicArn") String snsTopicArn,
                     @JsonProperty("ec2Settings") InstanceSettings ec2Settings,
                     @JsonProperty("rdsSettings") InstanceSettings rdsSettings,
                     @JsonProperty("s3Settings") InstanceSettings s3Settings) {
@@ -45,11 +47,12 @@ public final class Settings {
         this.privateKeyFile = privateKeyFile;
         this.dbUsername = dbUsername;
         this.dbPassword = dbPassword;
-        this.databaseTables = databaseTables;
+        this.databases = databases;
         this.configFiles = configFiles;
         this.awsRegion = awsRegion;
         this.vpcID = vpcID;
         this.vpcName = vpcName;
+        this.snsTopicArn = snsTopicArn;
         this.ec2Settings = ec2Settings;
         this.rdsSettings = rdsSettings;
         this.s3Settings = s3Settings;
@@ -72,8 +75,8 @@ public final class Settings {
         return dbPassword;
     }
 
-    public Set<String> getDatabaseTables() {
-        return databaseTables;
+    public Set<String> getDatabases() {
+        return databases;
     }
 
     public List<ServerConfigFile> getConfigFiles() {
@@ -90,6 +93,10 @@ public final class Settings {
 
     public String getVpcName() {
         return vpcName;
+    }
+
+    public String getSnsTopicArn(){
+        return snsTopicArn;
     }
 
     public InstanceSettings getEc2Settings() {
@@ -148,7 +155,7 @@ public final class Settings {
                 "\tprivateKeyFile='" + privateKeyFile + "'\n" +
                 "\tdbUsername='" + dbUsername + "'\n" +
                 "\tdbPassword='" + dbPassword + "'\n" +
-                "\tdatabaseTables=" + databaseTables + "\n" +
+                "\tdatabases=" + databases + "\n" +
                 "\tawsRegion='" + awsRegion + "'\n" +
                 "\tvpcID='" + vpcID + "'\n" +
                 "\tvpcName='" + vpcName + "'\n" +
@@ -203,11 +210,12 @@ public final class Settings {
         private String privateKeyFile;
         private String dbUsername;
         private String dbPassword;
-        private Set<String> databaseTables;
+        private Set<String> databases;
         private Set<ServerConfigFile> configFiles;
         private String awsRegion;
         private String vpcID;
         private String vpcName;
+        private String snsTopicArn;
         private InstanceSettings ec2Settings;
         private InstanceSettings rdsSettings;
         private InstanceSettings s3Settings;
@@ -239,26 +247,26 @@ public final class Settings {
             return this;
         }
 
-        public SettingsBuilder databaseTable(String table) {
-            if (databaseTables == null)
-                databaseTables = new HashSet<>();
-            databaseTables.add(table);
+        public SettingsBuilder database(String database) {
+            if (databases == null)
+                databases = new HashSet<>();
+            databases.add(database);
             return this;
         }
 
-        public SettingsBuilder removeDatabaseTable(String table) {
-            if (databaseTables == null) {
-                databaseTables = new HashSet<>();
+        public SettingsBuilder removeDatabase(String database) {
+            if (databases == null) {
+                databases = new HashSet<>();
             }
-            databaseTables.remove(table);
+            databases.remove(database);
             return this;
         }
 
-        public SettingsBuilder clearDatabaseTables() {
-            if (databaseTables == null) {
-                databaseTables = new HashSet<>();
+        public SettingsBuilder clearDatabases() {
+            if (databases == null) {
+                databases = new HashSet<>();
             }
-            databaseTables.clear();
+            databases.clear();
             return this;
         }
 
@@ -274,6 +282,11 @@ public final class Settings {
 
         public SettingsBuilder vpcName(String vpcName) {
             this.vpcName = vpcName;
+            return this;
+        }
+
+        public SettingsBuilder snsTopicArn(String snsTopicArn){
+            this.snsTopicArn = snsTopicArn;
             return this;
         }
 
@@ -309,19 +322,20 @@ public final class Settings {
             List<ServerConfigFile> configFilesCopy = null;
             if (configFiles != null)
                 configFilesCopy = List.copyOf(configFiles);
-            Set<String> databaseTablesCopy = null;
-            if (databaseTables != null)
-                databaseTablesCopy = Set.copyOf(databaseTables);
+            Set<String> databasesCopy = null;
+            if (databases != null)
+                databasesCopy = Set.copyOf(databases);
 
             return new Settings(serverUsername,
                     privateKeyFile,
                     dbUsername,
                     dbPassword,
-                    databaseTablesCopy,
+                    databasesCopy,
                     configFilesCopy,
                     awsRegion,
                     vpcID,
                     vpcName,
+                    snsTopicArn,
                     ec2Settings,
                     rdsSettings,
                     s3Settings
@@ -344,8 +358,8 @@ public final class Settings {
             return dbPassword;
         }
 
-        public Set<String> getDatabaseTables() {
-            return databaseTables;
+        public Set<String> getDatabases() {
+            return databases;
         }
 
         public Set<ServerConfigFile> getConfigFiles() {
@@ -362,6 +376,10 @@ public final class Settings {
 
         public String getVpcName() {
             return vpcName;
+        }
+
+        public String getSnsTopicArn(){
+            return snsTopicArn;
         }
 
         public InstanceSettings getEc2Settings() {
@@ -394,10 +412,11 @@ public final class Settings {
                     "\tPrivate key file: '" + privateKeyFile + "'\n" +
                     "\tDB Username: '" + dbUsername + "'\n" +
                     "\tDB Password: '" + dbPassword + "'\n" +
-                    "\tDB Tables: '" + databaseTables + "'\n" +
+                    "\tDatabases: '" + databases + "'\n" +
                     "\tAWS Region: '" + awsRegion + "'\n" +
                     "\tVPC ID: '" + vpcID + "'\n" +
-                    "\tVPC Name: '" + vpcName + "'\n";
+                    "\tVPC Name: '" + vpcName + "'\n" +
+                    "\tSNS Topic ARN: '" + snsTopicArn + "'\n";
         }
     }
 }

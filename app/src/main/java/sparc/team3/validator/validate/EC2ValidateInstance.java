@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.ec2.model.Instance;
 import sparc.team3.validator.util.InstanceSettings;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -36,78 +37,39 @@ public class EC2ValidateInstance implements Callable<Boolean> {
 
     @Override
     public Boolean call() throws IOException, InterruptedException {
-        return validateWithPing("");
+        return true;
     }
 
     /**
-     * Ping url and check status code.
+     * @deprecated pinging the ec2 server requires the security groups to allow pinging of the server,
+     * reachability is technically guaranteed by the waiter in the restore and the web app validation will check this as well.
+     *
+     * Ping the public ip address and dns name to see if the instance is reachable.
      *
      * @return boolean whether the instance is pingable
      * @throws IOException if an I/O error occurs when sending or receiving
      * @throws InterruptedException – if the operation is interrupted
      */
     public Boolean validateWithPing(String entryPoint) throws IOException, InterruptedException {
-        String url = instance.publicDnsName();
 
+        InetAddress urlCheck = InetAddress.getByName(instance.publicDnsName());
+        InetAddress ipCheck = InetAddress.getByName(instance.publicIpAddress());
 
-        try {
-            waitForEC2Checks();
-        } catch (InterruptedException | TimeoutException e) {
-            logger.error("Waiting for the EC2 instance to be ready has timed out or otherwise been interrupted", e);
-            return false;
+        boolean passUrl = urlCheck.isReachable(10000);
+        boolean passIp = ipCheck.isReachable(10000);
+
+        if(passUrl && passIp) {
+            logger.info("EC2 instance {} is reachable at {} and {}", instance.instanceId(), instance.publicDnsName(), instance.publicIpAddress());
+            return true;
         }
 
-        url = "http://" + url + entryPoint;
-        HttpClient httpClient = HttpClient.newHttpClient();
-        HttpRequest httpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build();
-        HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if(!passUrl)
+            logger.warn("Validation Error: EC2 instance {} is not reachable at {}", instance.instanceId(), instance.publicDnsName());
+        if(!passIp)
+            logger.warn("Validation Error: EC2 instance {} is not reachable at {}", instance.instanceId(), instance.publicIpAddress());
 
-        logger.info("EC2 Instance responded with {}", httpResponse.statusCode());
+        return false;
 
-        return httpResponse.statusCode() == 200;
 
-    }
-
-    /**
-     * Busy wait for EC2 to complete setup.
-     *
-     * @throws InterruptedException when sleep is interrupted
-     * @throws TimeoutException when waiting for the EC2 instance times out
-     */
-    private void waitForEC2Checks() throws InterruptedException, TimeoutException {
-
-        //Wait for ec2 instance to complete setup
-        //@TODO should we change to waiter?
-        int attempts = 0;
-        while (attempts < 11) {
-
-            try {
-                DescribeInstanceStatusRequest statusReq = DescribeInstanceStatusRequest
-                        .builder().instanceIds(instance.instanceId()).build();
-
-                DescribeInstanceStatusResponse statusRes = ec2Client.describeInstanceStatus(statusReq);
-
-                String running = statusRes.instanceStatuses().get(0).instanceState().name().toString();
-                String sysPass = statusRes.instanceStatuses().get(0).systemStatus().status().toString();
-                String reachPass = statusRes.instanceStatuses().get(0).instanceStatus().status().toString();
-
-                logger.info("EC2 instance {}:\t\tRunning:{}\t\tSys Pass:{}\t\tReach Pass:{}", instance.instanceId(), running, sysPass, reachPass);
-
-                if ((running.equals("running")) && (sysPass.equals("passed") || sysPass.equals("ok")) && (reachPass.equals("passed") || reachPass.equals("ok"))) {
-                    break;
-                }
-
-            } catch (AwsServiceException e) {
-                logger.error("Problem getting status of EC2 instance {}", instance.instanceId(), e);
-                return;
-            }
-
-            Thread.sleep(60000);
-            attempts++;
-        }
-
-        if (attempts >= 11) {
-            throw new TimeoutException("EC2 Instance Timeout");
-        }
     }
 }

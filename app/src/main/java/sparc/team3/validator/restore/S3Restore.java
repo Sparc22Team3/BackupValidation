@@ -138,7 +138,6 @@ public class S3Restore extends AWSRestore implements Callable<String> {
 
         } catch (S3Exception e) {
             logger.error("Error in copying policy from {} to {}", s3ProductionBucketName, restoreBucketName, e);
-            System.exit(1);
         }
     }
 }
