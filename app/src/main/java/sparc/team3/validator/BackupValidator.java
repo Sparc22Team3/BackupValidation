@@ -1,5 +1,6 @@
 package sparc.team3.validator;
 
+import ch.qos.logback.classic.LoggerContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -17,6 +18,7 @@ import software.amazon.awssdk.services.rds.model.DBInstance;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
 import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.sns.SnsClient;
 import sparc.team3.validator.config.ConfigEditor;
 import sparc.team3.validator.config.ConfigLoader;
 import sparc.team3.validator.config.SeleniumEditor;
@@ -33,12 +35,14 @@ import sparc.team3.validator.validate.RDSValidate;
 import sparc.team3.validator.validate.S3ValidateBucket;
 import sparc.team3.validator.validate.WebAppValidate;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.rmi.server.RemoteServer;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -58,6 +62,7 @@ public class BackupValidator {
     Ec2Client ec2Client;
     S3Client s3Client;
     RdsClient rdsClient;
+    SnsClient snsClient;
     EC2Restore ec2Restore;
     S3Restore s3Restore;
     RDSRestore rdsRestore;
@@ -67,6 +72,11 @@ public class BackupValidator {
     EC2ValidateInstance ec2ValidateInstance;
     RDSValidate rdsValidateDatabase;
     S3ValidateBucket s3ValidateBucket;
+    private Boolean ec2Passed = false;
+    private Boolean rdsPassed = false;
+    private Boolean s3Passed = false;
+    private Boolean systemPassed = null;
+    private Map<String, String> loadedResourcesMap;
 
     /**
      * Constructs the BackupValidator class by setting up the command line options and parser.
@@ -116,7 +126,6 @@ public class BackupValidator {
 
         options.addOption(new Option("xr", "donotrestore", false, "Do not restore.  Will use saved instance information to get previously restored instances"));
         options.addOption(new Option("xt", "donotterminate", false, "Do not terminate.  Will save instance information of restored instances to be used later."));
-
     }
 
     /**
@@ -192,19 +201,25 @@ public class BackupValidator {
             ec2Client = Ec2Client.builder().region(region).build();
             s3Client = S3Client.builder().region(region).build();
             rdsClient = RdsClient.builder().region(region).build();
+            snsClient = SnsClient.builder().region(region).build();
 
             boolean restore = !line.hasOption("donotrestore");
             boolean terminate = !line.hasOption("donotterminate");
 
-            restoreAndValidate(restore);
+            boolean pass = restoreAndValidate(restore);
+
             saveInstances();
-            validateSystem();
+            if(pass)
+                systemPassed = validateSystem();
+
             cleanUp(terminate);
+            report();
 
         } catch (Exception e) {
-            logger.error("{}: Instances will not be terminated.", e.getMessage(), e);
+            logger.error("{}: Instances were not terminated.", e.getMessage(), e);
             try {
                 cleanUp(false);
+                report(e);
             } catch (InterruptedException | IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -220,7 +235,7 @@ public class BackupValidator {
      *
      * @throws InterruptedException when another thread interrupts this one
      */
-    private void restoreAndValidate(boolean restore) throws InterruptedException, IOException {
+    private boolean restoreAndValidate(boolean restore) throws InterruptedException, IOException {
         Future<Instance> ec2Future = null;
         Future<DBInstance> rdsFuture = null;
         Future<String> s3Future = null;
@@ -236,10 +251,6 @@ public class BackupValidator {
         boolean ec2Checked = false;
         boolean rdsChecked = false;
         boolean s3Checked = false;
-
-        boolean ec2Passed = false;
-        boolean rdsPassed = false;
-        boolean s3Passed = false;
 
         // If we are restoring start the restore threads and then enter the loop below to wait for them to complete
         if(restore) {
@@ -317,10 +328,10 @@ public class BackupValidator {
                 try {
                     ec2Passed = ec2ValidateFuture.get();
                     if (ec2Passed) {
-                        logger.info("EC2 Restored Instance Passed");
+                        logger.info("EC2 Restored Instance Validation Passed");
 
                     } else {
-                        logger.info("EC2 Restored Instance Failed");
+                        logger.info("EC2 Restored Instance Validation Failed");
                     }
                 } catch (ExecutionException e) {
                     logger.error("EC2 instance validation failed. Cause: {}", e.getCause(), e);
@@ -332,10 +343,10 @@ public class BackupValidator {
                 try {
                     rdsPassed = rdsValidateFuture.get();
                     if (rdsPassed) {
-                        logger.info("Restored Database Passed");
+                        logger.info("Restored Database Validation Passed");
 
                     } else {
-                        logger.error("Restored Database Failed");
+                        logger.info("Restored Database Validation Failed");
                     }
                 } catch (ExecutionException e) {
                     logger.error("RDS database validation failed. Cause: {}", e.getCause(), e);
@@ -358,13 +369,14 @@ public class BackupValidator {
                 s3Checked = true;
             }
         }
+        return ec2Passed && rdsPassed && s3Passed;
     }
 
     /**
      * This method will validate that EC2, RDS, and S3 bucket are working as a whole system and
      * not just the individual pieces.
      */
-    private void validateSystem() throws Exception {
+    private boolean validateSystem() throws Exception {
         // Spin up restored instances to get new hostnames/bucket name
         ConfigLoader.replaceHostname(ec2Instance.publicDnsName(), rdsInstance.endpoint().address(), restoredBucketName, settings);
         RemoteServerConfigurator remoteServerConfigurator = new RemoteServerConfigurator(ec2Instance.publicIpAddress(), settings);
@@ -376,6 +388,8 @@ public class BackupValidator {
             logger.info("Web App has passed Selenium validation tests.");
         else
             logger.warn("Web App has failed Selenium validation tests.");
+
+        return webAppPass;
     }
 
     private void cleanUp(boolean terminate) throws IOException, InterruptedException {
@@ -402,6 +416,14 @@ public class BackupValidator {
         saveResourcesMap.put("RDS", rdsInstance.dbInstanceIdentifier());
         saveResourcesMap.put("S3", restoredBucketName);
 
+        String ec2RecoveryPoint = ec2Restore == null ? loadedResourcesMap.get("EC2RecoveryPoint") : ec2Restore.getCurrentRecoveryPoint().recoveryPointArn();
+        String rdsRecoveryPoint = rdsRestore == null ? loadedResourcesMap.get("RDSRecoveryPoint") : rdsRestore.getCurrentRecoveryPoint().recoveryPointArn();
+        String s3RecoveryPoint = s3Restore == null ? loadedResourcesMap.get("S3RecoveryPoint") : s3Restore.getCurrentRecoveryPoint().recoveryPointArn();
+
+        saveResourcesMap.put("EC2RecoveryPoint", ec2RecoveryPoint);
+        saveResourcesMap.put("RDSRecoveryPoint", rdsRecoveryPoint);
+        saveResourcesMap.put("S3RecoveryPoint", s3RecoveryPoint);
+
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         mapper.writeValue(saveLocation.toFile(), saveResourcesMap);
@@ -417,7 +439,7 @@ public class BackupValidator {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        Map<String, String> loadedResourcesMap = mapper.readValue(saveLocation.toFile(), typeReference);
+        loadedResourcesMap = mapper.readValue(saveLocation.toFile(), typeReference);
 
         // Set S3 restored bucket name
         restoredBucketName = loadedResourcesMap.get("S3");
@@ -445,4 +467,69 @@ public class BackupValidator {
         rdsInstance = describeDbInstances.dbInstances().get(0);
 
     }
+
+    private void report(Throwable thrown) throws IOException {
+
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        Path file = Paths.get(context.getProperty("reportFileName"));
+        HashMap<String, List<String>> sortedReportItems = new HashMap<>();
+        boolean passed = false;
+        StringBuilder stringBuilder = new StringBuilder();
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("uuuu-MM-dd_HH-mm"));
+
+
+        stringBuilder
+                .append(String.format("%s Report %s\n\n", Util.APP_DISPLAY_NAME, date));
+
+        if(thrown == null) {
+            String ec2RecoveryPoint = ec2Restore == null ? loadedResourcesMap.getOrDefault("EC2RecoveryPoint", "Missing Recovery Point Arn") : ec2Restore.getCurrentRecoveryPoint().recoveryPointArn();
+            String rdsRecoveryPoint = rdsRestore == null ? loadedResourcesMap.getOrDefault("RDSRecoveryPoint", "Missing Recovery Point Arn") : rdsRestore.getCurrentRecoveryPoint().recoveryPointArn();
+            String s3RecoveryPoint = s3Restore == null ? loadedResourcesMap.getOrDefault("S3RecoveryPoint", "Missing Recovery Point Arn") : s3Restore.getCurrentRecoveryPoint().recoveryPointArn();
+
+            stringBuilder
+                    .append(String.format("EC2 Recovery Point: %s\n\tPassed Tests: %s\n", ec2RecoveryPoint, ec2Passed))
+                    .append(String.format("RDS Recovery Point: %s\n\tPassed Tests: %s\n", rdsRecoveryPoint, rdsPassed))
+                    .append(String.format("S3 Recovery Point: %s\n\tPassed Tests: %s\n", s3RecoveryPoint, s3Passed))
+                    .append(String.format("Web App Validation\n\tPassed Tests: %s\n", (systemPassed != null ? systemPassed : "Not Tested")));
+
+            passed = ec2Passed && rdsPassed && s3Passed;
+
+            if (passed)
+                passed = systemPassed != null ? systemPassed : false;
+        } else {
+            stringBuilder.append("Program terminated because of an error.\n").append(thrown);
+        }
+        if (!passed) {
+            Files.lines(file).forEach((line) -> {
+                String loggerName = line.split(" - ", 1)[0];
+                if (!sortedReportItems.containsKey(loggerName))
+                    sortedReportItems.put(loggerName, new LinkedList<>());
+                sortedReportItems.get(loggerName).add(line);
+            });
+
+            stringBuilder
+                    .append("\n")
+                    .append("Tests Failed:\n");
+
+            for (Map.Entry<String, List<String>> failedTests : sortedReportItems.entrySet()) {
+                failedTests.getValue().forEach(s -> stringBuilder.append(s).append("\n"));
+            }
+        }
+
+        Path finalReport = Paths.get(Util.APP_DIR_NAME + "Reports", "final-report" + date + ".txt");
+        Files.createDirectories(finalReport.getParent());
+
+        try(BufferedWriter bufferedWriter = Files.newBufferedWriter(finalReport)){
+            bufferedWriter.write(stringBuilder.toString());
+        }
+
+        if(settings.getSnsTopicArn() != null && !settings.getSnsTopicArn().isEmpty())
+            Notification.sendSnsMessage(stringBuilder.toString(), settings.getSnsTopicArn(), snsClient);
+    }
+
+    private void report() throws IOException {
+        report(null);
+    }
+
+
 }
