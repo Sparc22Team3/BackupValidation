@@ -1,20 +1,17 @@
 package sparc.team3.validator.restore;
 
 import software.amazon.awssdk.arns.Arn;
+import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
 import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.*;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
-import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.Reservation;
+import software.amazon.awssdk.services.ec2.model.*;
+import software.amazon.awssdk.services.ec2.waiters.Ec2Waiter;
 import sparc.team3.validator.util.InstanceSettings;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 /**
@@ -27,13 +24,12 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
     private final Ec2Client ec2Client;
 
     public EC2Restore(BackupClient backupClient, Ec2Client ec2Client, InstanceSettings instanceSettings) {
-        super(backupClient, instanceSettings);
-
+        super(backupClient, instanceSettings, "EC2");
         this.ec2Client = ec2Client;
     }
 
     @Override
-    public Instance call() throws InterruptedException {
+    public Instance call() throws InstanceUnavailableException, RecoveryPointsExhaustedException {
         return restoreEC2FromBackup();
     }
     /**
@@ -43,7 +39,7 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
      * @return a string of the instance id
      * @throws InterruptedException when sleep is interrupted
      */
-    public Instance restoreEC2FromBackup() throws InterruptedException {
+    public Instance restoreEC2FromBackup() throws InstanceUnavailableException, RecoveryPointsExhaustedException {
 
         String restoreJobId = startRestore();
         if(restoreJobId == null)
@@ -71,7 +67,7 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
                 } else {
                     Thread.sleep(sleepMinutes * 60000);
                 }
-            } catch (BackupException e) {
+            } catch (BackupException | InterruptedException e) {
                 logger.error("Problem with restore job id: {}", restoreJobId, e);
                 return null;
             }
@@ -82,7 +78,23 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
             return null;
         }
 
-        return getInstance(resourceArn);
+        Ec2Waiter waiter = ec2Client.waiter();
+
+        String id = resourceArn.resource().resource();
+
+        logger.info("Waiting for ec2 instance {} to be available", id);
+        DescribeInstanceStatusRequest statusReq = DescribeInstanceStatusRequest
+                .builder().instanceIds(id).build();
+
+        ResponseOrException<DescribeInstanceStatusResponse> responseOrException = waiter.waitUntilInstanceStatusOk(statusReq).matched();
+
+        if(responseOrException.response().isPresent()){
+            return getInstance(id);
+        }
+        else if(responseOrException.exception().isPresent())
+            throw new InstanceUnavailableException("Exception was returned instead of EC2 Instance", responseOrException.exception().get());
+        else
+            throw new InstanceUnavailableException("Exception was returned instead of EC2 Instance");
     }
 
     /**
@@ -146,12 +158,10 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
     /**
      * Get the Instance information about the EC2 instance that was restored
      *
-     * @param resourceArn the arn of the instance we want to get
+     * @param id the id of the instance we want to get
      * @return an Instance describing the instance that was restored
      */
-    private Instance getInstance(Arn resourceArn){
-        String id = resourceArn.resource().resource();
-
+    private Instance getInstance(String id) {
         DescribeInstancesRequest instanceReq = DescribeInstancesRequest.builder().instanceIds(id).build();
 
         DescribeInstancesResponse descriptionRes = ec2Client.describeInstances(instanceReq);
@@ -166,13 +176,5 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
             logger.warn("More than 1 instance was returned");
 
         return instance;
-    }
-    
-    /**
-     * Returns recovery points in sorted order. 
-     * @return a TreeMap of recoveryPointsByBackupVault
-     */
-    public TreeMap<Instant, RecoveryPointByBackupVault> getAvailableRecoveryPoints (){
-        return recoveryPoints;
     }
 }

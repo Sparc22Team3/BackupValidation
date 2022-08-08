@@ -6,9 +6,13 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DeleteDbInstanceRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -33,6 +37,10 @@ public class Util {
      */
     public static final String DEFAULT_CONFIG_FILENAME = "config.json";
 
+    public static final Path DEFAULT_CONFIG = DEFAULT_CONFIG_DIR.resolve(DEFAULT_CONFIG_FILENAME);
+
+    public static final String DEFAULT_SELENIUM_FILENAME = "selenium.json";
+    public static final Path DEFAULT_SELENIUM = DEFAULT_CONFIG_DIR.resolve(DEFAULT_SELENIUM_FILENAME);
     public static final String UNIQUE_RESTORE_NAME_BASE = "restore-test-";
 
     public static final ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -64,5 +72,99 @@ public class Util {
                 .build();
 
         rdsClient.deleteDBInstance(deleteRequest);
+    }
+
+    /**
+     * Delete restored S3 bucket instance after testing and validation is complete.
+     * @param bucketName the string of the restored S3 bucket
+     * @param s3Client to be used to initiate the bucket deletion
+     */
+    public static void deleteS3Instance(String bucketName, S3Client s3Client) throws InterruptedException {
+
+        logger.info("Emptying S3 Bucket: {}", bucketName);
+
+        // initialize variables
+        ListObjectVersionsRequest listVersions = ListObjectVersionsRequest.builder().bucket(bucketName).build();
+        ListObjectVersionsResponse response;
+        List<ObjectIdentifier> objectsToBeDeleted = new ArrayList<>();
+        ObjectIdentifier objectId;
+        String key;
+        String versionId;
+        int errors = 0;
+
+        // step 1: delete all existing objects (including ones with delete markers)
+
+        // 1a: get all ObjectVersions
+        do {
+            response = s3Client.listObjectVersions(listVersions);
+
+            // 1b: check to see if there are any objects with delete markers
+            if (!response.deleteMarkers().isEmpty()) {
+                // there are deleted objects to be deleted
+                List<DeleteMarkerEntry> deleteEntries = response.deleteMarkers();
+
+                // clear out objectsToBeDeleted to store new objects
+                objectsToBeDeleted.clear();
+
+                for (DeleteMarkerEntry entry : deleteEntries) {
+                    // obtain object key and version id of the object
+                    key = entry.key();
+                    versionId = entry.versionId();
+
+                    // use key and version id to initialize ObjectIdentifier
+                    objectId = ObjectIdentifier.builder().key(key).versionId(versionId).build();
+
+                    // add objectId to objectsToBeDeleted
+                    objectsToBeDeleted.add(objectId);
+                }
+
+                // 1c: delete remaining objects
+            } else {
+                // get the remaining objects that are not deleted
+                List<ObjectVersion> existingObjects = response.versions();
+
+                // clear out objectsToBeDeleted
+                objectsToBeDeleted.clear();
+
+                // iterate through list and add object info to list
+                for (ObjectVersion object : existingObjects) {
+                    key = object.key();
+                    versionId = object.versionId();
+                    objectId = ObjectIdentifier.builder().key(key).versionId(versionId).build();
+                    objectsToBeDeleted.add(objectId);
+                }
+            }
+
+            // 1d: delete multiple objects in one request by passing in objectsToBeDeleted
+            Delete del = Delete.builder().objects(objectsToBeDeleted).build();
+
+            try {
+                DeleteObjectsRequest multiObjDeleteRequest = DeleteObjectsRequest.builder().bucket(bucketName).delete(del).build();
+                s3Client.deleteObjects(multiObjDeleteRequest);
+            } catch (S3Exception e) {
+                logger.error("Error deleting objects in {}", bucketName, e);
+                errors++;
+                if(errors > 5) {
+                    logger.error("Unable to empty {}", bucketName);
+                    return;
+                }
+                Thread.sleep(30000);
+            }
+
+            // isTruncated() will return false if all results are returned
+        } while(response.isTruncated());
+
+        // step 2: delete bucket after it has been emptied
+        try {
+            DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest
+                    .builder()
+                    .bucket(bucketName)
+                    .build();
+            s3Client.deleteBucket(deleteBucketRequest);
+        } catch (S3Exception e) {
+            logger.error("Error deleting {}", bucketName, e);
+        }
+
+        logger.info("S3 Bucket {} has been deleted", bucketName);
     }
 }

@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Connects to remote server and changes config files on the server.
@@ -58,7 +60,8 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
         try(BufferedReader r = Files.newBufferedReader(tempFile)) {
             Iterator<Map.Entry<String, String>> it;
             Map.Entry<String, String> entry;
-
+            String regex = "(.*)\\s?=\\s?(\\\"?)(.*\\/\\/)?([^\\\";]*)(\\\"?)(;?)";
+            Pattern pattern = Pattern.compile(regex);
             String line;
             while ((line = r.readLine()) != null) {
 
@@ -66,8 +69,9 @@ public class RemoteServerConfigurator extends RemoteServerConnection{
                 while (it.hasNext()) {
                     entry = it.next();
                     if (line.stripLeading().startsWith(entry.getKey())) {
-                        String[] parts = line.split("\\s*=\\s*");
-                        line = parts[0] + " = " + entry.getValue();
+                        String subst = "$1 = $2$3" + entry.getValue() + "$5$6";
+                        Matcher matcher = pattern.matcher(line);
+                        line = matcher.replaceAll(subst);
                         changed = true;
                         it.remove();
                     }

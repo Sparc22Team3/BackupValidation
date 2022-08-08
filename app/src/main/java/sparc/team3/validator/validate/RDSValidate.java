@@ -14,7 +14,7 @@ import java.util.concurrent.Callable;
  */
 public class RDSValidate implements Callable<Boolean> {
     private final RdsClient rdsClient;
-    private final Settings settings;
+    private final InstanceSettings settings;
     private final Logger logger;
     private DBInstance dbInstance;
 
@@ -23,7 +23,7 @@ public class RDSValidate implements Callable<Boolean> {
      *
      * @param rdsClient     the rds client
      */
-    public RDSValidate(RdsClient rdsClient, Settings settings) {
+    public RDSValidate(RdsClient rdsClient, InstanceSettings settings) {
         this.rdsClient = rdsClient;
         this.settings = settings;
         this.logger = LoggerFactory.getLogger(this.getClass().getName());

@@ -6,14 +6,17 @@ package sparc.team3.validator.restore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
+import software.amazon.awssdk.services.backup.BackupClient;
+import software.amazon.awssdk.services.backup.model.RecoveryPointByBackupVault;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.*;
 import software.amazon.awssdk.services.rds.waiters.RdsWaiter;
 import sparc.team3.validator.util.InstanceSettings;
-import sparc.team3.validator.util.Settings;
+import sparc.team3.validator.util.SecurityGroup;
 import sparc.team3.validator.util.Util;
 
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 
@@ -30,59 +33,41 @@ import java.util.concurrent.Callable;
  * 9. log
  * 10. delete instance
  */
-public class RDSRestore implements Callable<DBInstance> {
+public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
 
     private final RdsClient rdsClient;
-    private String uniqueNameForRestoredDBInstance;
-    private final String backupVaultName;
     private final String subnetGroupName;
-    private final String securityGroupID;
-    private final List<DBSnapshot> snapshots;
+    private final String[] securityGroupIDs;
     private final Logger logger;
 
     /**
      * Instantiates a new Rds restore.
      *
-     * @param rdsClient                       the rds client
-     * @param instanceSettings                the instanceSettings for the rds instance
+     * @param rdsClient        the rds client
+     * @param instanceSettings the instanceSettings for the rds instance
      */
-    public RDSRestore(RdsClient rdsClient, InstanceSettings instanceSettings) {
-
+    public RDSRestore(BackupClient backupClient, RdsClient rdsClient, InstanceSettings instanceSettings) {
+        super(backupClient, instanceSettings, "RDS");
         this.rdsClient = rdsClient;
         setUniqueNameForRestoredDBInstance();
-        this.backupVaultName = instanceSettings.getBackupVault();
+
         this.subnetGroupName = instanceSettings.getSubnetName();
-        this.securityGroupID = instanceSettings.getSecurityGroups().get(0).getId();
-        this.snapshots = getSnapshots();
+        securityGroupIDs = new String[instanceSettings.getSecurityGroups().size()];
+        int i = 0;
+        for (SecurityGroup sg : instanceSettings.getSecurityGroups()) {
+            securityGroupIDs[i] = sg.getId();
+            i++;
+        }
+
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
     }
 
-    @Override
-    public DBInstance call() {
-        return restoreRDSFromBackup();
+    public void setUniqueNameForRestoredDBInstance() {
     }
 
-    /**
-     * Gets the list of current RDS snapshots
-     * @return List of DBSnapshots
-     */
-    private List<DBSnapshot> getSnapshots() {
-        List<DBSnapshot> snapshotList;
-
-        try {
-            DescribeDbSnapshotsRequest request = DescribeDbSnapshotsRequest
-                    .builder()
-                    .build();
-
-            DescribeDbSnapshotsResponse response = rdsClient.describeDBSnapshots(request);
-
-            snapshotList = response.dbSnapshots();
-
-        } catch (RdsException e) {
-            logger.error("Problem getting list of database snapshots", e);
-            return null;
-        }
-        return snapshotList;
+    @Override
+    public DBInstance call() throws Exception {
+        return restoreRDSFromBackup();
     }
 
     /**
@@ -90,71 +75,81 @@ public class RDSRestore implements Callable<DBInstance> {
      *
      * @return the restored instance ID as a string
      */
-    public DBInstance restoreRDSFromBackup() {
-        if(snapshots == null)
-            return null;
+    public DBInstance restoreRDSFromBackup() throws RecoveryPointsExhaustedException, InstanceUnavailableException {
+        currentRecoveryPoint = getNextRecoveryPoint();
         // If restoring from a shared manual DB snapshot, the DBSnapshotIdentifier must be the ARN of the shared DB snapshot.
-        String arn = snapshots.get(0).dbSnapshotArn();
+        String arn = currentRecoveryPoint.recoveryPointArn();
         logger.info("Attempting to restore rds snapshot: {}", arn);
 
-         RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
-                 .builder()
-                 .dbInstanceIdentifier(uniqueNameForRestoredDBInstance)
-                 .dbSnapshotIdentifier(arn)
-                 .dbSubnetGroupName(subnetGroupName)
-                 .build();
+        String uniqueNameForRestoredDBInstance = Util.UNIQUE_RESTORE_NAME_BASE + System.currentTimeMillis();
 
-         RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
+        RestoreDbInstanceFromDbSnapshotRequest request = RestoreDbInstanceFromDbSnapshotRequest
+                .builder()
+                .dbInstanceIdentifier(uniqueNameForRestoredDBInstance)
+                .dbSnapshotIdentifier(arn)
+                .dbSubnetGroupName(subnetGroupName)
+                .build();
 
-         DBInstance restoredInstance = response.dbInstance();
+        RestoreDbInstanceFromDbSnapshotResponse response = rdsClient.restoreDBInstanceFromDBSnapshot(request);
 
-         // wait for snapshot to finish restoring to a new instance
-         waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
+        DBInstance restoredInstance = response.dbInstance();
 
-         // update security group to custom one
-         updateSecurityGroup(restoredInstance.dbInstanceIdentifier(), securityGroupID);
+        // wait for snapshot to finish restoring to a new instance
+        restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
-         // reboot for modifications to take effect immediately
-         rebootInstance(restoredInstance.dbInstanceIdentifier());
+        // update security group to custom one and wait
+        updateSecurityGroup(restoredInstance.dbInstanceIdentifier());
+        restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
 
-         return restoredInstance;
+        // reboot for modifications to take effect immediately and wait
+        rebootInstance(restoredInstance.dbInstanceIdentifier());
+        restoredInstance = waitForInstanceToBeAvailable(restoredInstance.dbInstanceIdentifier());
+
+        return restoredInstance;
     }
-
 
     /**
      * Synchronous wait to ensure database is in available state
+     *
      * @param dbInstanceIdentifier the string of the database identifier
      */
-    private void waitForInstanceToBeAvailable(String dbInstanceIdentifier) {
+    private DBInstance waitForInstanceToBeAvailable(String dbInstanceIdentifier) throws InstanceUnavailableException {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest
                 .builder()
                 .dbInstanceIdentifier(dbInstanceIdentifier)
                 .build();
         RdsWaiter waiter = rdsClient.waiter();
         logger.info("Waiting for database {} to be available", dbInstanceIdentifier);
-        waiter.waitUntilDBInstanceAvailable(request);
-    }
+        ResponseOrException<DescribeDbInstancesResponse> responseOrException = waiter.waitUntilDBInstanceAvailable(request).matched();
 
+        if(responseOrException.response().isPresent())
+            return responseOrException.response().get().dbInstances().get(0);
+        else if(responseOrException.exception().isPresent())
+            throw new InstanceUnavailableException("Exception was returned instead of DB Instance", responseOrException.exception().get());
+        else
+            throw new InstanceUnavailableException("Exception was returned instead of DB Instance");
+    }
 
     /**
      * Update the security group to the custom one
+     *
      * @param restoredInstanceID the string of the rds instance id
-     * @param securityGroupID the string of the security group id
      */
-    private void updateSecurityGroup(String restoredInstanceID, String securityGroupID) {
+    private void updateSecurityGroup(String restoredInstanceID)  {
         ModifyDbInstanceRequest modifyDbRequest = ModifyDbInstanceRequest
                 .builder()
                 .dbInstanceIdentifier(restoredInstanceID)
-                .vpcSecurityGroupIds(securityGroupID)
+                .vpcSecurityGroupIds(securityGroupIDs)
                 .applyImmediately(true)
                 .build();
-        logger.info("Update the security group of {} to {}", restoredInstanceID, securityGroupID);
+        logger.info("Update the security group of {} to {}", restoredInstanceID, securityGroupIDs);
         rdsClient.modifyDBInstance(modifyDbRequest);
-        waitForInstanceToBeAvailable(restoredInstanceID);
+
     }
 
     /**
      * Reboot the database instance to ensure any change requests are complete
+     *
      * @param dbInstanceIdentifier the string of the rds instance id
      */
     private void rebootInstance(String dbInstanceIdentifier) {
@@ -164,20 +159,16 @@ public class RDSRestore implements Callable<DBInstance> {
                 .build();
         logger.info("Rebooting database {}", dbInstanceIdentifier);
         rdsClient.rebootDBInstance(request);
-        waitForInstanceToBeAvailable(dbInstanceIdentifier);
     }
 
-    public void setUniqueNameForRestoredDBInstance(){
-        uniqueNameForRestoredDBInstance = Util.UNIQUE_RESTORE_NAME_BASE + System.currentTimeMillis();
+    /**
+     * Unused for RDS
+     *
+     * @return Map of the metadata
+     */
+    @Override
+    Map<String, String> setMetadata() {
+        return null;
     }
-
 }
-
-/**       WindowStateListener listener = new WindowStateListener() {
-@Override
-public void windowStateChanged(WindowEvent e) {
-
-}
-}
- */
 

@@ -1,6 +1,7 @@
 //package com.example.myapp;
 
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.backup.BackupClient;
 import software.amazon.awssdk.services.backup.model.BackupException;
 import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.rds.model.DBInstance;
@@ -38,22 +39,18 @@ public class RDS {
             SecurityGroup securityGroup = new SecurityGroup(securityGroupID, "VPC-DB-Security-Group");
             LinkedList<SecurityGroup> sgs = new LinkedList<>();
             sgs.add(securityGroup);
-            //InstanceSettings instanceSettings = new InstanceSettings(
-            //        "database-1", rdsSparcVault, sgs, subnetGroupName);
-
-            Settings settings = new Settings(null, null, null, null, null,
-                    null, null, null, null, null, null, null);
+            InstanceSettings instanceSettings = new InstanceSettings("database-1", rdsSparcVault, sgs, subnetGroupName);
             RdsClient rdsClient = RdsClient
                     .builder()
                     .region(region)
                     .build();
-
+            BackupClient backupClient = BackupClient.builder().region(region).build();
             RDSRestore rdsRestore
-                     = new RDSRestore(rdsClient, settings.getRdsSettings());
+                    = new RDSRestore(backupClient, rdsClient, instanceSettings);
 
             DBInstance restoredInstance = rdsRestore.restoreRDSFromBackup();
 
-            RDSValidate rdsValidate = new RDSValidate(rdsClient, settings);
+            RDSValidate rdsValidate = new RDSValidate(rdsClient, instanceSettings);
             rdsValidate.setDbInstance(restoredInstance);
             rdsValidate.validateResource();
 
