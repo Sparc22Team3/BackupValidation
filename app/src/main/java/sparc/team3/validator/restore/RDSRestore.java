@@ -48,7 +48,6 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
     public RDSRestore(BackupClient backupClient, RdsClient rdsClient, InstanceSettings instanceSettings) {
         super(backupClient, instanceSettings, "RDS");
         this.rdsClient = rdsClient;
-        setUniqueNameForRestoredDBInstance();
 
         this.subnetGroupName = instanceSettings.getSubnetName();
         securityGroupIDs = new String[instanceSettings.getSecurityGroups().size()];
@@ -59,9 +58,6 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
         }
 
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
-    }
-
-    public void setUniqueNameForRestoredDBInstance() {
     }
 
     @Override
