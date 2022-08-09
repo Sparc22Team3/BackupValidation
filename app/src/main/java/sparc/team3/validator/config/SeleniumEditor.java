@@ -159,7 +159,7 @@ public class SeleniumEditor extends Selenium{
 
     /**
      * Run the editor
-     * @throws IOException
+     * @throws IOException if there is an IO error
      */
     public void runEditor() throws IOException{
         SeleniumLoader loader = new SeleniumLoader(cli, seleniumFile.toString());
@@ -173,7 +173,7 @@ public class SeleniumEditor extends Selenium{
 
     /**
      * Save the Selenium Settings file
-     * @throws IOException
+     * @throws IOException if there is an IO error
      */
     void saveSettings() throws IOException {
 

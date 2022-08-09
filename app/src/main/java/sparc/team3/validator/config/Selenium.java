@@ -42,7 +42,7 @@ abstract class Selenium {
 
     /**
      * Checks whether the selenium config file exists.
-     * @return
+     * @return boolean if the Selenium file exists
      */
     boolean seleniumFileExists(){
         return Files.exists(seleniumFile);

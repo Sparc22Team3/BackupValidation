@@ -165,7 +165,7 @@ public class WebAppValidate implements Callable<Boolean> {
      * @param driver WebDriver to use
      * @param entryPoint String of entrypoint to use to build url of page to check title
      * @param expectedValue String of expected title
-     * @return
+     * @return Boolean if the test passed
      */
     private Boolean checkTitle(WebDriver driver, String entryPoint, String expectedValue) {
         entryPoint = checkEntrypoint(entryPoint);
@@ -182,7 +182,7 @@ public class WebAppValidate implements Callable<Boolean> {
     /**
      * Checks tag with user-specified css selector in page against expected value.
      *
-     * @param driver
+     * @param driver WebDriver to use
      * @param tag HtmlTag to test
      * @return Boolean if test passed
      */

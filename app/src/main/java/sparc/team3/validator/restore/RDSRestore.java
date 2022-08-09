@@ -115,7 +115,7 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      * Synchronous wait to ensure database is in available state
      *
      * @param dbInstanceIdentifier the string of the database identifier
-     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
+     * @throws InstanceUnavailableException if the instance will never become available
      */
     private DBInstance waitForInstanceToBeAvailable(String dbInstanceIdentifier) throws InstanceUnavailableException {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest

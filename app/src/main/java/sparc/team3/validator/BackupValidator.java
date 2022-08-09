@@ -457,7 +457,7 @@ public class BackupValidator {
 
     /**
      * Loads information about previously restored but not terminated instances and the recovery points used to restore them.
-     * @throws IOException
+     * @throws IOException if there is an IO error
      */
     private void loadInstances() throws IOException {
         TypeReference<HashMap<String, String>> typeReference = new TypeReference<HashMap<String, String>>(){};

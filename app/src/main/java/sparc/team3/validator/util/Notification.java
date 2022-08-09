@@ -11,7 +11,7 @@ public class Notification {
      * Creates a topic with the given name
      * @param topicName String of topic name
      * @param snsClient SnsClient to use
-     * @return
+     * @return String of SNS Topic ARN
      */
     public static String createSNSTopic(String topicName, SnsClient snsClient) {
         Logger logger = LoggerFactory.getLogger(javax.management.Notification.class);
