@@ -43,8 +43,12 @@ public class WebAppValidate implements Callable<Boolean> {
 
     }
 
+    /**
+     * Entry point for Web App Validation tests
+     * @return Boolean if all tests passed
+     */
     @Override
-    public Boolean call() throws Exception {
+    public Boolean call() {
         return validateWebFunctionality();
     }
 
@@ -55,10 +59,9 @@ public class WebAppValidate implements Callable<Boolean> {
      * <p>
      * Requires entrypoint of the main page.
      *
-     * @return
-     * @throws Exception
+     * @return Boolean if all tests pass
      */
-    public Boolean validateWebFunctionality() throws Exception {
+    public Boolean validateWebFunctionality() {
 
         //Check if user provided valid settings
         if (settings == null) {
@@ -159,11 +162,12 @@ public class WebAppValidate implements Callable<Boolean> {
     /**
      * Check main page title against user defined value.
      *
-     * @param expectedValue
+     * @param driver WebDriver to use
+     * @param entryPoint String of entrypoint to use to build url of page to check title
+     * @param expectedValue String of expected title
      * @return
-     * @throws InterruptedException
      */
-    private Boolean checkTitle(WebDriver driver, String entryPoint, String expectedValue) throws InterruptedException {
+    private Boolean checkTitle(WebDriver driver, String entryPoint, String expectedValue) {
         entryPoint = checkEntrypoint(entryPoint);
         driver.navigate().to("http://" + instance.publicDnsName() + entryPoint);
 
@@ -179,11 +183,10 @@ public class WebAppValidate implements Callable<Boolean> {
      * Checks tag with user-specified css selector in page against expected value.
      *
      * @param driver
-     * @param tag
-     * @return
-     * @throws InterruptedException
+     * @param tag HtmlTag to test
+     * @return Boolean if test passed
      */
-    private Boolean checkTag(WebDriver driver, HtmlTag tag) throws InterruptedException {
+    private Boolean checkTag(WebDriver driver, HtmlTag tag) {
 
         if (tag.getCssSelector().isEmpty()) {
             logger.warn("Validation Error: CSS Selector cannot be null or empty");
@@ -205,12 +208,11 @@ public class WebAppValidate implements Callable<Boolean> {
      * Requires the database to be connected in order to verify the login. May need
      * to coordinate with RDS connection.
      *
-     * @param driver
-     * @param login
-     * @return
-     * @throws InterruptedException
+     * @param driver WebDriver for Selenium to use
+     * @param login Login to test
+     * @return Boolean if test passed
      */
-    private Boolean checkLogin(WebDriver driver, Login login) throws InterruptedException {
+    private Boolean checkLogin(WebDriver driver, Login login){
 
         if (login.getUsername().isEmpty() || login.getUsernameCssSelector().isEmpty() ||
                 login.getPasswordCssSelector().isEmpty() || login.getPassword().isEmpty()) {
@@ -243,8 +245,9 @@ public class WebAppValidate implements Callable<Boolean> {
 
     /**
      * Checks search functionality given a user defined term.
-     *
-     * @return
+     * @param driver WebDriver to use
+     * @param term SearchTerm to test
+     * @return Boolean if test passed
      */
     private Boolean checkSearch(WebDriver driver, SearchTerm term) {
 
@@ -273,6 +276,11 @@ public class WebAppValidate implements Callable<Boolean> {
         return false;
     }
 
+    /**
+     * Ensures entrypoint has '/' at the start of the string to ensure a proper url can be formed
+     * @param entrypoint String of entrypoint to check
+     * @return String of entrypoint with guaranteed '/' as first character.
+     */
     private String checkEntrypoint(String entrypoint) {
         if (!entrypoint.startsWith("/")) {
             return "/" + entrypoint;
@@ -284,10 +292,10 @@ public class WebAppValidate implements Callable<Boolean> {
     /**
      * Check that random link selected from main page is accessible.
      *
-     * @param driver
-     * @return
-     * @throws IOException
-     * @throws InterruptedException
+     * @param driver WebDriver to use
+     * @return Boolean if test passed
+     * @throws IOException if there is an IO error
+     * @throws InterruptedException if the thread is interrupted
      */
     private Boolean checkLink(WebDriver driver) throws IOException, InterruptedException {
 
@@ -297,7 +305,7 @@ public class WebAppValidate implements Callable<Boolean> {
             return true;
         }
 
-        //generate thread safe randome number [lower, upper)
+        //generate thread safe random number [lower, upper)
         int linkSelector = ThreadLocalRandom.current().nextInt(0, links.size());
 
         String link = links.get(linkSelector).getAttribute("href");
@@ -314,10 +322,10 @@ public class WebAppValidate implements Callable<Boolean> {
     /**
      * Validate an httpRequest by ping server, 200 and 301 responses valid.
      *
-     * @param httpRequest
-     * @return
-     * @throws IOException
-     * @throws InterruptedException
+     * @param httpRequest HttpRequest to check for valid status
+     * @return Boolean if test passed
+     * @throws IOException if there is an IO error
+     * @throws InterruptedException if the thread is interrupted
      */
     private Boolean validateWithPing(HttpRequest httpRequest) throws IOException, InterruptedException {
 

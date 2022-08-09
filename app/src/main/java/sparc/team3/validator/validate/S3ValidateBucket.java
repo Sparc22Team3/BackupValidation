@@ -31,6 +31,10 @@ public class S3ValidateBucket implements Callable<Boolean> {
         this.restoredBucket = restoredBucket;
     }
 
+    /**
+     * Entrypoint for validation testing.
+     * @return Boolean of whether the tests have passed
+     */
     @Override
     public Boolean call() {
         return ChecksumValidate();

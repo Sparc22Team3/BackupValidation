@@ -43,6 +43,12 @@ public class RDSValidate implements Callable<Boolean> {
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
     }
 
+    /**
+     * Entry point for running validation tests of RDS Instance
+     * @return Boolean for if the tests have all passed
+     * @throws InterruptedException if the thread is interrupted
+     * @throws ExecutionException if there was an Exception in subsequent threads checking tables
+     */
     @Override
     public Boolean call() throws InterruptedException, ExecutionException{
         setupDatabasesPools();
@@ -69,19 +75,36 @@ public class RDSValidate implements Callable<Boolean> {
         return dbsExists && allPassed;
     }
 
+    /**
+     * Set DBInstance of restored instance
+     * @param dbInstanceRestored DBInstance to set for tests
+     */
     public void setRestoredDbInstance(DBInstance dbInstanceRestored) {
         this.dbInstanceRestored = dbInstanceRestored;
     }
 
+    /**
+     * Set the database credentials
+     * @param dbUsername String of database username
+     * @param dbPassword String of database password
+     */
     public void setDBCredentials(String dbUsername, String dbPassword){
         this.dbUsername = dbUsername;
         this.dbPassword = dbPassword;
     }
 
+    /**
+     * Sets the databases that the database tests will be run on
+     * @param databasesToCheck Set of Strings of database names
+     */
     public void setDatabasesToCheck(Set<String> databasesToCheck){
         this.databasesToCheck = databasesToCheck;
     }
 
+    /**
+     * Set up the database connection pools to both the production RDS instance and the Restored RDS instance for later use
+     * @throws InterruptedException if the thread is interrupted
+     */
     public void setupDatabasesPools() throws InterruptedException{
         HikariConfig configProd = new HikariConfig();
         HikariConfig configRestored = new HikariConfig();
@@ -125,6 +148,10 @@ public class RDSValidate implements Callable<Boolean> {
         dsRestored = new HikariDataSource(configRestored);
     }
 
+    /**
+     * General check to make sure all databases present in production RDS instance are present in restored RDS instance
+     * @return boolean of whether the test has passed or not
+     */
     private boolean checkAllDatabasesExist() {
         try (Connection conProd = dsProd.getConnection();
              Connection conRestored = dsRestored.getConnection();
@@ -185,6 +212,9 @@ public class RDSValidate implements Callable<Boolean> {
         return false;
     }
 
+    /**
+     * Class to run tests on individual databases
+     */
     private static class CheckDatabases implements Callable<Boolean> {
         private final Logger logger;
         private String db;
@@ -198,6 +228,14 @@ public class RDSValidate implements Callable<Boolean> {
             this.dsRestored = dsRestored;
         }
 
+        /**
+         * Entry point and tests of database
+         * Checks if all the tables are present, if there are the same or more rows in the production database (based on
+         * the idea that databases tend to grow rather than shrink) excluding tables with cache or sessions in the name
+         * since these tend toward volatility, and if the schema/metadata of columns is all the same.
+         *
+         * @return Boolean if the tests all pass.
+         */
         public Boolean call() {
 
             try (Connection conProd = dsProd.getConnection();
