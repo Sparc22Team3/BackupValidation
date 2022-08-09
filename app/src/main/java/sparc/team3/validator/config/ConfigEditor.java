@@ -41,9 +41,7 @@ public class ConfigEditor extends Config {
         rdsSettings();
         s3Settings();
 
-        cli.outColor("PRINT BUILDERS", CLI.ANSI_RED);
         printBuilders();
-        cli.outColor("Build Settings", CLI.ANSI_RED);
         Settings settings = build();
         saveSettings(settings);
 
