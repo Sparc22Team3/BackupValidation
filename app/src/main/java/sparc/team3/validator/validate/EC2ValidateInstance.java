@@ -37,11 +37,9 @@ public class EC2ValidateInstance implements Callable<Boolean> {
     /**
      * Entry point for validation process
      * @return Boolean for if the validation passed
-     * @throws IOException if there is an IO error
-     * @throws InterruptedException if thread is interrupted
      */
     @Override
-    public Boolean call() throws IOException, InterruptedException {
+    public Boolean call() {
         return true;
     }
 
@@ -53,9 +51,8 @@ public class EC2ValidateInstance implements Callable<Boolean> {
      *
      * @return boolean whether the instance is pingable
      * @throws IOException if an I/O error occurs when sending or receiving
-     * @throws InterruptedException – if the operation is interrupted
      */
-    public Boolean validateWithPing(String entryPoint) throws IOException, InterruptedException {
+    public Boolean validateWithPing(String entryPoint) throws IOException {
 
         InetAddress urlCheck = InetAddress.getByName(instance.publicDnsName());
         InetAddress ipCheck = InetAddress.getByName(instance.publicIpAddress());
