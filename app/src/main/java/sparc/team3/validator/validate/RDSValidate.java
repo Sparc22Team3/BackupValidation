@@ -369,7 +369,7 @@ public class RDSValidate implements Callable<Boolean> {
                     ResultSetMetaData metaDataRestoredRows = rsRestoredRows.getMetaData();
 
                     // Store metadata, then compare results
-                    Map<String, Object> mapProdSchemaToMetaData = new HashMap();
+                    Map<String, Object> mapProdSchemaToMetaData = new HashMap<>();
                     int columnCountProd = metaDataProdRows.getColumnCount();
                     int columnNum = 1;
                     rsProdRows.next();
@@ -389,7 +389,7 @@ public class RDSValidate implements Callable<Boolean> {
                         columnNum++;
                     }
 
-                    Map<String, Object> mapRestoredSchemaToMetaData = new HashMap();
+                    Map<String, Object> mapRestoredSchemaToMetaData = new HashMap<>();
                     int columnCountRestored = metaDataRestoredRows.getColumnCount();
                     columnNum = 1;
                     rsRestoredRows.next();
