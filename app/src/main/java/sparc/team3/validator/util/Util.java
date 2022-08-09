@@ -38,9 +38,14 @@ public class Util {
     public static final String DEFAULT_CONFIG_FILENAME = "config.json";
 
     public static final Path DEFAULT_CONFIG = DEFAULT_CONFIG_DIR.resolve(DEFAULT_CONFIG_FILENAME);
-
+    /**
+     * The default selenium file name is {@value}.
+     */
     public static final String DEFAULT_SELENIUM_FILENAME = "selenium.json";
     public static final Path DEFAULT_SELENIUM = DEFAULT_CONFIG_DIR.resolve(DEFAULT_SELENIUM_FILENAME);
+    /**
+     * The base of unique name for RDS Instances and S3 Buckets is {@value}, timestamp will be added to this base.
+     */
     public static final String UNIQUE_RESTORE_NAME_BASE = "restore-test-";
 
     public static final ExecutorService executor = Executors.newFixedThreadPool(10);

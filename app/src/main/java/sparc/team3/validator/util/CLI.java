@@ -6,6 +6,9 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Formatter;
 
+/**
+ * Wrappers for output to command line and user input
+ */
 public class CLI {
     BufferedReader inputReader;
 
@@ -32,15 +35,38 @@ public class CLI {
         inputReader = new BufferedReader(new InputStreamReader(System.in));
     }
 
+    /**
+     * Print prompt and wait for input from user
+     * @param format String format to pass to Formatter
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized String prompt(String format, Object ... args) throws IOException {
         out(format + " ", args);
         return inputReader.readLine();
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param color String of ANSI Color to make output.  Constants available in this class.
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized String promptColor(String format, String color, Object ... args) throws IOException {
         return prompt(color + format + ANSI_RESET, args);
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param defaultValue String of defualt value.  Will be printed as [default value: String]
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized String promptDefault(String format, String defaultValue, Object ... args) throws IOException {
         Object[] newArgs = Arrays.copyOf(args,args.length + 1);
         newArgs[newArgs.length - 1] = defaultValue;
@@ -50,15 +76,39 @@ public class CLI {
         return result;
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized boolean promptYesOrNo(String format, Object ... args) throws IOException {
         String input = prompt(format + yesOrNoColor +" [yes|no] " + ANSI_RESET, args);
         return input.equalsIgnoreCase("yes") || input.equalsIgnoreCase("y");
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param color String of ANSI Color to make output.  Constants available in this class.
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized boolean promptYesOrNoColor(String format, String color, Object ... args) throws IOException {
         return promptYesOrNo(color + format, args);
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param min int of minimum number to accept
+     * @param max int of maximum number to accept
+     * @param args Objects to pass to Formatter to add to format
+     * @return String of selection
+     * @throws IOException if there is an IO error
+     */
     public synchronized int promptNumber(String format, int min, int max, Object...args) throws IOException {
         Object[] newArgs = Arrays.copyOf(args,args.length + 2);
         newArgs[newArgs.length - 2] = min;
@@ -80,10 +130,21 @@ public class CLI {
 
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param args Objects to pass to Formatter to add to format
+     */
     public synchronized void out(String format, Object ... args){
         System.out.print(new Formatter().format(format, args));
     }
 
+    /**
+     *
+     * @param format String format to pass to Formatter
+     * @param color String of ANSI Color to make output.  Constants available in this class.
+     * @param args Objects to pass to Formatter to add to format
+     */
     public synchronized void outColor(String format, String color, Object ... args){
         out(color + format + ANSI_RESET, args);
     }

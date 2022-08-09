@@ -7,6 +7,12 @@ import software.amazon.awssdk.services.sns.model.*;
 
 public class Notification {
 
+    /**
+     * Creates a topic with the given name
+     * @param topicName String of topic name
+     * @param snsClient SnsClient to use
+     * @return
+     */
     public static String createSNSTopic(String topicName, SnsClient snsClient) {
         Logger logger = LoggerFactory.getLogger(javax.management.Notification.class);
         CreateTopicResponse result = null;
@@ -24,6 +30,12 @@ public class Notification {
         return "";
     }
 
+    /**
+     * Send a message to the given topic ARN via the SnsClient
+     * @param message String of message to send
+     * @param topicArn String of topic ARN to sent message to.
+     * @param snsClient SnsClient to use
+     */
     public static void sendSnsMessage(String message, String topicArn, SnsClient snsClient){
         Logger logger = LoggerFactory.getLogger(javax.management.Notification.class);
             try {
