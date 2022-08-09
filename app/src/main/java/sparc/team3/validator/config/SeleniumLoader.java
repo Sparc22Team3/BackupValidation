@@ -7,6 +7,9 @@ import sparc.team3.validator.config.seleniumsettings.SeleniumSettings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+/**
+ * Load Selenium Test Settings from file.
+ */
 public class SeleniumLoader extends Selenium{
     public SeleniumLoader(CLI cli, String seleniumFileLocation) {
         super(cli, seleniumFileLocation);

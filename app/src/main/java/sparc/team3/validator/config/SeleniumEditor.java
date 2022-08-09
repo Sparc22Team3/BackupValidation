@@ -11,6 +11,9 @@ import sparc.team3.validator.config.seleniumsettings.SeleniumSettings;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Class to provide a builder and editor for Selenium Settings
+ */
 public class SeleniumEditor extends Selenium{
     Map<String, String> titleMap;
     Set<HtmlTag> htmlTagSet;
@@ -31,6 +34,10 @@ public class SeleniumEditor extends Selenium{
         loginSet = new TreeSet<>();
     }
 
+    /**
+     * Run the Builder to build new Selenium Settings file
+     * @throws IOException if there is an IO error
+     */
     public void runBuilder() throws IOException {
         boolean cont;
 
@@ -64,6 +71,10 @@ public class SeleniumEditor extends Selenium{
         saveSettings();
     }
 
+    /**
+     * Editor to edit existing Selenium Settings File
+     * @throws IOException if there is an IO error
+     */
     private void editor() throws IOException {
 
         boolean cont = cli.promptYesOrNoColor("\nWould you like to edit any of the titles?", titleColor);
@@ -146,6 +157,10 @@ public class SeleniumEditor extends Selenium{
         saveSettings();
     }
 
+    /**
+     * Run the editor
+     * @throws IOException
+     */
     public void runEditor() throws IOException{
         SeleniumLoader loader = new SeleniumLoader(cli, seleniumFile.toString());
         SeleniumSettings seleniumSettings = loader.loadSettings();
@@ -156,6 +171,10 @@ public class SeleniumEditor extends Selenium{
         runBuilder();
     }
 
+    /**
+     * Save the Selenium Settings file
+     * @throws IOException
+     */
     void saveSettings() throws IOException {
 
         SeleniumSettings seleniumSettings = new SeleniumSettings(titleMap, htmlTagSet, loginSet, searchTermSet);
@@ -166,7 +185,13 @@ public class SeleniumEditor extends Selenium{
         cli.out("Settings saved!", CLI.ANSI_GREEN_BACKGROUND + CLI.ANSI_BLACK);
     }
 
-
+    /**
+     * Prompt when a value is required
+     * @param format String of format
+     * @param args Objects to add to format string
+     * @return String of user entry
+     * @throws IOException if there is an IO error
+     */
     String promptRequireValue(String format, Object... args) throws IOException {
         String response;
         while((response = cli.prompt(format, args)).isEmpty()){
@@ -176,6 +201,14 @@ public class SeleniumEditor extends Selenium{
         return response;
     }
 
+    /**
+     * Prompt when there is a current value
+     * @param format String of format
+     * @param current String of current value of setting
+     * @param args Objects to add to format string
+     * @return String of user entry
+     * @throws IOException  if there is an IO error
+     */
     String promptCurrentValue(String format, String current, Object... args) throws IOException {
         String response;
         Object[] newArgs = Arrays.copyOf(args,args.length + 1);
@@ -185,6 +218,10 @@ public class SeleniumEditor extends Selenium{
         return response.isEmpty() ? current : response;
     }
 
+    /**
+     * Build a title for Selenium to check
+     * @throws IOException if there is an IO error
+     */
     void buildTitleEntry() throws IOException {
         String title;
         String entrypoint;
@@ -200,7 +237,13 @@ public class SeleniumEditor extends Selenium{
             cli.out("Old value: %s\t\tNew Value:%s\n", oldTitle, title);
     }
 
-
+    /**
+     * Build an HTML Tag for Selenium to check
+     * @param edit boolean for if this is called from editor or builder
+     * @param current String of current value, if it has one
+     * @return HtmlTag for Selnium
+     * @throws IOException if there is an IO error
+     */
     HtmlTag buildHtmlTag(boolean edit, HtmlTag current) throws IOException {
         String tagFormat = edit ? "CSS Selector to identify and find HTML tag [%s]:" : "CSS Selector to identify and find HTML tag:";
         String valueFormat = edit ? "Expected text content inside HTML tag [%s]:" : "Expected text content inside HTML tag :";
@@ -222,10 +265,22 @@ public class SeleniumEditor extends Selenium{
         return new HtmlTag(tag, value, entrypoint);
     }
 
+    /**
+     * Build a new Html Tag
+     * @return HtmlTag for Selenium
+     * @throws IOException if there is an IO error
+     */
     HtmlTag buildHtmlTag() throws IOException {
         return buildHtmlTag(false, null);
     }
 
+    /**
+     * Build a Login for Selenium to check
+     * @param edit boolean for if this is called from editor or builder
+     * @param current String value if it has one
+     * @return Login for Selenium
+     * @throws IOException if there is an IO error
+     */
     Login buildLogin(boolean edit, Login current) throws IOException {
         String usernameFormat = edit ? "Username [%s]:" : "Username:";
         String passwordFormat = edit ? "Password [%s]:" : "Password:";
@@ -255,10 +310,22 @@ public class SeleniumEditor extends Selenium{
         return new Login(username, password, usernameFieldID, passwordFieldID, entrypoint);
     }
 
+    /**
+     * Build a new Login
+     * @return Login for Selenium
+     * @throws IOException if there is an IO error
+     */
     Login buildLogin() throws IOException{
         return buildLogin(false, null);
     }
 
+    /**
+     * Build a SearchTerm for Selenium to check
+     * @param edit boolean if this is called from the editor or builder
+     * @param current String of current value if it has one
+     * @return SearchTerm for Selenium
+     * @throws IOException if there is an IO error
+     */
     SearchTerm buildSearchTerm(boolean edit, SearchTerm current) throws IOException {
         String termFormat = edit ? "Search Term [%s]:" : "Search Term:";
         String searchFieldIDFormat = edit ? "CSS Selector to identify and find Search text field [%s]:" : "CSS Selector to identify and find Search text field:";
@@ -280,10 +347,18 @@ public class SeleniumEditor extends Selenium{
         return new SearchTerm(term, searchFieldId, entrypoint);
     }
 
+    /**
+     * Build a new SearchTerm for Selenium to check
+     * @return SearchTerm for Selenium
+     * @throws IOException if there is an IO error
+     */
     SearchTerm buildSearchTerm() throws IOException {
         return buildSearchTerm(false, null);
     }
 
+    /**
+     * Prints the sets of titles, HtmlTags, Logins, and SearchTerms
+     */
     void printSets(){
         cli.outColor("\n############### Current Selenium Settings ###############\n", CLI.ANSI_YELLOW);
         printTitles(false);
@@ -293,6 +368,10 @@ public class SeleniumEditor extends Selenium{
         cli.outColor("#########################################################\n\n", CLI.ANSI_YELLOW);
     }
 
+    /**
+     * Prints out the Map of Titles
+     * @param showCount boolean whether include number of title before each entry
+     */
     void printTitles(boolean showCount){
         int i = 1;
         cli.outColor("Titles\n", titleColor);
@@ -303,6 +382,10 @@ public class SeleniumEditor extends Selenium{
         }
     }
 
+    /**
+     * Print the set of HtmlTags
+     * @param showCount boolean whether to include number of HtmlTag before each entry
+     */
     void printHtmlTags(boolean showCount){
         int i = 1;
         cli.outColor("HTML Tags:\n", htmlTagColor);
@@ -316,6 +399,10 @@ public class SeleniumEditor extends Selenium{
         }
     }
 
+    /**
+     * Print the set of Logins
+     * @param showCount boolean whether to include number of Login before each entry
+     */
     void printLogins(boolean showCount){
         int i = 1;
         cli.outColor("Logins:\n", loginColor);
@@ -333,6 +420,10 @@ public class SeleniumEditor extends Selenium{
         }
     }
 
+    /**
+     * Print the set of SearchTerms
+     * @param showCount boolean whether to include number of Login before each entry
+     */
     void printSearchTerms(boolean showCount){
         int i = 1;
         cli.outColor("Search Terms\n", searchTermColor);

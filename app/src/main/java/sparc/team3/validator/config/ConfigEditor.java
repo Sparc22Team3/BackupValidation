@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * An editor to build and edit program settings via the command line.
+ */
 public class ConfigEditor extends Config {
     Settings.SettingsBuilder settingsBuilder;
     InstanceSettings.InstanceSettingsBuilder ec2SettingsBuilder;
@@ -26,6 +29,10 @@ public class ConfigEditor extends Config {
         super(cli, configFileLocation);
     }
 
+    /**
+     * Called when user wants to build a new settings file.
+     * @throws IOException if there is an IO error
+     */
     public void runBuilder() throws IOException {
         if (configFileExists())
             if (!cli.promptYesOrNoColor("%s already exists, do you want to overwrite it?", CLI.ANSI_RED, configFile)) {
@@ -47,6 +54,10 @@ public class ConfigEditor extends Config {
 
     }
 
+    /**
+     * Called if the user wants to edit an existing settings file.
+     * @throws IOException if there is an IO error
+     */
     public void runEditor() throws IOException {
         ConfigLoader loader = new ConfigLoader(cli, configFile.toString());
         Settings settings = loader.loadSettings();
@@ -62,6 +73,11 @@ public class ConfigEditor extends Config {
         while (editSections()) ;
     }
 
+    /**
+     * Selects a section to edit
+     * @return boolean
+     * @throws IOException if there is an IO error
+     */
     @SuppressWarnings("StatementWithEmptyBody")
     boolean editSections() throws IOException {
         int max = 0;
@@ -111,6 +127,12 @@ public class ConfigEditor extends Config {
         return true;
     }
 
+    /**
+     * Prints options and gets the selection from the user
+     * @param options Options to print
+     * @return int of selection
+     * @throws IOException  if there is an IO error
+     */
     int printOptionsAndSelect(ArrayList<Option> options) throws IOException {
         int num = options.size();
 
@@ -133,6 +155,11 @@ public class ConfigEditor extends Config {
         return sel;
     }
 
+    /**
+     * Edit the server connection and AWS settings
+     * @return boolean when user has selected to go back
+     * @throws IOException if there is an IO error
+     */
     boolean editServerConnectionSettings() throws IOException {
         String databases;
         if (settingsBuilder.getDatabases() != null)
@@ -223,6 +250,11 @@ public class ConfigEditor extends Config {
         return selection != 0;
     }
 
+    /**
+     * Edit a config file in the settings
+     * @return boolean when the user is finished adding config files.
+     * @throws IOException if there is an IO error
+     */
     boolean editConfigFiles() throws IOException {
         cli.out("Current Config Files:\n%s", configFileBuildersToString());
 
@@ -244,6 +276,12 @@ public class ConfigEditor extends Config {
         return false;
     }
 
+    /**
+     * Edit a config file
+     * @param fileBuilder ServerConfigFile.ServerConfigFileBuilder of config file to edit
+     * @return boolean when the user is done editing
+     * @throws IOException if there is an IO error
+     */
     boolean editConfigFile(ServerConfigFile.ServerConfigFileBuilder fileBuilder) throws IOException {
         String settings;
         if (fileBuilder.getSettings() != null)
@@ -301,6 +339,11 @@ public class ConfigEditor extends Config {
         return selection != 0;
     }
 
+    /**
+     * Edit the EC2 Instance settings
+     * @return boolean when the user is done.
+     * @throws IOException if there is an IO error
+     */
     boolean editEc2Settings() throws IOException {
         ArrayList<Option> options = new ArrayList<>();
         options.add(new Option("Back", null));
@@ -324,6 +367,11 @@ public class ConfigEditor extends Config {
         return selection != 0;
     }
 
+    /**
+     * Edit RDS Instance Settings
+     * @return boolean when the user is finished
+     * @throws IOException if there is an IO error
+     */
     boolean editRdsSettings() throws IOException {
         String securityGroups;
         if (rdsSettingsBuilder.getSecurityGroups() != null)
@@ -376,6 +424,11 @@ public class ConfigEditor extends Config {
         return selection != 0;
     }
 
+    /**
+     * Edit S3 Bucket Settings
+     * @return boolean when the user is finished.
+     * @throws IOException  if there is an IO error
+     */
     boolean editS3Settings() throws IOException {
         ArrayList<Option> options = new ArrayList<>();
         options.add(new Option("Back", null));
@@ -399,6 +452,10 @@ public class ConfigEditor extends Config {
         return selection != 0;
     }
 
+    /**
+     * Build server connection and AWS settings
+     * @throws IOException if there is an IO error
+     */
     void serverConnectionSettings() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_CYAN, Sections.SERVER);
         settingsBuilder.serverUsername(cli.promptDefault("\tEnter server username: ", "ec2-user"));
@@ -432,6 +489,10 @@ public class ConfigEditor extends Config {
         cli.out(settingsBuilder.serverConnectionSettingsToString());
     }
 
+    /**
+     * Add a server config file while building
+     * @throws IOException if there is an IO error
+     */
     void serverConfigFiles() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_BLUE, Sections.CONFIG);
         boolean result = cli.promptYesOrNo("\tDo you need to modify configuration files on the restored server for the application to function\n" +
@@ -447,6 +508,10 @@ public class ConfigEditor extends Config {
         cli.out(CLI.ANSI_BLUE + "Server Config Files:\n" + CLI.ANSI_RESET + configFileBuildersToString());
     }
 
+    /**
+     * Add a server config file.
+     * @throws IOException if there is an IO error
+     */
     void serverConfigFile() throws IOException {
         String filename = cli.prompt("\tFilename (Without path):");
         while (filename.contains("/")) {
@@ -477,6 +542,10 @@ public class ConfigEditor extends Config {
 
     }
 
+    /**
+     * Build EC2 Instance settings
+     * @throws IOException  if there is an IO error
+     */
     void ec2Settings() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_CYAN, Sections.EC2);
         ec2SettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
@@ -486,6 +555,10 @@ public class ConfigEditor extends Config {
         cli.out(CLI.ANSI_CYAN + "EC2 Settings:\n" + CLI.ANSI_RESET + ec2SettingsBuilderToString());
     }
 
+    /**
+     * Build RDS Instance settings
+     * @throws IOException if there is an IO error
+     */
     void rdsSettings() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_BLUE, Sections.RDS);
         rdsSettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
@@ -500,6 +573,10 @@ public class ConfigEditor extends Config {
         cli.out(CLI.ANSI_BLUE + "RDS Settings:\n" + CLI.ANSI_RESET + rdsSettingsBuilderToString());
     }
 
+    /**
+     * Build S3 Bucket settings
+     * @throws IOException if there is an IO error
+     */
     void s3Settings() throws IOException {
         cli.outColor("Setup %s:\n", CLI.ANSI_PURPLE, Sections.S3);
         s3SettingsBuilder = InstanceSettings.InstanceSettingsBuilder.builder();
@@ -508,6 +585,9 @@ public class ConfigEditor extends Config {
         cli.out(CLI.ANSI_PURPLE + "S3 Settings:\n" + CLI.ANSI_RESET + s3SettingsBuilderToString());
     }
 
+    /**
+     * Print all the builders to print current state of settings before building final Settings object
+     */
     void printBuilders() {
         cli.out(CLI.ANSI_YELLOW + "############## Current Settings ##############\n" + CLI.ANSI_RESET +
                 settingsBuilder.serverConnectionSettingsToString() +
@@ -522,6 +602,10 @@ public class ConfigEditor extends Config {
                 CLI.ANSI_YELLOW + "##############################################\n" + CLI.ANSI_RESET);
     }
 
+    /**
+     * Get a string of the ConfigFileBuilders for the editor and builder
+     * @return String of the configFile builders
+     */
     String configFileBuildersToString() {
         if (configFileBuilders == null)
             return "";
@@ -532,11 +616,19 @@ public class ConfigEditor extends Config {
         return stringBuilder.toString();
     }
 
+    /**
+     * Get a string of the EC2SettingsBuilder for the editor and builder
+     * @return String of the EC2SettingsBuilder
+     */
     String ec2SettingsBuilderToString() {
         return "\tProduction instance id: '" + ec2SettingsBuilder.getProductionName() + "'\n" +
                 "\tBackup vault name: '" + ec2SettingsBuilder.getBackupVault() + "'\n";
     }
 
+    /**
+     * Get a string of the RDSSettingBuilder for the editor and builder
+     * @return String of the RDSSettingsBuilder
+     */
     String rdsSettingsBuilderToString() {
         return "\tProduction DB identifier: '" + rdsSettingsBuilder.getProductionName() + "'\n" +
                 "\tBackup vault name: '" + rdsSettingsBuilder.getBackupVault() + "'\n" +
@@ -544,11 +636,19 @@ public class ConfigEditor extends Config {
                 "\tSecurity groups: " + rdsSettingsBuilder.getSecurityGroups() + "\n";
     }
 
+    /**
+     * Get a string of the S3SettingsBuilder for the editor and builder
+     * @return String of the S3SettingsBuilder
+     */
     String s3SettingsBuilderToString() {
         return "\tProduction bucket name: '" + ec2SettingsBuilder.getProductionName() + "'\n" +
                 "\tBackup vault name: '" + ec2SettingsBuilder.getBackupVault() + "'\n";
     }
 
+    /**
+     * Build a full settings object
+     * @return Settings object
+     */
     Settings build() {
         if (configFileBuilders != null) {
             for (ServerConfigFile.ServerConfigFileBuilder serverConfigFileBuilder : configFileBuilders.values()) {
@@ -561,18 +661,32 @@ public class ConfigEditor extends Config {
         return settingsBuilder.build();
     }
 
+    /**
+     * Save the settings to file
+     * @param settings Settings object to save
+     * @throws IOException if there is an IO error
+     */
     void saveSettings(Settings settings) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         mapper.writeValue(configFile.toFile(), settings);
     }
 
+    /**
+     * Build a path key from the filename and Path
+     * @param filename String of filename
+     * @param path Path of path to directory
+     * @return String of path/to/filename
+     */
     private String pathKeyBuilder(String filename, String path) {
         if (path.endsWith("/"))
             return path + filename;
         return path + "/" + filename;
     }
 
+    /**
+     * Different sections of settings
+     */
     private enum Sections {
         SAVE("Save Settings"),
         SERVER("Server Connection Settings"),
@@ -594,6 +708,9 @@ public class ConfigEditor extends Config {
         }
     }
 
+    /**
+     * Options to build menus
+     */
     private static class Option {
         final String action;
         final String origValue;
