@@ -241,7 +241,7 @@ public class SeleniumEditor extends Selenium{
      * Build an HTML Tag for Selenium to check
      * @param edit boolean for if this is called from editor or builder
      * @param current String of current value, if it has one
-     * @return HtmlTag for Selnium
+     * @return HtmlTag for Selenium
      * @throws IOException if there is an IO error
      */
     HtmlTag buildHtmlTag(boolean edit, HtmlTag current) throws IOException {

@@ -62,7 +62,7 @@ public class CLI {
     /**
      *
      * @param format String format to pass to Formatter
-     * @param defaultValue String of defualt value.  Will be printed as [default value: String]
+     * @param defaultValue String of default value.  Will be printed as [default value: String]
      * @param args Objects to pass to Formatter to add to format
      * @return String of selection
      * @throws IOException if there is an IO error
@@ -122,7 +122,7 @@ public class CLI {
                 result = Integer.parseInt(number);
             } catch(NumberFormatException e){
                 result = min -1;
-                outColor("Please enter a number beween %d and $d", ANSI_RED, min, max);
+                outColor("Please enter a number between %d and $d", ANSI_RED, min, max);
             }
         }
 
