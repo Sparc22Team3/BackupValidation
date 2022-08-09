@@ -407,6 +407,13 @@ public class BackupValidator {
         return webAppPass;
     }
 
+    /**
+     * If the user wishes to terminate the restored instances, terminates/deletes those instances.
+     * Closes clients and shutsdown executor
+     * @param terminate boolean whether to terminate restored instances
+     * @throws IOException if there is an IO error
+     * @throws InterruptedException if executor is interrupted
+     */
     private void cleanUp(boolean terminate) throws IOException, InterruptedException {
         if(terminate) {
             if (ec2Instance != null)
@@ -425,6 +432,10 @@ public class BackupValidator {
         Util.executor.shutdown();
     }
 
+    /**
+     * Save information about instances restored and the recovery points used to restore them.
+     * @throws IOException if there is an IO error saving the file.
+     */
     private void saveInstances() throws IOException {
         Map<String, String> saveResourcesMap = new HashMap<>();
         saveResourcesMap.put("EC2", ec2Instance.instanceId());
@@ -444,6 +455,10 @@ public class BackupValidator {
         mapper.writeValue(saveLocation.toFile(), saveResourcesMap);
     }
 
+    /**
+     * Loads information about previously restored but not terminated instances and the recovery points used to restore them.
+     * @throws IOException
+     */
     private void loadInstances() throws IOException {
         TypeReference<HashMap<String, String>> typeReference = new TypeReference<HashMap<String, String>>(){};
 
@@ -483,6 +498,11 @@ public class BackupValidator {
 
     }
 
+    /**
+     * Build and send the final report of what has passed and any tests failed during testing.
+     * @param thrown Exception that may need to be included in report
+     * @throws IOException if there is an IO error
+     */
     private void report(Throwable thrown) throws IOException {
 
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -542,6 +562,10 @@ public class BackupValidator {
             Notification.sendSnsMessage(stringBuilder.toString(), settings.getSnsTopicArn(), snsClient);
     }
 
+    /**
+     * Report with no exception to include.
+     * @throws IOException if there is an IO error
+     */
     private void report() throws IOException {
         report(null);
     }
