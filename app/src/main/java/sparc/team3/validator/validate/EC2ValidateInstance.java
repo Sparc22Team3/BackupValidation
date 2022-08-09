@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.Callable;
 
+/**
+ * Class to validate EC2 instance
+ */
 public class EC2ValidateInstance implements Callable<Boolean> {
     private final Ec2Client ec2Client;
     private final InstanceSettings instanceSettings;
@@ -23,12 +26,20 @@ public class EC2ValidateInstance implements Callable<Boolean> {
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
     }
 
+    /**
+     * Sets the instance to use for validation
+     * @param instance Instance representing EC2 instance
+     */
     public void setEC2Instance(Instance instance){
         this.instance = instance;
     }
 
+    /**
+     * Entry point for validation process
+     * @return Boolean for if the validation passed
+     */
     @Override
-    public Boolean call() throws IOException, InterruptedException {
+    public Boolean call() {
         return true;
     }
 
@@ -40,9 +51,8 @@ public class EC2ValidateInstance implements Callable<Boolean> {
      *
      * @return boolean whether the instance is pingable
      * @throws IOException if an I/O error occurs when sending or receiving
-     * @throws InterruptedException – if the operation is interrupted
      */
-    public Boolean validateWithPing(String entryPoint) throws IOException, InterruptedException {
+    public Boolean validateWithPing(String entryPoint) throws IOException {
 
         InetAddress urlCheck = InetAddress.getByName(instance.publicDnsName());
         InetAddress ipCheck = InetAddress.getByName(instance.publicIpAddress());

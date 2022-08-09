@@ -42,7 +42,7 @@ abstract class Config {
 
     /**
      * Checks whether the config file exists.
-     * @return
+     * @return boolean if the file exists
      */
     boolean configFileExists(){
         return Files.exists(configFile);

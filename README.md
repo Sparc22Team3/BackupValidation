@@ -48,3 +48,9 @@ The default location for the config file is in the user's home directory in `.co
 
 ## Selenium File
 The default location for the Selenium tests file is in the user's home directory in `.config/BackupValidator`.  You can use `--newselenium` to setup a new Selenium file or `--modifyselenium` to modify an existing Selenium file.  You can also provide your own selenium.json file, [Sample Selenium File](/docs/SampleSelenium.json).
+
+## Lambda Functions
+
+The BackupValidator application is configured to execute on startup. The [lambda scripts](/LambdaScripts) start and stop an instance identified by a region, id pair. Users must customize the [TriggerValidation](/LambdaScripts/TriggerValidation.py) and [StopValidationInstance](/LambdaScripts/StopValidationInstance.py) scripts with the appropriate id and region of the instance responsible for executing BackupValidator.  Along with these scripts, users should attach a 24-hour trigger ('rate(1 day)') to the TriggerValidation script using EventBridge. An existing SNS topic to which BackupValidator publishes should be used as a trigger for the StopValidationInstance script. Users can also attach an SNS topic as a destination to each lambda script to ensure that the instance starts and stops appropriately. 
+
+Since the scripts will wait on the instance until it reaches a start or stopped state, the timeout of each lambda implementation should be increased to five minutes or as suitable based on the use case. Users must also give the requesting permissions to each lambda script. Suggested policies for [SNS Functionality](/docs/LambdaSNSPolicy) and [starting and stopping the validation instance](/docs/LambdaValidationPolicy) have been provided. 
