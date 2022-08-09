@@ -1,8 +1,8 @@
 import json
 import boto3
 
-region='us-east-1'
-instance_id = 'i-0efb6adce411a3707'
+region=''
+instance_id = ''
 ec2 = boto3.resource('ec2', region_name=region)
 #Lambda times out after 10 minutes (can increase to 15 max)
 
