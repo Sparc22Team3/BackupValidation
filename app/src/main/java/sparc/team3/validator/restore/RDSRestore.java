@@ -60,15 +60,23 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
         this.logger = LoggerFactory.getLogger(this.getClass().getName());
     }
 
+    /**
+     * Entry point for a restoration
+     * @return DBInstance of restored and available DBInstance
+     * @throws InstanceUnavailableException if the instance will never become available
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
+     */
     @Override
-    public DBInstance call() throws Exception {
+    public DBInstance call() throws InstanceUnavailableException, RecoveryPointsExhaustedException {
         return restoreRDSFromBackup();
     }
 
     /**
      * Restore database instance from snapshot.
      *
-     * @return the restored instance ID as a string
+     * @return DBInstance of restored and available RDS Instance
+     * @throws InstanceUnavailableException if the instance will never become available
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
      */
     public DBInstance restoreRDSFromBackup() throws RecoveryPointsExhaustedException, InstanceUnavailableException {
         currentRecoveryPoint = getNextRecoveryPoint();
@@ -107,6 +115,7 @@ public class RDSRestore extends AWSRestore implements Callable<DBInstance> {
      * Synchronous wait to ensure database is in available state
      *
      * @param dbInstanceIdentifier the string of the database identifier
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
      */
     private DBInstance waitForInstanceToBeAvailable(String dbInstanceIdentifier) throws InstanceUnavailableException {
         DescribeDbInstancesRequest request = DescribeDbInstancesRequest

@@ -29,18 +29,23 @@ public class S3Restore extends AWSRestore implements Callable<String> {
         this.s3Client = s3Client;
     }
 
+    /**
+     * Entry point for a restoration
+     * @return String of bucket name
+     * @throws InterruptedException if thread is interrupted
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
+     */
     @Override
     public String call() throws InterruptedException, RecoveryPointsExhaustedException {
         return restoreS3FromBackup();
     }
 
     /**
-     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
-     * longer than 20 minutes.
+     * Polls AWS Backup to check when restore job is complete.
      * If restore job is successful, copy bucket policy from production bucket to restored bucket.
-     * Throws error if job isn't completed within allotted time.
      * @return a string of the bucket name
      * @throws InterruptedException when sleep is interrupted
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
      */
     public String restoreS3FromBackup() throws InterruptedException, RecoveryPointsExhaustedException {
 

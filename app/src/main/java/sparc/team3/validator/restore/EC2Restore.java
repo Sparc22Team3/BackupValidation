@@ -15,7 +15,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 /**
- * sparc.team3.validator.restore.EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
+ * EC2Restore selects a recovery point to back up, restores the recovery point, and waits for the
  * recovered resource to pass initialization checks. 
  */
 public class EC2Restore extends AWSRestore implements Callable<Instance> {
@@ -28,16 +28,21 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
         this.ec2Client = ec2Client;
     }
 
+    /**
+     * Entry point for a restoration.
+     * @return Instance that was restored and is available and reachable
+     * @throws InstanceUnavailableException if the instance will never become available
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
+     */
     @Override
     public Instance call() throws InstanceUnavailableException, RecoveryPointsExhaustedException {
         return restoreEC2FromBackup();
     }
     /**
-     * Polls AWS Backup to check when restore job is complete. Returns error if restore job took
-     * longer than 10 minutes.
-     * Throws error if job isn't completed within allotted time.
-     * @return a string of the instance id
-     * @throws InterruptedException when sleep is interrupted
+     * Polls AWS Backup to check when restore job is complete.
+     * @return Instance representing restored EC2 Instance that is available and reachable
+     * @throws InstanceUnavailableException if the instance will never become available
+     * @throws RecoveryPointsExhaustedException if there are no available recovery points to restore
      */
     public Instance restoreEC2FromBackup() throws InstanceUnavailableException, RecoveryPointsExhaustedException {
 
@@ -158,7 +163,7 @@ public class EC2Restore extends AWSRestore implements Callable<Instance> {
     /**
      * Get the Instance information about the EC2 instance that was restored
      *
-     * @param id the id of the instance we want to get
+     * @param id String of id of the instance we want to get
      * @return an Instance describing the instance that was restored
      */
     private Instance getInstance(String id) {

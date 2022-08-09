@@ -105,6 +105,9 @@ public abstract class AWSRestore {
         return recoveryPointSetIterator.next();
     }
 
+    /**
+     * Comparator to compare RecoveryPointsByBackupVault by descending date.
+     */
     static class RecoveryPointDateComparator implements Comparator<RecoveryPointByBackupVault> {
         @Override
         public int compare(RecoveryPointByBackupVault o1, RecoveryPointByBackupVault o2) {
@@ -117,6 +120,9 @@ public abstract class AWSRestore {
         }
     }
 
+    /**
+     * Exception used when there are no recovery points left to be used for a restore.
+     */
     public static class RecoveryPointsExhaustedException extends Exception{
 
         public RecoveryPointsExhaustedException(String message) {
@@ -124,6 +130,9 @@ public abstract class AWSRestore {
         }
     }
 
+    /**
+     * Exception used when a service waiter reports back that it will never be available.
+     */
     public static class InstanceUnavailableException extends Exception{
 
         public InstanceUnavailableException(String message) {
@@ -134,6 +143,10 @@ public abstract class AWSRestore {
         }
     }
 
+    /**
+     * Getter used to get the recovery point that was used for the restored resource.
+     * @return RecoveryPointByBackupVault
+     */
     public RecoveryPointByBackupVault getCurrentRecoveryPoint() {
         return currentRecoveryPoint;
     }
