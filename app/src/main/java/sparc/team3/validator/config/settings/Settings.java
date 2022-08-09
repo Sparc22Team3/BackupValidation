@@ -8,7 +8,7 @@ import sparc.team3.validator.util.CLI;
 import java.util.*;
 
 /**
- * Settings for the program to run.
+ * Settings needed for the program to run.
  *
  * @see sparc.team3.validator.config.ConfigEditor
  */

@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Objects;
 
+/**
+ * Class represents a username and password to be used on a page specified by entrypoint indicated using the
+ * username text field selected by username CSS selector and password text field selected by password CSS selector
+ */
 public class Login implements Comparable<Login> {
     String username;
     String password;

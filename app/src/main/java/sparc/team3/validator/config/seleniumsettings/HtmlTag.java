@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Objects;
 
+/**
+ * Class represents an HTML tag selected by a CSS Selector with an expected value on a page indicated by entrypoint.
+ */
 public class HtmlTag implements Comparable<HtmlTag> {
     String cssSelector;
     String value;

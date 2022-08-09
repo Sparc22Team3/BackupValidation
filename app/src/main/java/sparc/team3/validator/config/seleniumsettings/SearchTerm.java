@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Objects;
 
+/**
+ * Represents a term to use in a search text field selected by search CSS selector on the page indicated by entrypoint.
+ */
 public class SearchTerm implements Comparable<SearchTerm> {
     String term;
     String searchCssSelector;

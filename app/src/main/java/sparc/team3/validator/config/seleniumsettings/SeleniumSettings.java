@@ -4,7 +4,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-
+/**
+ * Holds the titles, tags, logins, and searchTerms to be tested by Selenium.
+ */
 public class SeleniumSettings {
     Map<String, String> titles;
     Set<HtmlTag> tags;
