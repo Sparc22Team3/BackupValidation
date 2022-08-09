@@ -126,9 +126,11 @@ public class S3ValidateBucket implements Callable<Boolean> {
             if (restoredObjs.containsKey(key)){
                 // compare checksum value of the obj
                 if (!originalObjs.get(key).equals(restoredObjs.get(key))){
+                    logger.warn("The {} item in the restored bucket has a different checksum value than the original item.", key);
                     return false;
                 }
             } else {
+                logger.warn("{} is not present in the restored S3 bucket", key);
                 return false;
             }
         }
