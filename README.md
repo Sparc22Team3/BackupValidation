@@ -49,7 +49,7 @@ The default location for the config file is in the user's home directory in `.co
 ## Selenium File
 The default location for the Selenium tests file is in the user's home directory in `.config/BackupValidator`.  You can use `--newselenium` to setup a new Selenium file or `--modifyselenium` to modify an existing Selenium file.  You can also provide your own selenium.json file, [Sample Selenium File](/docs/SampleSelenium.json).
 
-## Lambda Functions
+## Running BackupValidator on a Schedule: Lambda Functions
 
 Configure BackupValidator to run at startup with a cron job. Use `crontab -e` to add a cron job.  This will open a file for editing, to the end of this file add `reboot java -jar BackupValidator.jar` assuming you have placed BackupValidator.jar in the user's home directory.  You still must setup the configuration and Selenium files either manually or through BackupValidator's `--newconfig` and `--newselenium` options.
 
