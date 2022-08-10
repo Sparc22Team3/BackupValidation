@@ -42,10 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -224,14 +221,16 @@ public class BackupValidator {
             report();
 
         } catch (Exception e) {
-            logger.error("{}: Instances were not terminated.", e.getMessage(), e);
+            logger.error("{}: {}: Instances were not terminated.", e.getClass().getSimpleName(), e.getMessage());
             try {
                 cleanUp(false);
                 report(e);
             } catch (InterruptedException | IOException ex) {
                 throw new RuntimeException(ex);
             }
-            throw new RuntimeException(e);
+            if(Arrays.stream(args).anyMatch(s -> s.equals("--debug") || s.equals("-d"))){
+                throw new RuntimeException(e);
+            }
         }
     }
 
