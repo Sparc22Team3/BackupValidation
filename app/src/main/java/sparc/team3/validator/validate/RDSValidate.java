@@ -166,7 +166,7 @@ public class RDSValidate implements Callable<Boolean> {
 
             // Check that ResultSets return from each query
             if (rsProdAllDbs == null || rsRestoredAllDbs == null) {
-                logger.warn("Alert: NULL Result Set from \"SHOW DATABASES\".");
+                logger.warn("Validation Error: NULL Result Set from \"SHOW DATABASES\".");
                 return false;
             }
 
@@ -455,7 +455,7 @@ public class RDSValidate implements Callable<Boolean> {
 
                     if (listTablesWithBadColumns.size() != 0) {
                         for (String s : listTablesWithBadColumns) {
-                            logger.warn("Table {} has missing or corrupted column(s)", s);
+                            logger.warn("Validation Error: Table {} has missing or corrupted column(s)", s);
                         }
                         passedSchemaCheck = false;
                     }
