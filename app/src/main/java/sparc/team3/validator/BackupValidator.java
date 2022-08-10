@@ -473,6 +473,7 @@ public class BackupValidator {
 
         // Set S3 restored bucket name
         restoredBucketName = loadedResourcesMap.get("S3");
+
         if(restoredBucketName.isEmpty())
             throw new IOException("Missing restored bucket name in save file.");
 
@@ -489,12 +490,18 @@ public class BackupValidator {
         // Use the saved EC2 instance-id to get the Instance back from AWS
         DescribeInstancesRequest.Builder describeInstancesRequest  = DescribeInstancesRequest.builder().instanceIds(ec2InstanceID);
         DescribeInstancesResponse describeInstancesResponse = ec2Client.describeInstances(describeInstancesRequest.build());
-        ec2Instance = describeInstancesResponse.reservations().get(0).instances().get(0);
+        if(!describeInstancesResponse.reservations().isEmpty() && !describeInstancesResponse.reservations().get(0).instances().isEmpty())
+            ec2Instance = describeInstancesResponse.reservations().get(0).instances().get(0);
+        else
+            throw new IOException("EC2 Instance " + ec2InstanceID + " does not exist");
 
         // Use the saved DB instance identifier to get the
         DescribeDbInstancesRequest.Builder describeDbInstancesRequest = DescribeDbInstancesRequest.builder().dbInstanceIdentifier(dbIdentifier);
         DescribeDbInstancesResponse describeDbInstances = rdsClient.describeDBInstances(describeDbInstancesRequest.build());
-        rdsInstance = describeDbInstances.dbInstances().get(0);
+        if(!describeDbInstances.dbInstances().isEmpty())
+            rdsInstance = describeDbInstances.dbInstances().get(0);
+        else
+            throw new IOException("RDS Instance " + dbIdentifier + " does not exist");
 
     }
 
