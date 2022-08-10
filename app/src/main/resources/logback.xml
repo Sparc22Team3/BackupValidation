@@ -40,16 +40,16 @@
     <logger name="software.amazon.awssdk" level="${aws-log-level:-WARN}">
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="com.zaxxer.hikari" level="${sql-log-level:-WARN}">
+    <logger name="com.zaxxer.hikari" level="${sql-log-level:-OFF}">
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="net.schmizz" level="${ssh-log-level:-WARN}">
+    <logger name="net.schmizz" level="${ssh-log-level:-OFF}">
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="org.openqa" level="${selenium-log-level:-WARN}">
+    <logger name="org.openqa" level="${selenium-log-level:-OFF}">
         <appender-ref ref="FILE" />
     </logger>
-    <root level="WARN">
+    <root level="OFF">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>
